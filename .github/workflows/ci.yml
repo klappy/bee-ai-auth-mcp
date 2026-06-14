@@ -1,0 +1,125 @@
+# CI — the enforcer for the test battery.
+#
+# Pattern borrowed from klappy/git-repo-auth-mcp/.github/workflows/ci.yml per
+# klappy://canon/constraints/release-validation-gate — convention is optional;
+# convention plus an enforcer is binding. Contract: docs/ci-cd.md.
+#
+#   check           typecheck + unit tests (no network)
+#   resolve-preview compute the branch preview URL, wait until it serves the
+#                   commit under test (not a stale build) before smoking
+#   smoke           run test/smoke.live.test.ts against the preview
+#
+# Cloudflare Git integration auto-deploys every branch to
+#   https://<slug>-bee-ai-auth-mcp.klappy.workers.dev
+# where <slug> is Cloudflare's preview-alias normalization of the branch:
+# lowercased, every non-alphanumeric run replaced by '-', repeats collapsed,
+# and leading/trailing '-' trimmed. On push to main the slug is 'main'.
+#
+# The Bee credential (whoami) is deliberately NOT smoked here — see the header
+# comment in test/smoke.live.test.ts.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Typecheck & Unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+  resolve-preview:
+    name: Resolve preview URL
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: check
+    outputs:
+      base_url: ${{ steps.url.outputs.base_url }}
+    steps:
+      - name: Compute branch slug + URL
+        id: url
+        run: |
+          REF="${{ github.head_ref || github.ref_name }}"
+          # Match Cloudflare's preview-alias normalization (workers-sdk
+          # generatePreviewAlias): lowercase, replace each non-alphanumeric
+          # char with '-', collapse repeats, trim leading/trailing '-'.
+          SLUG=$(echo "$REF" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9-]/-/g; s/-+/-/g; s/^-+|-+$//g')
+          BASE_URL="https://${SLUG}-bee-ai-auth-mcp.klappy.workers.dev"
+          echo "base_url=${BASE_URL}" >> "$GITHUB_OUTPUT"
+          echo "Branch: ${REF}"
+          echo "Preview: ${BASE_URL}"
+
+      # Cloudflare's auto-deploy runs in parallel with this workflow and keeps
+      # serving the PREVIOUS build at the branch alias until the new upload
+      # finishes. A plain /healthz 200 would accept that stale build, so poll
+      # /version (the deploy-injected commit SHA) until it matches the commit
+      # under test — proof the new build is live before we smoke it.
+      - name: Wait for the commit-under-test preview to go live
+        run: |
+          EXPECTED_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          URL="${{ steps.url.outputs.base_url }}/version"
+          echo "Polling ${URL} for ${EXPECTED_SHA}"
+          # Bound the poll by wall-clock time (~5 min, per docs/ci-cd.md) instead
+          # of a fixed count: a slow/hanging curl (--max-time 10) must not push the
+          # loop past the job's timeout-minutes and mask the explicit failure below.
+          DEADLINE=$(( $(date +%s) + 300 ))
+          i=0
+          while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+            i=$((i + 1))
+            DEPLOYED=$(curl -fs --max-time 10 "$URL" 2>/dev/null || true)
+            if [ -n "$DEPLOYED" ]; then
+              case "$EXPECTED_SHA" in
+                "$DEPLOYED"*)
+                  echo "Preview is serving the commit under test (${DEPLOYED}) after ${i} attempt(s)."
+                  exit 0
+                  ;;
+              esac
+            fi
+            echo "  attempt ${i}: preview reports '${DEPLOYED:-<none>}' — waiting 5s"
+            sleep 5
+          done
+          echo "Preview never reported commit ${EXPECTED_SHA}; the new build is not live, or the deploy is not injecting COMMIT_SHA (see docs/ci-cd.md)."
+          exit 1
+
+  smoke:
+    name: Smoke vs preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: resolve-preview
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run smoke battery against preview
+        env:
+          SMOKE_BASE_URL: ${{ needs.resolve-preview.outputs.base_url }}
+        run: npm run test:smoke

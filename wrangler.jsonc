@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bee-ai-auth-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "assets": { "directory": "./public" },
+  "kv_namespaces": [
+    // Create your own: `wrangler kv namespace create OAUTH_KV`, then paste the id here.
+    { "binding": "OAUTH_KV", "id": "REPLACE_WITH_YOUR_OAUTH_KV_ID" }
+  ],
+  "vars": {
+    // Comma-separated GitHub login(s) allowed to use this self-host instance.
+    // REQUIRED — the instance denies all logins until this is set.
+    "ALLOWED_GITHUB_LOGIN": "",
+    // Bee direct API base, e.g. "https://<bee-api-host>". See the private-CA
+    // reachability tripwire in docs/phase-1-execution-handoff.md §4.
+    "BEE_API_BASE": "",
+    // Deploy-injected commit SHA, served at /version so CI can confirm the
+    // preview is the commit under test. Empty in local dev; Workers Builds
+    // sets it via `wrangler deploy --var COMMIT_SHA:$WORKERS_CI_COMMIT_SHA`.
+    "COMMIT_SHA": ""
+  }
+  // Secrets (set via `wrangler secret put`, never committed, never in chat):
+  //   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET  (a GitHub *OAuth App* — identity only, not a GitHub App)
+  //   BEE_API_TOKEN                            (your Bee bearer; rotate it in the Bee app to revoke)
+}

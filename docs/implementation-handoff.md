@@ -76,3 +76,15 @@ git-auth shipped to the Anthropic connector directory using a method bee-mcp sho
 - **[D]** Phase 1 is a guided port of git-repo-auth: borrow `index.ts`/`state.ts`/`wrangler.jsonc`/deps ~verbatim; bend `types.ts` (GrantProps), `mcp-api.ts` (tools), `github-auth.ts`→`bee-auth.ts`; replace `@octokit/auth-app` with a private-CA Bee client; mirror the governance/ledger/public/test/CI skeleton.
 - **[L]** The ship method is reusable and laptop-free: three-pass validation (requirements / four-surface reviewer sim / adversarial) with a fresh-context validator, confirmed at the wire (client view ≠ wire; reconnect to refresh cached schemas); the manual OAuth dance is a phone-only Inspector substitute. Adopt as Phase 1 DoD.
 - **[O]** Provenance breaks tooling: Bugbot author-matches the PR creator, so bot PRs never review. Interim convention: crew pushes branches, operator opens PRs.
+
+---
+
+## Post-validation amendments (2026-06-14)
+
+A fresh-context validation + challenge pass refined this handoff. Trail: `odd/ledger/2026-06-14-validation.md`, `odd/ledger/2026-06-14-session-validation-to-execution.md`, `docs/phase-1-execution-handoff.md` (the locked Phase-1 contract). Net changes to the borrow map above:
+
+- **Phase 1 is Model A (deployer-key self-host), not per-user custody.** The deployer's Bee token is the Worker's own secret (`wrangler secret`). This matches the closest prior art (`mcp-limitless`) and dissolves the credential-capture problem for self-host. The `bee-auth.ts` "capture the user's token mid-OAuth" flow described in §2 is a **Tier-2** concern, deferred. Per-grant prop encryption is **token-derived, not KMS** (correcting §4's framing).
+- **Private CA is a Break, not a Bend (verified).** Standard Workers `fetch` trusts only publicly-trusted CAs; bee-cli's `--cacert` does not port. The Bee client is **gated on a reachability check** from a non-proxied environment; if Bee's direct API isn't publicly trusted, the path is Workers VPC (Origin-CA) / mTLS, or revert. Do not lock the Bee client before this is retired.
+- **The borrowed "rich JSON error payloads" are a token-leak vector here.** git-auth could afford them because it minted ephemeral tokens; bee-mcp holds a long-lived bearer. The error path **must never serialize the Bee request/headers or raw upstream response**. Binding constraint (`safest`).
+- **Revocation:** disconnect deletes the relay's copy; full revocation = rotate at Bee. Do not import git-auth's "revocable by you" wording unchanged (`honest`).
+- **Endpoints:** only `/v1/me` and `/v1/conversations` are confirmed in Bee's public docs; `/v1/search/conversations` and `/v1/changes` are unconfirmed → Phase-2 confirm-or-drop.
