@@ -8,7 +8,7 @@
   "assets": { "directory": "./public" },
   "kv_namespaces": [
     // Create your own: `wrangler kv namespace create OAUTH_KV`, then paste the id here.
-    { "binding": "OAUTH_KV", "id": "REPLACE_WITH_YOUR_OAUTH_KV_ID" }
+    { "binding": "OAUTH_KV", "id": "8f260f3c8ab6476dbea2b17926bf38bf" }
   ],
   "vars": {
     // Comma-separated GitHub login(s) allowed to use this self-host instance.
