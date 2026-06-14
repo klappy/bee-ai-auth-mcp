@@ -42,6 +42,10 @@ export const BeeAuthHandler = {
 
     if (url.pathname === "/healthz") return new Response("ok", { status: 200 });
 
+    // Deploy-injected commit SHA, so CI can confirm this preview is the commit
+    // under test (not a stale build still serving the branch alias).
+    if (url.pathname === "/version") return new Response(env.COMMIT_SHA ?? "", { status: 200 });
+
     // ---- MCP client begins authorization ----
     if (url.pathname === "/authorize") {
       let oauthReqInfo: AuthRequest;

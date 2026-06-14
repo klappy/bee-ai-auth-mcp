@@ -5,13 +5,15 @@
 # convention plus an enforcer is binding. Contract: docs/ci-cd.md.
 #
 #   check           typecheck + unit tests (no network)
-#   resolve-preview compute the auto-deployed branch preview URL, poll until live
+#   resolve-preview compute the branch preview URL, wait until it serves the
+#                   commit under test (not a stale build) before smoking
 #   smoke           run test/smoke.live.test.ts against the preview
 #
 # Cloudflare Git integration auto-deploys every branch to
 #   https://<slug>-bee-ai-auth-mcp.klappy.workers.dev
-# where <slug> is the branch lowercased with '/' and '.' replaced by '-'.
-# On push to main the slug is 'main'.
+# where <slug> is Cloudflare's preview-alias normalization of the branch:
+# lowercased, every non-alphanumeric run replaced by '-', repeats collapsed,
+# and leading/trailing '-' trimmed. On push to main the slug is 'main'.
 #
 # The Bee credential (whoami) is deliberately NOT smoked here — see the header
 # comment in test/smoke.live.test.ts.
@@ -61,28 +63,39 @@ jobs:
         id: url
         run: |
           REF="${{ github.head_ref || github.ref_name }}"
-          SLUG=$(echo "$REF" | tr '[:upper:]' '[:lower:]' | tr '/.' '--')
+          # Match Cloudflare's preview-alias normalization (workers-sdk
+          # generatePreviewAlias): lowercase, replace each non-alphanumeric
+          # char with '-', collapse repeats, trim leading/trailing '-'.
+          SLUG=$(echo "$REF" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9-]/-/g; s/-+/-/g; s/^-+|-+$//g')
           BASE_URL="https://${SLUG}-bee-ai-auth-mcp.klappy.workers.dev"
           echo "base_url=${BASE_URL}" >> "$GITHUB_OUTPUT"
           echo "Branch: ${REF}"
           echo "Preview: ${BASE_URL}"
 
-      # Cloudflare's auto-deploy runs in parallel with this workflow; wait
-      # (up to ~5 min) for /healthz to return 200 before smoking.
-      - name: Wait for preview deploy to be reachable
+      # Cloudflare's auto-deploy runs in parallel with this workflow and keeps
+      # serving the PREVIOUS build at the branch alias until the new upload
+      # finishes. A plain /healthz 200 would accept that stale build, so poll
+      # /version (the deploy-injected commit SHA) until it matches the commit
+      # under test — proof the new build is live before we smoke it.
+      - name: Wait for the commit-under-test preview to go live
         run: |
-          URL="${{ steps.url.outputs.base_url }}/healthz"
-          echo "Polling ${URL}"
+          EXPECTED_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          URL="${{ steps.url.outputs.base_url }}/version"
+          echo "Polling ${URL} for ${EXPECTED_SHA}"
           for i in $(seq 1 60); do
-            CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || echo "000")
-            if [ "$CODE" = "200" ]; then
-              echo "Preview is live (HTTP 200) after ${i} attempt(s)."
-              exit 0
+            DEPLOYED=$(curl -fs --max-time 10 "$URL" 2>/dev/null || true)
+            if [ -n "$DEPLOYED" ]; then
+              case "$EXPECTED_SHA" in
+                "$DEPLOYED"*)
+                  echo "Preview is serving the commit under test (${DEPLOYED}) after ${i} attempt(s)."
+                  exit 0
+                  ;;
+              esac
             fi
-            echo "  attempt ${i}: HTTP ${CODE} — waiting 5s"
+            echo "  attempt ${i}: preview reports '${DEPLOYED:-<none>}' — waiting 5s"
             sleep 5
           done
-          echo "Preview did not become reachable in time."
+          echo "Preview never reported commit ${EXPECTED_SHA}; the new build is not live, or the deploy is not injecting COMMIT_SHA (see docs/ci-cd.md)."
           exit 1
 
   smoke:
