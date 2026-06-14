@@ -14,9 +14,10 @@ Reference repo you are porting from: **`klappy/git-repo-auth-mcp`** (the proven 
 
 ## 2. Current state — mode and gate
 
-- **Mode: PLANNING.** The plan is finalized into `PRD.md` (v0.1, DRAFT).
-- **Execution is GATED.** Nothing builds until the **operator completes an author pass on `PRD.md`** and the `oddkit` planning→execution gate is re-run to PASS. The gate last returned NOT_READY on three items (definition of done, irreversibility, constraints-satisfiable); the PRD now answers all three in-document, so it should PASS once the operator approves the text.
-- Do **not** write product code before that. Persistence/handoff/governance work (like this repo bootstrap) is allowed.
+- **Mode: EXECUTION (Phase-1 spine).** The `oddkit` planning→execution gate **PASSED 4/4 on 2026-06-14** for the Bee-independent spine, after the refined plan was written down (`docs/phase-1-execution-handoff.md`). PRD is v0.2 (post-validation).
+- **Phase 1 = Model A (deployer-key self-host), Tier 1 only.** The deployer's Bee token is the Worker's own secret — no per-user custody (that's Tier 2, deferred).
+- **The Bee-client slice is gated** on the private-CA reachability check (a Worker reaching Bee's private-CA API). Spine (scaffold, OAuth, whoami shape, deploy skeleton) carries no open unknown and is in execution.
+- Persistence/handoff/governance work is always allowed; per-user-custody/Tier-2 code is out of scope until the Tier-2 decision + Tier-0.
 
 ## 3. What's been decided (full trail in `odd/ledger/2026-06-14-planning.md`)
 
@@ -28,10 +29,10 @@ Reference repo you are porting from: **`klappy/git-repo-auth-mcp`** (the proven 
 
 ## 4. The next action (precise)
 
-1. **Operator:** author pass on `PRD.md`. Three spots flagged for his eyes — the non-goals (Omi-vs-substrate framing), the Phase split (is Phase 1 the "auth" he meant), the Tier-2 custody risk note (is the Tier-0 gate the right leash).
-2. **Crew:** on approval, re-run `oddkit` gate planning→execution. Expect PASS.
-3. **Crew:** begin Phase 1 per `docs/implementation-handoff.md` — borrow `index.ts`/`state.ts`/`wrangler.jsonc`/deps ~verbatim from git-auth; bend `types.ts` (GrantProps), `mcp-api.ts` (swap minting tool for `whoami`), and the auth handler (`github-auth.ts` → `bee-auth.ts`: capture + validate the Bee token via `/v1/me`); replace `@octokit/auth-app` with a thin private-CA-aware Bee client. Validate at the wire, phone-only, three passes, fresh context.
-4. Confirm Bee `/v1/*` schemas + private-CA handling against the live API during the port (don't fabricate).
+1. **Operator (parallel, only you can):** run the private-CA reachability check from a non-proxied environment — `openssl s_client` against Bee's real API host, inspect the cert issuer. Public CA → the Bee-client slice un-gates; private/self-signed → we need Workers VPC/mTLS or revert to a network-path decision.
+2. **Crew (in execution, spine):** ground the port — mint a read-only token (Git Repo Auth), clone `klappy/git-repo-auth-mcp`, read source (scrub after); then scaffold (`index.ts`/`state.ts`/`wrangler.jsonc`/deps, drop octokit + Stripe vars), wire user↔relay OAuth (`workers-oauth-provider`), register the `whoami` tool shape via `McpAgent`, stand up the Tier-1 deploy skeleton + honest README.
+3. **Crew (Bee-client slice, gated on step 1):** deployer-key secret intake + the Bee fetch client over `/v1/me`; never serialize the Bee request in errors.
+4. Validate at the wire, phone-only, three passes, fresh context. Crew pushes branches; operator opens PRs.
 
 ## 5. Map of this repo
 
