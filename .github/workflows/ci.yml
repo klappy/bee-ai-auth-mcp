@@ -82,7 +82,13 @@ jobs:
           EXPECTED_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
           URL="${{ steps.url.outputs.base_url }}/version"
           echo "Polling ${URL} for ${EXPECTED_SHA}"
-          for i in $(seq 1 60); do
+          # Bound the poll by wall-clock time (~5 min, per docs/ci-cd.md) instead
+          # of a fixed count: a slow/hanging curl (--max-time 10) must not push the
+          # loop past the job's timeout-minutes and mask the explicit failure below.
+          DEADLINE=$(( $(date +%s) + 300 ))
+          i=0
+          while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+            i=$((i + 1))
             DEPLOYED=$(curl -fs --max-time 10 "$URL" 2>/dev/null || true)
             if [ -n "$DEPLOYED" ]; then
               case "$EXPECTED_SHA" in
