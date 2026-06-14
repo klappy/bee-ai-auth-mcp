@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build / Wrangler
+dist/
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# Secrets — never commit
+*.pem
+.env
+.env.*
+
+# Logs / OS
+*.log
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
