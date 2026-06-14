@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Security &amp; custody — bee-ai-auth-mcp</title>
+<meta name="description" content="The honest security model: two separated auth legs, what's stored and how it's encrypted, how revocation actually works, and why hosted multi-tenant custody is deferred until the upstream issues short-lived tokens." />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Security &amp; custody — bee-ai-auth-mcp" />
+<meta property="og:description" content="No central pile of keys. Here's exactly what is and isn't held, and what revocation really means." />
+<meta property="og:url" content="https://bee.klappy.dev/security" />
+<meta property="og:image" content="https://bee.klappy.dev/og-image.png" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+<meta name="theme-color" content="#0E5A4A" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="/"><img src="/favicon.svg" width="24" height="24" alt="" /> bee-ai-auth-mcp</a>
+    <nav>
+      <a class="nav-hide" href="/under-the-hood">Under the hood</a>
+      <a href="/setup">Set up</a>
+      <a class="nav-hide" href="/security" aria-current="page">Security</a>
+      <a class="nav-hide" href="/roadmap">Roadmap</a>
+      <a class="ghost" href="https://github.com/klappy/bee-ai-auth-mcp">GitHub&nbsp;↗</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="page-hero flush">
+    <p class="breadcrumb"><a href="/">Home</a> / Security</p>
+    <p class="eyebrow">Honest + safest</p>
+    <h1>What's held, what isn't, and how to revoke.</h1>
+    <p class="lede">Custody is the whole question with a credential relay. The honest answer for Phase 1: this holds your own token in your own deployment, and nobody else's anywhere.</p>
+  </section>
+
+  <section class="prose">
+    <h2>Two legs, kept separate</h2>
+    <p>The login leg (you ↔ relay) and the data leg (relay ↔ Bee) never mix. GitHub authenticates <em>who you are</em> and grants nothing else — no repository access, no profile data beyond your login, which is read once and discarded. Your Bee token rides the other leg only, as your Worker's own secret.</p>
+
+    <h2>What gets stored</h2>
+    <p>The only persistent state is the OAuth provider's grants, in your <code>OAUTH_KV</code> namespace. Grant props are encrypted per-grant with key material derived from the token, not a shared KMS key. A storage-only leak therefore exposes metadata, not usable credentials.</p>
+
+    <h2>The Bee bearer</h2>
+    <p>It's a Worker secret. It is never written to logs, never placed in a URL, never serialized into an error, and never returned in tool output. Errors carry a status and a generic message — never the request, the headers, or the upstream body. Tools are read-only by default and request the narrowest data they need.</p>
+
+    <h2>Revocation — said plainly</h2>
+    <p>Disconnecting the connector ends <em>the relay's</em> access to you: the grant is gone. It does <strong>not</strong> revoke the Bee token itself. To fully revoke, rotate the token in the Bee app and re-set the secret. We won't imply a cleaner story than that — honest beats convenient.</p>
+
+    <h2>Who can use your instance</h2>
+    <p>Every login is checked against <code>ALLOWED_GITHUB_LOGIN</code>. Until you set it, the instance refuses everyone — closed by default, not open by default.</p>
+
+    <h2>Why self-host is the safe default</h2>
+    <div class="compare">
+      <div class="card"><h3>A hosted store of everyone's tokens</h3><ul><li>Holds many people's long-lived Bee bearers at once</li><li>One breach exposes every connected account</li><li>A structural honeypot someone must guard forever</li><li>Reachable only once Bee issues short-lived, minted tokens</li></ul></div>
+      <div class="card good"><h3>Self-host (Phase 1, Model A)</h3><ul><li>Your token is your own Worker secret, nowhere central</li><li>The blast radius is one person: you</li><li>No trust required in an operator you've never met</li><li>Revoke whenever, by rotating in the Bee app</li></ul></div>
+    </div>
+
+    <h2>Why hosted multi-tenant is deferred</h2>
+    <p>The sibling <code>git-repo-auth</code> can host many users safely because GitHub mints ephemeral, scoped tokens that die within the hour — it never stores a long-lived credential. Bee has no equivalent minting primitive today, so a hosted bee relay would have to store long-lived Bee tokens: the exact liability self-host avoids. Hardening (envelope encryption, per-user isolation, narrowest scope, rotation) shrinks that risk but doesn't erase it. So hosted custody stays deferred and scaling is gated on an upstream "mint short-lived tokens" capability landing. The <a href="/roadmap">roadmap</a> tracks that gate.</p>
+
+    <p><a href="/under-the-hood">See the technical detail →</a></p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap frow">
+    <span class="mono">bee-ai-auth-mcp</span><span class="sep">·</span>
+    <span>MIT — self-host-first</span><span class="sep">·</span>
+    <a href="/">Home</a><span class="sep">·</span>
+    <a href="/under-the-hood">Under the hood</a><span class="sep">·</span>
+    <a href="/setup">Set up</a><span class="sep">·</span>
+    <a href="/roadmap">Roadmap</a><span class="sep">·</span>
+    <a href="https://github.com/klappy/bee-ai-auth-mcp">GitHub</a>
+  </div>
+</footer>
+
+</body>
+</html>

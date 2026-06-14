@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Under the hood — bee-ai-auth-mcp</title>
+<meta name="description" content="How bee-ai-auth-mcp is built: one Cloudflare Worker, two-leg auth (GitHub OAuth for identity + your Bee token as a Worker secret), workers-oauth-provider grant storage, the MCP surface, and the private-CA seam." />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Under the hood — bee-ai-auth-mcp" />
+<meta property="og:description" content="One Worker, two legs of trust, and an honest account of what's gated and why." />
+<meta property="og:url" content="https://bee.klappy.dev/under-the-hood" />
+<meta property="og:image" content="https://bee.klappy.dev/og-image.png" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+<meta name="theme-color" content="#0E5A4A" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="/"><img src="/favicon.svg" width="24" height="24" alt="" /> bee-ai-auth-mcp</a>
+    <nav>
+      <a class="nav-hide" href="/under-the-hood" aria-current="page">Under the hood</a>
+      <a href="/setup">Set up</a>
+      <a class="nav-hide" href="/security">Security</a>
+      <a class="nav-hide" href="/roadmap">Roadmap</a>
+      <a class="ghost" href="https://github.com/klappy/bee-ai-auth-mcp">GitHub&nbsp;↗</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="page-hero flush">
+    <p class="breadcrumb"><a href="/">Home</a> / Under the hood</p>
+    <p class="eyebrow">For developers</p>
+    <h1>One Worker, two legs of trust.</h1>
+    <p class="lede">bee-ai-auth-mcp is a single Cloudflare Worker that borrows its protocol, transport, and OAuth plumbing and builds only the Bee-specific glue. Here's the whole shape, including the parts that don't work yet.</p>
+  </section>
+
+  <section class="prose">
+    <h2>The stack</h2>
+    <p>Nothing in the auth or transport layer is hand-rolled. The Worker composes three proven pieces and adds a thin Bee client:</p>
+    <dl class="specs">
+      <dt>workers-oauth-provider</dt><dd>The OAuth 2.1 surface for MCP clients — dynamic client registration, PKCE, and encrypted grant storage in KV.</dd>
+      <dt>@modelcontextprotocol/sdk</dt><dd>MCP protocol framing, capability negotiation, and tool transport.</dd>
+      <dt>agents</dt><dd>Cloudflare's runtime for a Workers-hosted remote MCP endpoint.</dd>
+      <dt>src/bee.ts</dt><dd>The only bespoke part: a read-only client for Bee's <code>/v1/*</code> API.</dd>
+    </dl>
+    <p>The provider wraps the whole Worker. Requests to <code>/mcp</code> go to the MCP API handler; everything else (identity, health) goes to the default handler. The OAuth endpoints — <code>/authorize</code>, <code>/token</code>, <code>/register</code>, and <code>/.well-known/oauth-authorization-server</code> — are served by the provider itself.</p>
+
+    <h2>Leg one — you ↔ the relay <span class="tag live">live</span></h2>
+    <p>This leg proves you're allowed to use the instance. It's a standard OAuth web flow with GitHub as the upstream identity provider:</p>
+    <ol>
+      <li>Your MCP client registers itself (dynamic client registration) and opens <code>/authorize</code>.</li>
+      <li>The relay 302-redirects to GitHub's <code>/login/oauth/authorize</code> with the instance's <code>GITHUB_CLIENT_ID</code> and a callback of <code>https://&lt;your-worker&gt;/callback</code>.</li>
+      <li>You approve on GitHub. GitHub returns to <code>/callback</code> with a code.</li>
+      <li>The relay exchanges the code for a short-lived GitHub token, reads <strong>only</strong> your login from <code>/user</code>, then discards the token.</li>
+      <li>Your login is checked against <code>ALLOWED_GITHUB_LOGIN</code>. Pass, and the provider issues the relay's own OAuth token to your client. Fail, and you get a plain "not authorized" page.</li>
+    </ol>
+    <p>GitHub here is identity only — no repository scope, no data access. The relay never stores your GitHub token; it reads a username and lets it go.</p>
+    <div class="callout info"><p class="h">Why an OAuth App, not a GitHub App</p><p>The sibling <code>git-repo-auth</code> uses a GitHub <em>App</em> because it mints repository tokens. bee only needs to read a login, so a plain <strong>GitHub OAuth App</strong> is the right, smaller primitive. Its <code>client_id</code> and <code>client_secret</code> are the two secrets this leg needs.</p></div>
+
+    <h2>Leg two — the relay ↔ Bee <span class="tag gated">gated</span></h2>
+    <p>This leg carries <em>your</em> Bee credential to Bee. In Phase 1 (Model A, self-host) the credential is <strong>your own Bee token, stored as a Worker secret</strong> — not collected per user, not custodied for anyone else. The relay reaches exactly one confirmed endpoint, <code>GET /v1/me</code>, behind the <code>whoami</code> tool.</p>
+    <div class="callout"><p class="h">The private-CA seam</p><p>A Cloudflare Worker's <code>fetch</code> trusts only publicly-trusted certificates, and there's no per-request CA override. Bee's docs indicate a private CA for the direct API. So this call works <em>if and only if</em> Bee's real API base presents a public cert — otherwise it fails at TLS and the path is Workers VPC (Origin-CA) or mTLS. That reachability check, run from a non-proxied environment, is the open Phase-1 tripwire.</p></div>
+
+    <h2>What's stored</h2>
+    <p>The only persistent state is the OAuth provider's grants in the <code>OAUTH_KV</code> namespace. Grant props are encrypted per-grant with key material derived from the token itself — token-derived, not KMS-backed. A storage-only leak therefore reveals metadata, not usable credentials. The Bee bearer never appears in logs, URLs, errors, or tool output; errors return a status and a generic message, never the request or the token.</p>
+
+    <h2>The MCP surface</h2>
+    <p>Tools are added deliberately, against confirmed endpoints only:</p>
+    <table class="matrix">
+      <tr><th>Tool / endpoint</th><th>Status</th><th>Notes</th></tr>
+      <tr><td>whoami → /v1/me</td><td><span class="tag gated">gated</span></td><td>Wired; live once reachability is confirmed.</td></tr>
+      <tr><td>/v1/conversations</td><td><span class="tag next">phase 2</span></td><td>Confirmed in Bee's docs; read-only, paginated, size-capped.</td></tr>
+      <tr><td>/v1/search/conversations</td><td><span class="tag next">unconfirmed</span></td><td>Not in Bee's public docs — confirm-or-drop against the live API first.</td></tr>
+      <tr><td>/v1/changes</td><td><span class="tag next">unconfirmed</span></td><td>Same — frozen out of the tool surface until verified.</td></tr>
+    </table>
+
+    <h2>Tiers</h2>
+    <p><strong>Tier 1 (Model A, self-host)</strong> is what ships: one deployment, one operator, zero third-party custody. <strong>Tier 2 (hosted, multi-tenant)</strong> is deferred — without an upstream minting primitive it would mean storing many users' long-lived Bee tokens, the exact honeypot self-host avoids. The <a href="/roadmap">roadmap</a> covers why, and the <a href="/security">security model</a> covers the custody trade in full.</p>
+    <p><a href="https://github.com/klappy/bee-ai-auth-mcp">Read the source on GitHub →</a></p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap frow">
+    <span class="mono">bee-ai-auth-mcp</span><span class="sep">·</span>
+    <span>MIT — self-host-first</span><span class="sep">·</span>
+    <a href="/">Home</a><span class="sep">·</span>
+    <a href="/setup">Set up</a><span class="sep">·</span>
+    <a href="/security">Security</a><span class="sep">·</span>
+    <a href="/roadmap">Roadmap</a><span class="sep">·</span>
+    <a href="https://github.com/klappy/bee-ai-auth-mcp">GitHub</a>
+  </div>
+</footer>
+
+</body>
+</html>

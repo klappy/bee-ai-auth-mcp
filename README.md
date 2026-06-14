@@ -2,7 +2,7 @@
 
 > Self-host-first, OAuth-secured MCP server that brings your Bee AI pendant's conversations to any MCP client — Claude, Cursor, and other agents, on every surface. Encrypted per-user token custody, read-only by default. MIT.
 
-**Status: PLANNING.** The spec is finalized (`PRD.md`, v0.1 DRAFT) and execution is gated on the operator's author pass. No product code has been written yet — this repo currently holds the plan, the build handoff, and the decision trail, bootstrapped for clean resumption across context.
+**Status: PHASE 1 — DEPLOYED (self-host, Model A).** The auth-core spine is built and live on Cloudflare Workers: GitHub identity gate, the `whoami` tool, a static site, and CI/CD. The Bee-client call is gated on the private-CA reachability check (`docs/phase-1-execution-handoff.md` §4). Read-only conversation retrieval (Phase 2) and hosted multi-tenant Tier 2 (Phase 3) are later. `RESUME.md` is the fresh-context entry point; `PRD.md` (v0.2) is the spec.
 
 ## Start here
 

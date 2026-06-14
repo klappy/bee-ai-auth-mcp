@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Set up — bee-ai-auth-mcp</title>
+<meta name="description" content="Self-host bee-ai-auth-mcp: create the KV store, register a GitHub OAuth App, set your secrets and config, deploy to Cloudflare, and connect it in Claude — with troubleshooting for the common snags." />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Set up bee-ai-auth-mcp" />
+<meta property="og:description" content="Run your own instance in a handful of steps, with the gotchas called out." />
+<meta property="og:url" content="https://bee.klappy.dev/setup" />
+<meta property="og:image" content="https://bee.klappy.dev/og-image.png" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+<meta name="theme-color" content="#0E5A4A" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="/"><img src="/favicon.svg" width="24" height="24" alt="" /> bee-ai-auth-mcp</a>
+    <nav>
+      <a class="nav-hide" href="/under-the-hood">Under the hood</a>
+      <a href="/setup" aria-current="page">Set up</a>
+      <a class="nav-hide" href="/security">Security</a>
+      <a class="nav-hide" href="/roadmap">Roadmap</a>
+      <a class="ghost" href="https://github.com/klappy/bee-ai-auth-mcp">GitHub&nbsp;↗</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="page-hero flush">
+    <p class="breadcrumb"><a href="/">Home</a> / Set up</p>
+    <p class="eyebrow">Self-host guide</p>
+    <h1>Run your own instance.</h1>
+    <p class="lede">About fifteen minutes. You'll need a Cloudflare account, the <code>wrangler</code> CLI, a Bee API token from the Bee app, and a GitHub account. Your Bee token never leaves your own deployment.</p>
+  </section>
+
+  <section class="prose flush" style="padding-top:36px">
+    <ol class="setup">
+      <li>
+        <h3>Clone and install</h3>
+        <pre><span class="c"># grab the code, install dependencies</span>
+git clone https://github.com/klappy/bee-ai-auth-mcp
+cd bee-ai-auth-mcp &amp;&amp; npm install</pre>
+      </li>
+      <li>
+        <h3>Create the grant store</h3>
+        <p>One KV namespace holds the encrypted OAuth grants. Paste the id it prints into <code>wrangler.jsonc</code> under the <code>OAUTH_KV</code> binding, replacing the placeholder.</p>
+        <pre>wrangler kv namespace create OAUTH_KV</pre>
+      </li>
+      <li>
+        <h3>Register a GitHub OAuth App</h3>
+        <p>GitHub → Settings → Developer settings → <strong>OAuth Apps</strong> → New OAuth App. This is the identity provider for the login leg.</p>
+        <dl class="specs">
+          <dt>Application name</dt><dd>Anything, e.g. <code>bee-ai-auth-mcp</code></dd>
+          <dt>Homepage URL</dt><dd><code>https://&lt;your-worker&gt;</code></dd>
+          <dt>Callback URL</dt><dd><code>https://&lt;your-worker&gt;/callback</code> — must be exact</dd>
+        </dl>
+        <p>Register, copy the <strong>Client ID</strong>, and generate a <strong>Client secret</strong>. Store both as Worker secrets:</p>
+        <pre>wrangler secret put GITHUB_CLIENT_ID
+wrangler secret put GITHUB_CLIENT_SECRET</pre>
+        <div class="callout info"><p class="h">OAuth App, not GitHub App</p><p>GitHub offers two things under Developer settings. Pick <em>OAuth Apps</em> — bee only reads your login, so it doesn't need a GitHub App's installations, permissions, or webhooks.</p></div>
+      </li>
+      <li>
+        <h3>Add your Bee token</h3>
+        <p>Your own Bee bearer, from the Bee app. Stored as a secret — never committed, never logged.</p>
+        <pre>wrangler secret put BEE_API_TOKEN</pre>
+      </li>
+      <li>
+        <h3>Set your two config values</h3>
+        <p>In <code>wrangler.jsonc</code> set <code>ALLOWED_GITHUB_LOGIN</code> to your GitHub username (the instance denies every login until you do) and <code>BEE_API_BASE</code> to Bee's API host.</p>
+        <div class="callout"><p class="h">Keep these in the file</p><p>These are config <em>vars</em>, not secrets — a dashboard value gets reset to the file's value on every deploy. Set them in <code>wrangler.jsonc</code> so they stick. (Secrets, by contrast, persist across deploys.)</p></div>
+      </li>
+      <li>
+        <h3>Deploy</h3>
+        <p>Ship it. If you use Cloudflare's Git integration, a push deploys automatically — no flags needed.</p>
+        <pre>npm run deploy</pre>
+      </li>
+      <li>
+        <h3>Connect and check</h3>
+        <p>Add your worker URL as a custom connector in Claude, approve the GitHub login, then run the <code>whoami</code> tool. Identity works immediately; the Bee call depends on the reachability check below.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="prose">
+    <h2>Troubleshooting</h2>
+
+    <h3>Clicking "Connect" 404s on GitHub</h3>
+    <p>The relay is redirecting to GitHub with an empty <code>client_id</code> — meaning <code>GITHUB_CLIENT_ID</code> isn't set. Set the two GitHub secrets (step 3). You can confirm the fix by checking that <code>/authorize</code> redirects to a real <code>client_id</code> rather than <code>undefined</code>.</p>
+
+    <h3>"Not authorized" after logging in</h3>
+    <p>The login worked, but your username isn't on the allow-list. Set <code>ALLOWED_GITHUB_LOGIN</code> to your GitHub login in <code>wrangler.jsonc</code> and redeploy.</p>
+
+    <h3>whoami can't reach Bee</h3>
+    <p>That's the private-CA wall: a Worker's <code>fetch</code> trusts only public certificates. Check Bee's real API cert from a non-proxied environment first — if it's private, the path is Workers VPC (Origin-CA) or mTLS. See <a href="/under-the-hood">under the hood</a> for the seam.</p>
+
+    <h3>Config values are empty after a deploy</h3>
+    <p><code>ALLOWED_GITHUB_LOGIN</code> or <code>BEE_API_BASE</code> reset to blank? They're vars — put the real values in <code>wrangler.jsonc</code>, not just the dashboard, so each deploy keeps them.</p>
+
+    <div class="callout info" style="margin-top:24px"><p class="h">Optional — a custom domain</p><p>In the Cloudflare dashboard: your Worker → Settings → Domains &amp; Routes → Add Custom Domain. Cloudflare provisions the DNS record and cert automatically if the domain's zone is on your account.</p></div>
+
+    <p style="margin-top:22px">Full detail and the locked execution contract live in the repo's <a href="https://github.com/klappy/bee-ai-auth-mcp/blob/main/README.md">README</a> and <a href="https://github.com/klappy/bee-ai-auth-mcp/blob/main/docs/phase-1-execution-handoff.md">execution handoff</a>.</p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap frow">
+    <span class="mono">bee-ai-auth-mcp</span><span class="sep">·</span>
+    <span>MIT — self-host-first</span><span class="sep">·</span>
+    <a href="/">Home</a><span class="sep">·</span>
+    <a href="/under-the-hood">Under the hood</a><span class="sep">·</span>
+    <a href="/security">Security</a><span class="sep">·</span>
+    <a href="/roadmap">Roadmap</a><span class="sep">·</span>
+    <a href="https://github.com/klappy/bee-ai-auth-mcp">GitHub</a>
+  </div>
+</footer>
+
+</body>
+</html>

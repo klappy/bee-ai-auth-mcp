@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Roadmap — bee-ai-auth-mcp</title>
+<meta name="description" content="The honest state of bee-ai-auth-mcp: what's live, what's gated, and the phased plan — Phase 1 auth core, Phase 2 read-only retrieval, Phase 3 hardened hosted custody — plus the open decisions that aren't banked yet." />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Roadmap — bee-ai-auth-mcp" />
+<meta property="og:description" content="What works now, what's next, and the decisions still open." />
+<meta property="og:url" content="https://bee.klappy.dev/roadmap" />
+<meta property="og:image" content="https://bee.klappy.dev/og-image.png" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+<meta name="theme-color" content="#0E5A4A" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="/"><img src="/favicon.svg" width="24" height="24" alt="" /> bee-ai-auth-mcp</a>
+    <nav>
+      <a class="nav-hide" href="/under-the-hood">Under the hood</a>
+      <a href="/setup">Set up</a>
+      <a class="nav-hide" href="/security">Security</a>
+      <a class="nav-hide" href="/roadmap" aria-current="page">Roadmap</a>
+      <a class="ghost" href="https://github.com/klappy/bee-ai-auth-mcp">GitHub&nbsp;↗</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="page-hero flush">
+    <p class="breadcrumb"><a href="/">Home</a> / Roadmap</p>
+    <p class="eyebrow">Where it stands</p>
+    <h1>Honest about what works.</h1>
+    <p class="lede">This page is the truth of the moment, not a wishlist. A claim is a debt; nothing here is marked done that hasn't been observed.</p>
+  </section>
+
+  <section id="now" class="prose flush" style="padding-top:36px">
+    <h2>Status right now</h2>
+    <div class="status">
+      <div class="row live"><div class="mark">✓</div><div><div class="t">Deployed &amp; healthy</div><div class="d">The Worker is live; health and version checks respond, and the static site serves.</div></div></div>
+      <div class="row live"><div class="mark">✓</div><div><div class="t">GitHub identity gate</div><div class="d">OAuth registration, authorize, and the allow-list check all work end-to-end.</div></div></div>
+      <div class="row gated"><div class="mark">◷</div><div><div class="t">whoami → Bee</div><div class="d">Wired, but waiting on the private-CA reachability check from a non-proxied environment.</div></div></div>
+      <div class="row next"><div class="mark">→</div><div><div class="t">Conversation retrieval</div><div class="d">Phase 2 — read-only, over Bee's confirmed endpoints.</div></div></div>
+    </div>
+  </section>
+
+  <section class="prose">
+    <h2>The phases</h2>
+    <h3>Phase 1 — Auth core &amp; whoami <span class="tag live">current</span></h3>
+    <p>The Bee-independent spine: OAuth front door, the identity gate, the MCP transport, and a Tier-1 self-host deploy. Built and deployed; the one Bee-touching call is gated on reachability.</p>
+
+    <h3>Phase 2 — Read-only retrieval <span class="tag next">next</span></h3>
+    <p>Tools over Bee's <code>/v1/conversations</code> (confirmed) — async-by-default, paginated, size-capped, summary-or-full, never a raw transcript dump into your context. <code>/v1/search/conversations</code> and <code>/v1/changes</code> aren't in Bee's public docs and stay out of the tool surface until confirmed against the live API.</p>
+
+    <h3>Phase 3 — Hosted hardening <span class="tag next">deferred</span></h3>
+    <p>A hosted, multi-tenant Tier 2 toward git-repo-auth parity: per-user isolation, envelope-encrypted custody, rotation, quotas. Deliberately deferred — see below.</p>
+
+    <h2>Why hosted multi-tenant waits</h2>
+    <p>git-repo-auth can host many users safely because GitHub mints short-lived, scoped tokens — it stores no long-lived credential. Bee has no equivalent yet, so a hosted bee relay would have to custody long-lived Bee tokens: a honeypot self-host is built to avoid. Hardening shrinks that risk but doesn't erase it, so any hosted offering stays small and eyes-open, with scaling gated on an upstream minting capability. Full reasoning on the <a href="/security">security page</a>.</p>
+
+    <h2>Open questions — not banked</h2>
+    <ul>
+      <li><strong>Adopt vs build the personal wire.</strong> For one person's own use, an off-the-shelf hosted pendant MCP may already close the all-surface gap. bee-ai-auth-mcp's durable value is as the reusable relay substrate, the interim wire, and the MIT community artifact — not necessarily anyone's long-term personal setup.</li>
+      <li><strong>Tier 2: cut, keep, or demote.</strong> Whether to build the hosted posture at all, given the above.</li>
+      <li><strong>Upstream petition.</strong> Asking pendant vendors for OAuth install + short-lived minted tokens — the capability that would make hosted custody safe and restore a magical first-run.</li>
+    </ul>
+    <p>The full decision trail lives in the repo's planning corpus and ledger. <a href="https://github.com/klappy/bee-ai-auth-mcp/blob/main/PRD.md">Read the PRD →</a></p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap frow">
+    <span class="mono">bee-ai-auth-mcp</span><span class="sep">·</span>
+    <span>MIT — self-host-first</span><span class="sep">·</span>
+    <a href="/">Home</a><span class="sep">·</span>
+    <a href="/under-the-hood">Under the hood</a><span class="sep">·</span>
+    <a href="/setup">Set up</a><span class="sep">·</span>
+    <a href="/security">Security</a><span class="sep">·</span>
+    <a href="https://github.com/klappy/bee-ai-auth-mcp">GitHub</a>
+  </div>
+</footer>
+
+</body>
+</html>
