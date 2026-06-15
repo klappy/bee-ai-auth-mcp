@@ -1,0 +1,49 @@
+# bee-ai-auth-mcp — private-CA bridge (caddy)
+#
+# Purpose (ledger E0012 / PRD v0.3): Bee's direct API uses a PRIVATE CA, which a
+# stock Cloudflare Worker `fetch` cannot trust. This bridge terminates a PUBLIC
+# cert facing the Worker and re-originates TLS to Bee trusting bee-ca.pem. The
+# Worker's BEE_API_BASE points here; only /v1/* is forwarded.
+#
+# HONEST + SAFEST (binding): the Authorization header is NEVER logged. Access
+# logs below are structured JSON with request headers omitted by default; we do
+# not add any directive that would emit `Authorization`. Do not enable
+# `log_request_headers` or debug access logging.
+#
+# OPERATOR-FILL (2 facts this build cannot fabricate — see bridge/README.md):
+#   {$BEE_UPSTREAM}  — Bee's REAL direct API host:port (e.g. api.bee.computer:443).
+#                      The docs publish only the placeholder $BEE_API_BASE; get
+#                      the real host from your bee-cli config / Bee.
+#   bee-ca.pem       — Bee's private CA roots, copied verbatim from
+#                      github.com/bee-computer/bee-cli  sources/certs.ts.
+
+{
+	admin off
+	# Structured access log WITHOUT request headers (no Authorization ever emitted).
+	log {
+		output stdout
+		format json
+	}
+}
+
+# Public-cert listener facing the Worker. Caddy auto-provisions a publicly
+# trusted cert for {$BRIDGE_HOSTNAME} via ACME (or supply your own).
+{$BRIDGE_HOSTNAME} {
+	# Only forward the Bee developer API surface; everything else is 404.
+	@notapi not path /v1/*
+	respond @notapi 404
+
+	reverse_proxy https://{$BEE_UPSTREAM} {
+		# Trust Bee's private CA on the re-originated TLS leg.
+		transport http {
+			tls
+			tls_trust_pool file /etc/caddy/bee-ca.pem
+			# Present SNI / validate against Bee's real hostname.
+			tls_server_name {$BEE_SNI}
+		}
+		# Send the upstream the Host it expects so its cert validates.
+		header_up Host {$BEE_SNI}
+		# Defensive: never reflect these back to clients.
+		header_down -Server
+	}
+}

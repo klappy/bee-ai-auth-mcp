@@ -2,11 +2,12 @@
  * Live smoke battery — runs against a deployed base URL (SMOKE_BASE_URL).
  * Skips entirely when that env is unset, so `npm test` stays network-free.
  *
- * Deliberately does NOT exercise the Bee credential (whoami). That call needs
- * BEE_API_TOKEN and rides the unretired private-CA reachability tripwire — it
- * is validated manually, phone-only, once secrets + reachability are in place
- * (the DoD). Smoke proves only what is honestly provable without secrets:
- * the service is up, and the gated API rejects the unauthenticated.
+ * Deliberately does NOT exercise the Bee credential (whoami). That call needs a
+ * captured per-grant Bee token and traverses the private-CA Container bridge —
+ * it is validated manually, phone-only, three-pass, fresh-context, once the
+ * bridge is deployed and BEE_API_BASE points at it (the DoD). Smoke proves only
+ * what is honestly provable without secrets: the service is up, and the gated
+ * API rejects the unauthenticated.
  */
 import { describe, it, expect } from "vitest";
 

@@ -1,0 +1,29 @@
+{
+  // ⚠️ STARTING POINT, NOT VERIFIED — confirm against current Cloudflare
+  // Containers docs (developers.cloudflare.com → Containers) before deploy.
+  // The Containers config schema is version-sensitive; the image (Dockerfile +
+  // Caddyfile) is the stable part. See bridge/README.md.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bee-bridge",
+  "compatibility_date": "2026-06-01",
+
+  // A Container is fronted by a Worker that routes to it via a Durable Object.
+  // Pin the image by digest in the Dockerfile; size the instance minimally —
+  // this bridge is stateless and shared.
+  "containers": [
+    {
+      "class_name": "BeeBridge",
+      "image": "./Dockerfile",
+      "instance_type": "basic",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "class_name": "BeeBridge", "name": "BEE_BRIDGE" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["BeeBridge"] }
+  ]
+}
