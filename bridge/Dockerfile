@@ -37,5 +37,7 @@ COPY bee-ca.pem /etc/caddy/bee-ca.pem
 ENV XDG_DATA_HOME=/tmp/caddy-data XDG_CONFIG_HOME=/tmp/caddy-config
 
 USER 65532:65532
-EXPOSE 443
+# Unprivileged listeners (see Caddyfile): a non-root caddy with --cap-drop=ALL
+# cannot bind ports <1024. The platform maps public 443->8443 (and 80->8080).
+EXPOSE 8080 8443
 ENTRYPOINT ["/usr/bin/caddy", "run", "--config", "/etc/caddy/Caddyfile"]

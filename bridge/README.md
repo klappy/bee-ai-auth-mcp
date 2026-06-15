@@ -45,8 +45,15 @@ hardening is **run-time** flags — apply them in whatever runs the image:
 --cap-drop=ALL \
 --security-opt=no-new-privileges \
 --tmpfs /tmp/caddy-data --tmpfs /tmp/caddy-config \
---user 65532:65532
+--user 65532:65532 \
+--publish 443:8443 --publish 80:8080
 ```
+
+caddy listens on **unprivileged** ports — `8443` (HTTPS) and `8080` (HTTP) — because a
+non-root process with `--cap-drop=ALL` cannot bind `<1024`. The platform maps public
+`443`→`8443` (and `80`→`8080`); on Cloudflare Containers, point the fronting Worker/DO at
+the container's `8443`. Adding `--cap-add=NET_BIND_SERVICE` to bind `443` directly would
+break the empty-toolbox "all caps dropped" goal — don't.
 
 Never enable request-header logging — the access log must never emit `Authorization`.
 
