@@ -2,18 +2,11 @@
 
 > You are likely a fresh crew session. This file is your entry point. Read it fully before acting.
 
-## ⮕ START HERE — branch situation (read before touching anything)
+## ⮕ START HERE — next action (read before touching anything)
 
-As of **2026-06-14**, the entire session's work — code, CI, plan, journal, handoff — sits on **one branch: `phase-1/ci-cd`** (the name predates the consolidation; it is now the complete Phase-1 deliverable). Nothing is merged yet (crew pushes branches; the operator opens PRs).
+The auth core is **live and phone-validated** at `bee.klappy.dev` (E0011); `main` is current. The one remaining Phase-1 gap is the **Bee leg** (`whoami` returning the operator's Bee identity), and its blocker is now resolved on paper. **Your job: build the per-grant-custody Bee leg + the private-CA bridge.** The build contract is `docs/phase-1-build-handoff.md`; the authoritative spec is `PRD.md` (v0.3); the decision trail is `odd/ledger/2026-06-15-bee-leg-private-ca-and-multitenancy.md` (E0012). Read those three, in that order, then build.
 
-- **If you are reading this on `main` and §2 below still says "spine built, CI built" but the repo has no `src/` or `.github/` — `main` is STALE.** The truth is on `phase-1/ci-cd`. Check out that branch (or its PR) and read its RESUME.
-- **Operator action to make `main` correct:** merge the PR from **`phase-1/ci-cd`** into `main`, then delete the superseded branches below.
-- **Superseded branches — close/ignore, do not start from them:**
-  - `phase-1/scaffold` — the Worker code; a strict subset of `phase-1/ci-cd`.
-  - `session/2026-06-14-validation-to-execution` — the plan/journal/handoff docs; now folded into `phase-1/ci-cd`.
-  - `validation/2026-06-14-prd-findings` and `phase-1/execution-handoff` — earliest fragments; subsumed.
-
-One branch to land it all: **`phase-1/ci-cd`**. Everything else is history.
+**Custody amendment (ratified 2026-06-15):** Phase 1 is built on **per-grant encrypted custody** (Bee token in the user's encrypted grant props), **not** the old Model-A Worker secret. Tenancy is the GitHub allow-list, kept at **one login (`klappy`)** — Tier-2 architecture, Tier-1 tenant. This supersedes the Model-A lock; see E0012.
 
 ## 0. Bootstrap (do this first)
 
@@ -27,12 +20,12 @@ Reference repo this is ported from: **`klappy/git-repo-auth-mcp`** (the proven s
 
 ## 2. Current state — mode, what's built, what's gated
 
-- **Mode: EXECUTION (Phase-1).** The `oddkit` planning→execution gate **PASSED 4/4 on 2026-06-14** for the Bee-independent spine. PRD is **v0.2** (post-validation).
-- **Spine: BUILT.** `src/{index,origin,state,types,bee-auth,bee,mcp-api}.ts` + `wrangler.jsonc` / `package.json` / `tsconfig.json` / `public/` / README. **Typechecks clean (`tsc --noEmit`, 0 errors)** against the real substrate. Compile-time only — no live deploy yet.
-- **CI/CD: BUILT.** `.github/workflows/{ci,live-check}.yml` + `test/{state,origin,smoke.live}.test.ts` + `vitest.config.ts`, contract in `docs/ci-cd.md`. Verified locally: **11 unit tests pass; smoke skips without a target.**
-- **Phase 1 = Model A (deployer-key self-host), Tier 1 only.** The deployer's Bee token is the Worker's own secret — no per-user custody (that's Tier 2, deferred).
-- **GATED — the Bee-client slice:** the `whoami` call works only if Bee's real API presents a **publicly-trusted cert**; standard Workers `fetch` won't trust a private CA. The reachability check (operator, non-proxied env) decides; if private-CA, the path is Workers VPC (Origin-CA) / mTLS. The spine carries no other open unknown.
-- **DoD remaining (needs operator's CF + Bee creds):** live deploy + a phone-only `whoami` wire check; connect the repo to Cloudflare Git integration so branch previews deploy; set the `PROD_BASE_URL` repo variable when prod exists.
+- **Mode: EXECUTION (Phase-1 build).** Auth core deployed + phone-validated (E0011). PRD is **v0.3** (custody amendment + private-CA resolution).
+- **Live at `bee.klappy.dev`:** multi-page site + logo, `/healthz`, `/mcp` (401 unauth), OAuth surface, GitHub identity gate, MCP connect validated end-to-end on a phone. Worker deployed as `bee-mcp`. Secrets set: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`. `ALLOWED_GITHUB_LOGIN=klappy`.
+- **Spine + CI/CD: BUILT and merged to `main`.** `src/{index,origin,state,types,bee-auth,bee,mcp-api}.ts`, `.github/workflows/`, tests, `docs/ci-cd.md`.
+- **Network path RESOLVED (E0012):** Bee uses a **private CA** (conclusive — Bee docs 2026-06-07 + `bee-cli/sources/certs.ts`). Stock Worker `fetch`, Workers VPC+Origin-CA, and the mTLS binding all cannot trust it. Path = a **single shared, stateless CF Container** running caddy that trusts `bee-ca.pem`, fronted to the Worker with a public cert. `BEE_API_BASE` → the bridge.
+- **Custody VERIFIED + amended (E0012):** `@cloudflare/workers-oauth-provider` 0.7.2 wraps a per-encryption random AES key with `HMAC(public-constant, relay-token)` — no master key, per-user isolated, KV-dump-alone useless. Phase 1 holds the Bee token in encrypted grant props (not a Worker secret). Residual = in-flight/live-process plaintext, bounded by the empty-toolbox bridge, not crypto.
+- **Remaining Phase-1 work:** build the bridge + the custody bend; wire-validate `whoami` phone-only; sharpen docs/site against the built artifact. Needs operator CF + Bee creds.
 
 ## 3. What's been decided (full trail in the journal + `odd/ledger/2026-06-14-planning.md`)
 
@@ -46,19 +39,21 @@ Reference repo this is ported from: **`klappy/git-repo-auth-mcp`** (the proven s
 
 ## 4. The next action (precise)
 
-1. **Operator:** (a) merge the `phase-1/ci-cd` PR; delete the superseded branches. (b) Run the **private-CA reachability check** from a non-proxied environment — `openssl s_client` against Bee's real API host, inspect the cert issuer. Public CA → the Bee-client slice un-gates; private → Workers VPC/mTLS or a network-path decision.
-2. **Crew (the DoD, needs operator's CF + Bee creds):** connect Cloudflare Git integration, deploy, set the three secrets (`GITHUB_CLIENT_ID/SECRET`, `BEE_API_TOKEN`) + `ALLOWED_GITHUB_LOGIN` + `BEE_API_BASE`, then validate `whoami` at the wire **phone-only, three passes, fresh context**.
+1. **Build the Phase-1 Bee leg per `docs/phase-1-build-handoff.md`:** (a) build + deploy the empty-toolbox caddy **Container bridge** (trusts `bee-ca.pem`); point `BEE_API_BASE` at it. (b) bend `bee-auth.ts` to capture the Bee token at consent into **encrypted grant props**, validated via `/v1/me`; `bee.ts`/`whoami` read the token from the decrypted grant, not `env`. (c) keep `ALLOWED_GITHUB_LOGIN=klappy`. Needs operator CF + Bee creds.
+2. **Validate** `whoami` at the wire **phone-only, three passes, fresh context**; confirm a second login is denied; confirm no token in any log. Then **sharpen `README.md` / security doc / `public/` site against the built artifact** (per `code-claims-require-code-observation`).
 3. **Phase 2 (docs-first — `klappy://canon/principles/prompt-over-code`):** confirm-or-drop `/v1/search/conversations` + `/v1/changes` against the live API; **author the Bee-API-usage doc first**, then a `docs` tool (the git-auth pattern) + the read-only retrieval tools fulfill it. A **skill is the wrong layer** for a remote connector — use the docs tool + rich tool descriptions (+ optional MCP prompts/resources).
 4. **Open forks (operator-owned, do not bank):** Tier-2 cut/keep/demote (P2); canonical-URI rename `bee-mcp` → `bee-ai-auth-mcp` (D0015, P3); docs-tool is queued for Phase 2 (above).
 
 ## 5. Map of this repo
 
 - `RESUME.md` — this file. The entry point.
-- `PRD.md` — authoritative spec, **v0.2**. Read after this file.
-- `src/` — the Phase-1 Worker spine (Model A). `bee.ts` holds the private-CA seam; `mcp-api.ts` the `whoami` tool.
+- `PRD.md` — authoritative spec, **v0.3** (custody amendment + private-CA resolution). Read after this file.
+- `src/` — the Phase-1 Worker spine. `bee.ts` is the Bee client; `bee-auth.ts` captures the token into encrypted grant props; `mcp-api.ts` the `whoami` tool.
 - `.github/workflows/` + `test/` + `docs/ci-cd.md` — the CI/CD pipeline and its contract.
-- `docs/phase-1-execution-handoff.md` — the locked Phase-1 execution contract (DoD, constraints, irreversibility).
-- `docs/implementation-handoff.md` — the git-auth → bee borrow map + post-validation amendments.
+- `docs/phase-1-build-handoff.md` — **the build contract for the Bee leg (read this to build).**
+- `docs/phase-1-execution-handoff.md` — the earlier locked Phase-1 contract (private-CA tripwire now resolved by E0012).
+- `docs/implementation-handoff.md` — the git-auth → bee borrow map.
+- `odd/ledger/2026-06-15-bee-leg-private-ca-and-multitenancy.md` — **E0012: gate resolution, bridge decision, crypto verification, custody amendment, rejections.**
 - `odd/ledger/2026-06-14-session-validation-to-execution.md` — the session journal (DOLCHEO: validation → challenge → build → CI → consolidation, with the E0010 debrief).
 - `odd/ledger/2026-06-14-validation.md` — the fresh-context validation findings.
 - `odd/ledger/2026-06-14-planning.md` — the planning-session journal.
