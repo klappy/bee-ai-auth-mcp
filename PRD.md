@@ -1,18 +1,18 @@
 ---
-uri: klappy://docs/products/bee-mcp/PRD
+uri: klappy://docs/products/bee-ai-auth-mcp/PRD
 title: "PRD: bee-ai-auth-mcp — A Self-Host-First Credential Relay + Retrieval Wire for the Bee Pendant"
 audience: docs
 exposure: nav
 tier: 3
 voice: neutral
 stability: draft
-tags: ["docs", "prd", "bee-mcp", "mcp", "auth", "credential-relay", "cloudflare-workers"]
+tags: ["docs", "prd", "bee-ai-auth-mcp", "mcp", "auth", "credential-relay", "cloudflare-workers"]
 date: 2026-06-15
 ---
 
 # 📋 PRD: bee-ai-auth-mcp
 
-*(working name during planning: `bee-mcp`. Canonical URI rename is a D0015 call — left to the operator.)*
+*(working name during planning: `bee-mcp`; the canonical name is now `bee-ai-auth-mcp` everywhere — D0015 resolved 2026-06-15.)*
 
 > A hosted, MIT, self-host-first MCP credential relay that exposes a Bee pendant's retrieval API to any MCP client (Claude, Cursor, other agents) across every surface — built on a per-grant encrypted-custody core that runs single-tenant today and is multi-tenant-capable by config.
 

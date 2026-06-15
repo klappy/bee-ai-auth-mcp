@@ -55,6 +55,8 @@ Never enable request-header logging — the access log must never emit `Authoriz
 
 ## Deploying on Cloudflare — same project (D0028)
 
+**Deploy is githook-driven** (see `docs/ci-cd.md`): a `git push` triggers Workers Builds, which runs the deploy in Cloudflare's CI. No manual `wrangler`, no CF token. The container image builds on push too **once the Workers Builds build command is set** to `wrangler containers build --push` (a one-time dashboard setting). The notes below are about *topology*, not a manual deploy.
+
 The bridge runs in the **same Cloudflare project as the relay Worker** — one container
 **bound to the relay Worker**, not a separate deployment (operator ruling, E0013 D0028).
 The V8 isolate still can't do private-CA TLS, so the caddy container is mandatory — but it

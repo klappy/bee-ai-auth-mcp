@@ -12,7 +12,7 @@ Operate under the captain (Klappy) and the binding contract in canon. **First su
 
 ## 1. What is already true (do not redo)
 
-- **Live at `bee.klappy.dev`:** multi-page site + logo, `/healthz`, `/mcp` (401 unauth), the OAuth surface, GitHub identity gate, MCP connect validated end-to-end on a phone (E0011). Worker deployed as `bee-mcp`. Secrets set: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`. `ALLOWED_GITHUB_LOGIN=klappy`.
+- **Live at `bee.klappy.dev`:** multi-page site + logo, `/healthz`, `/mcp` (401 unauth), the OAuth surface, GitHub identity gate, MCP connect validated end-to-end on a phone (E0011). Worker deployed as `bee-ai-auth-mcp`. Secrets set: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`. `ALLOWED_GITHUB_LOGIN=klappy`.
 - **Network path resolved (E0012):** Bee uses a **private CA** (conclusive, Bee docs 2026-06-07 + `bee-cli/sources/certs.ts`). Stock Worker `fetch` / Workers VPC+Origin-CA / mTLS binding all cannot trust it. Path = a **single shared, stateless Cloudflare Container** running caddy that trusts `bee-ca.pem` and is fronted to the Worker with a public cert.
 - **Crypto verified (E0012):** `@cloudflare/workers-oauth-provider` 0.7.2 encrypts grant props with a per-encryption random AES-GCM key wrapped by `HMAC-SHA256(public-constant, relay-token)` — no master key, per-user isolated, KV-dump-alone useless. Custody rides on this; do not handroll.
 
@@ -48,5 +48,5 @@ The Phase-1 DoD in `PRD.md` is authoritative. In short: deployed + bridge harden
 - Multi-tenant go/no-go (widen the allow-list) — deferred; the one-way door.
 - Bee public-cert / short-lived-token (Tier-0) ask — removes the bridge + the residual; vendor-dependent.
 - Drop-GitHub-for-single-tenant (passphrase / CF Access) — carried from E0011.
-- Canonical-URI rename `bee-mcp` → `bee-ai-auth-mcp` (D0015).
+- Canonical-URI rename → `bee-ai-auth-mcp` everywhere (D0015): **resolved 2026-06-15** (operator renamed the CF Worker; repo canonical refs updated).
 - Phase-2 `/v1/changes` + `/v1/search/conversations`: docs-confirmed (2026-06-07), live confirm-or-drop still owed.
