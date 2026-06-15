@@ -16,6 +16,7 @@
 import type { AuthRequest } from "@cloudflare/workers-oauth-provider";
 import { encodeState, decodeState } from "./state";
 import type { Env } from "./types";
+import { COMMIT_SHA } from "./version";
 
 const GH = "https://api.github.com";
 const UA = "bee-ai-auth-mcp";
@@ -42,9 +43,10 @@ export const BeeAuthHandler = {
 
     if (url.pathname === "/healthz") return new Response("ok", { status: 200 });
 
-    // Deploy-injected commit SHA, so CI can confirm this preview is the commit
-    // under test (not a stale build still serving the branch alias).
-    if (url.pathname === "/version") return new Response(env.COMMIT_SHA ?? "", { status: 200 });
+    // Commit SHA baked into this immutable version's bundle at build time
+    // (scripts/gen-version.mjs), so CI can confirm this preview is the commit
+    // under test. Per-version by construction — no shared/mutable deploy var.
+    if (url.pathname === "/version") return new Response(COMMIT_SHA, { status: 200 });
 
     // ---- MCP client begins authorization ----
     if (url.pathname === "/authorize") {

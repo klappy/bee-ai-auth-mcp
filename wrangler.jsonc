@@ -5,6 +5,9 @@
   "compatibility_date": "2026-06-01",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // Bakes the commit SHA into src/version.ts before bundling, so each immutable
+  // version carries its own SHA (served at /version). No deploy-time --var.
+  "build": { "command": "node scripts/gen-version.mjs" },
   "assets": { "directory": "./public" },
   "kv_namespaces": [
     // Create your own: `wrangler kv namespace create OAUTH_KV`, then paste the id here.
@@ -14,13 +17,9 @@
     // Comma-separated GitHub login(s) allowed to use this self-host instance.
     // REQUIRED — the instance denies all logins until this is set.
     "ALLOWED_GITHUB_LOGIN": "klappy",
-    // Bee direct API base, e.g. "https://<bee-api-host>". See the private-CA
-    // reachability tripwire in docs/phase-1-execution-handoff.md §4.
-    "BEE_API_BASE": "",
-    // Deploy-injected commit SHA, served at /version so CI can confirm the
-    // preview is the commit under test. Empty in local dev; Workers Builds
-    // sets it via `wrangler deploy --var COMMIT_SHA:$WORKERS_CI_COMMIT_SHA`.
-    "COMMIT_SHA": ""
+    // Bee direct API base — points at the private-CA Container bridge (see PRD
+    // v0.3 / docs/phase-1-build-handoff.md). The /v1/* calls hang off this.
+    "BEE_API_BASE": ""
   }
   // Secrets (set via `wrangler secret put`, never committed, never in chat):
   //   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET  (a GitHub *OAuth App* — identity only, not a GitHub App)
