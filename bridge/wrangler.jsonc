@@ -1,19 +1,19 @@
 {
-  // ⚠️ STARTING POINT, NOT VERIFIED — confirm against current Cloudflare
-  // Containers docs (developers.cloudflare.com → Containers) before deploy.
-  // The Containers config schema is version-sensitive; the image (Dockerfile +
-  // Caddyfile) is the stable part. See bridge/README.md.
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "bee-bridge",
-  "compatibility_date": "2026-06-01",
-
-  // A Container is fronted by a Worker that routes to it via a Durable Object.
-  // Pin the image by digest in the Dockerfile; size the instance minimally —
-  // this bridge is stateless and shared.
+  // ⚠️ SAME-PROJECT (E0013 D0028): this is NOT a standalone deployment. The block
+  // below is meant to be MERGED INTO the root ./wrangler.jsonc so the bridge
+  // container binds to the relay Worker and is reached over an internal
+  // Worker→container call. Kept here as a reviewable starting point only.
+  //
+  // ⚠️ UNVERIFIED SHAPE — confirm against current Cloudflare Containers docs
+  // (developers.cloudflare.com → Containers) before deploy. The container image
+  // (../bridge/Dockerfile + Caddyfile) is the stable part; this binding config
+  // is version-sensitive. Pin the image by digest in the Dockerfile.
+  //
+  // --- merge into root wrangler.jsonc ---
   "containers": [
     {
       "class_name": "BeeBridge",
-      "image": "./Dockerfile",
+      "image": "./bridge/Dockerfile",
       "instance_type": "basic",
       "max_instances": 1
     }
@@ -26,4 +26,6 @@
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["BeeBridge"] }
   ]
+  // The relay Worker then reaches Bee via the BEE_BRIDGE binding (see bridge/README.md),
+  // replacing the old BEE_API_BASE public-URL indirection in src/bee.ts.
 }

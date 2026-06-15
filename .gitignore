@@ -10,6 +10,9 @@ dist/
 
 # Secrets — never commit
 *.pem
+# ...except Bee's PUBLIC CA roots, which are public trust anchors (not secrets)
+# and are required in the bridge build context.
+!bridge/bee-ca.pem
 .env
 .env.*
 

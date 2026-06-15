@@ -10,15 +10,11 @@ This is the deliberate decision from E0012 (D0021/D0022/D0025): one shared, stat
 hardened bridge — **not** per-user containers. Isolation is cryptographic (per-grant
 token-wrapped props), not per-container.
 
-## You must supply two facts (this repo cannot fabricate them)
+## You supply one fact (the rest is in the repo)
 
-1. **`bee-ca.pem`** — Bee's private CA roots. Copy verbatim from the Bee CLI source the docs
-   point at: `github.com/bee-computer/bee-cli` → `sources/certs.ts` (the
-   `CN=BeeCertificateAuthority, O=Bee` prod root, plus the staging root if you target staging).
-   Replace the placeholder `bridge/bee-ca.pem`.
-2. **Bee's real direct API host** — the docs publish only the placeholder `$BEE_API_BASE`.
-   Get the real host from your `bee-cli` config / Bee. Set it as `BEE_UPSTREAM` and `BEE_SNI`
-   (see env below).
+**`bridge/bee-ca.pem` is already committed** — Bee's PUBLIC CA roots (`CN=BeeCertificateAuthority, O=Bee` prod + `Bee Staging Root CA`), copied verbatim from the public Bee CLI source `github.com/bee-computer/bee-cli` → `sources/certs.ts` (commit 97dfdb18) and verified to parse. These are public trust anchors, not secrets, so they live in the repo and the `.gitignore` `*.pem` rule has an explicit `!bridge/bee-ca.pem` exception. Nothing to paste.
+
+The one thing this repo can't know is **Bee's real direct API host** — the docs publish only the placeholder `$BEE_API_BASE`. Get it from your `bee-cli` config / Bee and set it as `BEE_UPSTREAM` and `BEE_SNI` (see env below). That's runtime config, not a repo file.
 
 ## Runtime env (Caddyfile placeholders)
 
@@ -57,24 +53,25 @@ break the empty-toolbox "all caps dropped" goal — don't.
 
 Never enable request-header logging — the access log must never emit `Authorization`.
 
-## Deploying on Cloudflare
+## Deploying on Cloudflare — same project (D0028)
 
-The operator ruling is **CF-only, no multi-host split** (E0012 D0021), so deploy this as a
-**Cloudflare Container**.
+The bridge runs in the **same Cloudflare project as the relay Worker** — one container
+**bound to the relay Worker**, not a separate deployment (operator ruling, E0013 D0028).
+The V8 isolate still can't do private-CA TLS, so the caddy container is mandatory — but it
+binds into the relay's own `wrangler.jsonc` and the Worker reaches it over an **internal**
+Worker→container call. No second public hostname, no second cert.
 
-> ⚠️ **Confirm the wrangler Containers schema against current CF docs at deploy time.**
-> The Containers product config (the `containers` array, the bound Durable Object class,
+> ⚠️ **Confirm the wrangler Containers binding against current CF docs at deploy time.**
+> The Containers config (the `containers` array, the bound Durable Object class,
 > `instance_type`/`max_instances`, the `@cloudflare/containers` helper) is version-sensitive
-> and was not re-verified against live CF docs in the session that wrote this file. The image
-> above is the stable part; treat `bridge/wrangler.jsonc` as a starting point, not gospel —
-> check `developers.cloudflare.com` → Containers before `wrangler deploy`.
+> and was not re-verified against live CF docs here. `bridge/wrangler.jsonc` is a block to
+> **merge into the root `wrangler.jsonc`**, not a standalone project — check
+> `developers.cloudflare.com` → Containers before `wrangler deploy`.
 
-Then point the main Worker at it:
-
-```
-# In the root wrangler.jsonc vars (or `wrangler secret`/var as you prefer):
-BEE_API_BASE = "https://<BRIDGE_HOSTNAME>"
-```
+Wiring the Worker to the bound container (next build): the Worker calls the container via its
+binding rather than a public URL, so `src/bee.ts`'s `BEE_API_BASE` indirection becomes a
+container-binding fetch. Confirm the exact fetch pattern against CF docs at build time; the
+`/v1/*`-only + private-CA-trust behaviour of the Caddyfile is unchanged.
 
 ## The definitive reachability check
 
