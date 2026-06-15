@@ -13,7 +13,7 @@
   "vars": {
     // Comma-separated GitHub login(s) allowed to use this self-host instance.
     // REQUIRED — the instance denies all logins until this is set.
-    "ALLOWED_GITHUB_LOGIN": "",
+    "ALLOWED_GITHUB_LOGIN": "klappy",
     // Bee direct API base, e.g. "https://<bee-api-host>". See the private-CA
     // reachability tripwire in docs/phase-1-execution-handoff.md §4.
     "BEE_API_BASE": "",
