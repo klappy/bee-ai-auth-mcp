@@ -16,6 +16,11 @@ token-wrapped props), not per-container.
    point at: `github.com/bee-computer/bee-cli` → `sources/certs.ts` (the
    `CN=BeeCertificateAuthority, O=Bee` prod root, plus the staging root if you target staging).
    Replace the placeholder `bridge/bee-ca.pem`.
+
+   > ⚠️ `*.pem` is gitignored repo-wide, so a build-from-repo (e.g. CF Workers Builds)
+   > will not see this file in its build context and the `COPY bee-ca.pem` step will fail.
+   > Force-add it (`git add -f bridge/bee-ca.pem`), un-ignore it for this path, or supply
+   > the CA to the build another way (build secret / mount).
 2. **Bee's real direct API host** — the docs publish only the placeholder `$BEE_API_BASE`.
    Get the real host from your `bee-cli` config / Bee. Set it as `BEE_UPSTREAM` and `BEE_SNI`
    (see env below).
