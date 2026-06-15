@@ -7,7 +7,7 @@
 <meta name="description" content="A small Cloudflare Worker you host yourself that opens your Bee pendant's conversations to Claude and any MCP client — on every surface, without handing your Bee token to anyone. Self-host-first, MIT, Phase 1." />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="bee-ai-auth-mcp — your pendant's memory, in Claude" />
-<meta property="og:description" content="Self-host-first MCP relay for a Bee pendant. You connect with GitHub; your Bee token stays a secret in your own deployment, custodied by no one else." />
+<meta property="og:description" content="Self-host-first MCP relay for a Bee pendant. You connect with GitHub; your Bee token is captured when you connect and stays encrypted inside your own deployment — held by no third party." />
 <meta property="og:url" content="https://bee.klappy.dev/" />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -42,7 +42,7 @@
   <section class="hero flush">
     <p class="eyebrow">Self-host · MIT · Phase 1</p>
     <h1>Your Bee pendant remembers everything. <span class="hl">This lets Claude read it — from your phone.</span></h1>
-    <p class="lede">Bee's official connector runs only on a computer you leave on. This is a small Cloudflare Worker you host yourself — you sign in with GitHub, and your Bee token stays a secret inside <em>your</em> deployment, custodied by no one else.</p>
+    <p class="lede">Bee's official connector runs only on a computer you leave on. This is a small Cloudflare Worker you host yourself — you sign in with GitHub, and your Bee token is captured when you connect and stays encrypted inside <em>your</em> deployment — held by no third party.</p>
     <div class="cta-row">
       <a class="btn btn-primary" href="/setup">Set it up →</a>
       <a class="btn btn-ghost" href="/under-the-hood">The technical version</a>
@@ -54,7 +54,7 @@
         <div class="node"><svg class="hex" width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12l6 10-6 10H6L0 12 6 2z" fill="#0E5A4A"/></svg><div><div class="nm">You + your MCP client</div><div class="ds">Claude on web, iOS, iPadOS, Cowork</div></div></div>
         <div class="leg-label"><span class="pill live">Live</span> GitHub OAuth — proves you own this instance</div>
         <div class="arrow"></div>
-        <div class="node"><svg class="hex" width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12l6 10-6 10H6L0 12 6 2z" fill="#16201B"/></svg><div><div class="nm">Your Worker (the relay)</div><div class="ds">Holds your Bee token as its own secret</div></div></div>
+        <div class="node"><svg class="hex" width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12l6 10-6 10H6L0 12 6 2z" fill="#16201B"/></svg><div><div class="nm">Your Worker (the relay)</div><div class="ds">Holds your Bee token only in your encrypted grant</div></div></div>
         <div class="leg-label"><span class="pill gated">Gated</span> your Bee token → Bee's API, pending a cert check</div>
         <div class="arrow dashed"></div>
         <div class="node"><svg class="hex" width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12l6 10-6 10H6L0 12 6 2z" fill="#E0A323"/></svg><div><div class="nm">Bee API</div><div class="ds">Read-only — your captured conversations</div></div></div>
