@@ -26,7 +26,7 @@ Reference repo this is ported from: **`klappy/git-repo-auth-mcp`** (the proven s
 - **Network path RESOLVED (E0012):** Bee uses a **private CA** (conclusive — Bee docs 2026-06-07 + `bee-cli/sources/certs.ts`). Stock Worker `fetch`, Workers VPC+Origin-CA, and the mTLS binding all cannot trust it. Path = a **single shared, stateless CF Container** running caddy that trusts `bee-ca.pem`, fronted to the Worker with a public cert. `BEE_API_BASE` → the bridge.
 - **Custody VERIFIED + amended (E0012):** `@cloudflare/workers-oauth-provider` 0.7.2 wraps a per-encryption random AES key with `HMAC(public-constant, relay-token)` — no master key, per-user isolated, KV-dump-alone useless. Phase 1 holds the Bee token in encrypted grant props (not a Worker secret). Residual = in-flight/live-process plaintext, bounded by the empty-toolbox bridge, not crypto.
 - **Bee leg BUILT + merged to `main` (E0013):** the custody bend (`bee-auth.ts` consent capture, `state.ts` HMAC consent round-trip, `bee.ts` reads the decrypted grant, `mcp-api.ts` `whoami`, `types.ts` drops `BEE_API_TOKEN`) + the `bridge/` artifacts (hardened caddy Container). Typecheck clean; 15 unit tests pass. **No new Worker secrets** (`BEE_API_TOKEN` removed).
-- **Remaining Phase-1 work (DoD, operator + fresh-context):** deploy the bridge (its own `/v1/me` fetch is the definitive private-CA reachability check) + set `BEE_API_BASE`; wire-validate `whoami` phone-only, three-pass; confirm second login denied + no token in logs; sharpen docs/site against the built artifact. Needs operator CF + Bee creds. **Note:** `*.pem` is gitignored, so `bridge/bee-ca.pem` must be force-added (`git add -f`) or otherwise supplied to the build context.
+- **Remaining Phase-1 work (DoD, operator + fresh-context):** deploy the bridge (its own `/v1/me` fetch is the definitive private-CA reachability check) + set `BEE_API_BASE`; wire-validate `whoami` phone-only, three-pass; confirm second login denied + no token in logs; sharpen docs/site against the built artifact. Needs operator CF + Bee creds. **The bridge CA (`bridge/bee-ca.pem`) is committed** (public Bee roots, verified); the only operator-supplied fact is Bee's real direct host (`BEE_UPSTREAM`/`BEE_SNI`).
 
 ## 3. What's been decided (full trail in the journal + `odd/ledger/2026-06-14-planning.md`)
 
@@ -54,7 +54,7 @@ Reference repo this is ported from: **`klappy/git-repo-auth-mcp`** (the proven s
 - `docs/phase-1-build-handoff.md` — **the build contract for the Bee leg (read this to build).**
 - `docs/phase-1-execution-handoff.md` — the earlier locked Phase-1 contract (private-CA tripwire now resolved by E0012).
 - `docs/implementation-handoff.md` — the git-auth → bee borrow map.
-- `bridge/` — the private-CA bridge artifacts (Dockerfile, Caddyfile, README runbook, wrangler starting point). `bee-ca.pem` is an operator-fill (gitignored).
+- `bridge/` — the private-CA bridge artifacts (Dockerfile, Caddyfile, committed `bee-ca.pem` public roots, README runbook, wrangler starting point).
 - `odd/ledger/2026-06-15-phase-1-bee-leg-build-pass.md` — **E0013: the build pass (custody bend + bridge), what's merged, what the DoD still owes.**
 - `odd/ledger/2026-06-15-bee-leg-private-ca-and-multitenancy.md` — **E0012: gate resolution, bridge decision, crypto verification, custody amendment, rejections.**
 - `odd/ledger/2026-06-14-session-validation-to-execution.md` — the session journal (DOLCHEO: validation → challenge → build → CI → consolidation, with the E0010 debrief).

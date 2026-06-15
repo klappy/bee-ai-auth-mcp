@@ -37,6 +37,6 @@ DOLCHEO per `klappy://canon/definitions/dolcheo-vocabulary`. Continues the trail
 - **[O-open · DoD] Runtime wire validation** — deploy + phone-only, three-pass, fresh-context `whoami`; the gate before "done."
 - **[O-open · deploy] Bridge container build phone-only?** — confirm whether CF Workers Builds builds `bridge/Dockerfile` server-side, or a one-time build environment is needed.
 - **[O-open · review] D0026 consent/HMAC design** — operator ruling invited.
-- **[O-open · deploy] `bee-ca.pem` is gitignored** (`*.pem` repo-wide) — a build-from-repo won't include it in the build context; force-add or supply it another way. Noted in `bridge/README.md`.
+- **[CLOSED · deploy] `bee-ca.pem` committed.** The public Bee CA roots (prod `CN=BeeCertificateAuthority,O=Bee` + staging), copied verbatim from the public bee-cli `sources/certs.ts` (commit 97dfdb18) and openssl-verified, are now committed at `bridge/bee-ca.pem` with a `!bridge/bee-ca.pem` .gitignore exception. The earlier 'operator must supply the cert' framing was an over-application of secret-hygiene to a public trust anchor — corrected. Only Bee's real direct host remains operator-supplied.
 - **[O-open · carried] CF Containers wrangler shape** — confirm `bridge/wrangler.jsonc` against current CF docs at deploy.
 - **[O-open · carried from E0012]** Tier-2/multi-tenancy go/no-go; Bee public-cert/Tier-0 ask; drop-GitHub-for-single-tenant; `bee-mcp`→`bee-ai-auth-mcp` rename (D0015); Phase-2 `/v1/changes` + `/v1/search/conversations` live confirm-or-drop.

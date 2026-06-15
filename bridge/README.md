@@ -10,20 +10,11 @@ This is the deliberate decision from E0012 (D0021/D0022/D0025): one shared, stat
 hardened bridge — **not** per-user containers. Isolation is cryptographic (per-grant
 token-wrapped props), not per-container.
 
-## You must supply two facts (this repo cannot fabricate them)
+## You supply one fact (the rest is in the repo)
 
-1. **`bee-ca.pem`** — Bee's private CA roots. Copy verbatim from the Bee CLI source the docs
-   point at: `github.com/bee-computer/bee-cli` → `sources/certs.ts` (the
-   `CN=BeeCertificateAuthority, O=Bee` prod root, plus the staging root if you target staging).
-   Replace the placeholder `bridge/bee-ca.pem`.
+**`bridge/bee-ca.pem` is already committed** — Bee's PUBLIC CA roots (`CN=BeeCertificateAuthority, O=Bee` prod + `Bee Staging Root CA`), copied verbatim from the public Bee CLI source `github.com/bee-computer/bee-cli` → `sources/certs.ts` (commit 97dfdb18) and verified to parse. These are public trust anchors, not secrets, so they live in the repo and the `.gitignore` `*.pem` rule has an explicit `!bridge/bee-ca.pem` exception. Nothing to paste.
 
-   > ⚠️ `*.pem` is gitignored repo-wide, so a build-from-repo (e.g. CF Workers Builds)
-   > will not see this file in its build context and the `COPY bee-ca.pem` step will fail.
-   > Force-add it (`git add -f bridge/bee-ca.pem`), un-ignore it for this path, or supply
-   > the CA to the build another way (build secret / mount).
-2. **Bee's real direct API host** — the docs publish only the placeholder `$BEE_API_BASE`.
-   Get the real host from your `bee-cli` config / Bee. Set it as `BEE_UPSTREAM` and `BEE_SNI`
-   (see env below).
+The one thing this repo can't know is **Bee's real direct API host** — the docs publish only the placeholder `$BEE_API_BASE`. Get it from your `bee-cli` config / Bee and set it as `BEE_UPSTREAM` and `BEE_SNI` (see env below). That's runtime config, not a repo file.
 
 ## Runtime env (Caddyfile placeholders)
 
