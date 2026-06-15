@@ -1,21 +1,25 @@
 /**
- * Thin Bee client — Phase 1 reaches exactly one confirmed endpoint: GET /v1/me.
+ * Thin Bee client — Phase 1 reaches exactly one confirmed endpoint: GET /v1/me
+ * (Bee docs, "API": `GET /v1/me` returns the user profile; confirmed 2026-06-07).
  *
- * THE PRIVATE-CA SEAM (Phase-1 tripwire, docs/phase-1-execution-handoff.md §4):
- * Bee's docs require trusting a private CA for the direct API. Standard
- * Cloudflare Workers `fetch` trusts ONLY publicly-trusted CAs — there is no
- * per-request CA override. So this plain fetch works IFF Bee's real API base
- * presents a publicly-trusted cert. If it is private-CA-fronted, this call
- * fails at TLS and the path is Workers VPC (Origin-CA) / mTLS — confirm
- * reachability from a non-proxied environment before relying on this.
+ * CUSTODY (v0.3 amendment, ledger E0012): the Bee bearer is NO LONGER a Worker
+ * secret. It is passed in explicitly — the caller reads it from the request's
+ * decrypted per-grant props (GrantProps.beeToken) or, at consent time, from the
+ * value the operator just pasted (to validate it before binding). This module
+ * never touches `env.BEE_API_TOKEN` (there is none).
  *
- * HONEST + SAFEST (binding constraint): the Bee bearer is read from the
- * Worker secret and attached only to the outbound request. It is NEVER logged
- * and NEVER serialized into a returned error. Errors carry status + a generic
- * message only — never the request, headers, or raw upstream body.
+ * NETWORK PATH (private-CA bridge, resolved E0012): `base` points at the caddy
+ * Container bridge, which presents a PUBLIC cert to this Worker and re-originates
+ * TLS to Bee trusting bee-ca.pem. So this is a plain `fetch` to a public-cert
+ * host — the old "Worker can't trust Bee's private CA" seam is handled by the
+ * bridge, not here. A transport failure now means the bridge is unreachable or
+ * misconfigured (or BEE_API_BASE is unset), not a Worker TLS-trust problem.
+ *
+ * HONEST + SAFEST (binding): the Bee bearer is attached only to the outbound
+ * request. It is NEVER logged and NEVER serialized into a returned error. Errors
+ * carry status + a generic message only — never the request, headers, token, or
+ * raw upstream body.
  */
-
-import type { Env } from "./types";
 
 export interface BeeWhoami {
   ok: true;
@@ -28,29 +32,34 @@ export interface BeeError {
   message: string;
 }
 
-export async function beeWhoami(env: Env): Promise<BeeWhoami | BeeError> {
-  if (!env.BEE_API_TOKEN || !env.BEE_API_BASE) {
-    return { ok: false, status: null, message: "Bee not configured: set BEE_API_BASE and the BEE_API_TOKEN secret." };
+/** Call GET {base}/v1/me with an explicit bearer. The single Bee primitive. */
+export async function beeGetMe(beeToken: string, beeApiBase: string): Promise<BeeWhoami | BeeError> {
+  if (!beeToken || !beeApiBase) {
+    return {
+      ok: false,
+      status: null,
+      message:
+        "Bee not configured: BEE_API_BASE must point at the private-CA bridge and the grant must carry a Bee token (reconnect to supply one).",
+    };
   }
 
   let res: Response;
   try {
-    res = await fetch(`${env.BEE_API_BASE.replace(/\/+$/, "")}/v1/me`, {
+    res = await fetch(`${beeApiBase.replace(/\/+$/, "")}/v1/me`, {
       headers: {
-        authorization: `Bearer ${env.BEE_API_TOKEN}`,
+        authorization: `Bearer ${beeToken}`,
         accept: "application/json",
         "user-agent": "bee-ai-auth-mcp",
       },
     });
   } catch {
-    // Most likely the private-CA TLS wall (see seam note above). Do not echo
-    // the request or any secret — a generic, actionable message only.
+    // Bridge unreachable / not deployed / BEE_API_BASE wrong. Do NOT echo the
+    // request or any secret — a generic, actionable message only.
     return {
       ok: false,
       status: null,
       message:
-        "Could not reach the Bee API. If Bee's direct API uses a private CA, a Cloudflare Worker " +
-        "cannot trust it via plain fetch — see the Phase-1 reachability tripwire (Workers VPC / mTLS).",
+        "Could not reach the Bee API through the bridge. Confirm the private-CA Container bridge is deployed and BEE_API_BASE points at it (see bridge/README.md).",
     };
   }
 
@@ -61,7 +70,7 @@ export async function beeWhoami(env: Env): Promise<BeeWhoami | BeeError> {
       status: res.status,
       message:
         res.status === 401 || res.status === 403
-          ? "Bee rejected the credential (401/403). Rotate BEE_API_TOKEN in the Bee app and re-set the Worker secret."
+          ? "Bee rejected the credential (401/403). Reconnect and paste a current Bee token, or rotate it in the Bee app."
           : `Bee returned an unexpected status (${res.status}).`,
     };
   }

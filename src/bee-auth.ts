@@ -1,30 +1,58 @@
 /**
  * Default handler: everything that isn't the gated /mcp API.
  *
- * Model A (self-host): GitHub OAuth authenticates the operator to THIS relay.
- * There is NO Bee-token capture here — the Bee credential is the deployer's
- * own Worker secret (BEE_API_TOKEN). The GitHub user token is used for one
- * GET (/user) to read the login, then discarded; never stored, logged, or
- * returned.
+ * v0.3 per-grant custody (ledger E0012): GitHub OAuth authenticates the operator
+ * to THIS relay (the user<->relay leg) and gates tenancy via the allow-list.
+ * Then — unlike the old Model-A design — we CAPTURE the operator's Bee token at
+ * a consent step and bind it into THEIR encrypted grant props. There is no
+ * shared BEE_API_TOKEN Worker secret. The GitHub user token is used for one
+ * GET (/user) to read the login, then discarded; never stored, logged, returned.
  *
  * Flow:
  *   /authorize — MCP client arrives; parse the request, bounce to GitHub login.
- *   /callback  — GitHub returns; exchange code for a transient user token,
- *                read the login, allow-list check, bind the grant.
+ *   /callback  — GitHub returns; exchange code for a transient user token, read
+ *                the login, allow-list check, then render the Bee-token consent
+ *                form (carrying a signed {oauthReqInfo, login}).
+ *   /consent   — (POST) verify the signed state, validate the pasted Bee token
+ *                via GET /v1/me through the bridge, then completeAuthorization
+ *                binding { login, beeToken } into encrypted props.
  */
 
 import type { AuthRequest } from "@cloudflare/workers-oauth-provider";
-import { encodeState, decodeState } from "./state";
+import { encodeState, decodeState, signConsent, verifyConsent } from "./state";
+import { beeGetMe } from "./bee";
 import type { Env } from "./types";
 import { COMMIT_SHA } from "./version";
 
 const GH = "https://api.github.com";
 const UA = "bee-ai-auth-mcp";
 
+/** Where a Bee owner finds their token (shown on the consent screen). */
+const BEE_TOKEN_HELP = "https://docs.bee.computer/docs/developer-mode";
+
 function html(body: string, status = 200): Response {
   return new Response(
-    `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>bee-ai-auth-mcp</title><style>body{font-family:ui-monospace,monospace;background:#FAFAF6;color:#16201B;max-width:560px;margin:64px auto;padding:0 20px;line-height:1.6}a{color:#0E5A4A}</style></head><body>${body}</body></html>`,
+    `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>bee-ai-auth-mcp</title><style>body{font-family:ui-monospace,monospace;background:#FAFAF6;color:#16201B;max-width:560px;margin:64px auto;padding:0 20px;line-height:1.6}a{color:#0E5A4A}input[type=password]{width:100%;box-sizing:border-box;padding:10px;font:inherit;border:1px solid #16201B;border-radius:6px;margin:8px 0}button{padding:10px 18px;font:inherit;background:#0E5A4A;color:#FAFAF6;border:0;border-radius:6px;cursor:pointer}.err{color:#9B2226}</style></head><body>${body}</body></html>`,
     { status, headers: { "content-type": "text/html; charset=utf-8" } }
+  );
+}
+
+/** The Bee-token consent form. `signed` round-trips the gate-verified identity. */
+function consentForm(login: string, signed: string, error?: string): Response {
+  return html(
+    `<h2>Connect your Bee</h2>
+     <p>Signed in as <b>${login}</b>. Paste your <b>Bee API token</b> to authorize this relay
+        to read your Bee on your behalf. It is stored only inside your own encrypted grant —
+        never shown to the AI client, never logged.</p>
+     ${error ? `<p class="err">${error}</p>` : ""}
+     <form method="POST" action="/consent" autocomplete="off">
+       <input type="hidden" name="s" value="${signed}">
+       <input type="password" name="bee_token" placeholder="Bee API token" autocomplete="off" autofocus>
+       <button type="submit">Authorize</button>
+     </form>
+     <p style="font-size:0.85em">Where do I get this? See <a href="${BEE_TOKEN_HELP}" target="_blank" rel="noopener">Bee developer mode</a>.
+        To revoke later: disconnect here (deletes our copy) and rotate the token in the Bee app.</p>`,
+    error ? 400 : 200
   );
 }
 
@@ -35,6 +63,11 @@ function isAllowed(login: string, env: Env): boolean {
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
   return list.includes(login.toLowerCase());
+}
+
+interface ConsentState {
+  req: AuthRequest;
+  login: string;
 }
 
 export const BeeAuthHandler = {
@@ -111,12 +144,50 @@ export const BeeAuthHandler = {
         );
       }
 
+      // Identity proven + allow-listed. Carry it (signed) to the consent step;
+      // the GitHub token is now discarded. No Bee token exists yet.
+      const signed = await signConsent(
+        { req: oauthReqInfo, login: user.login } satisfies ConsentState,
+        env.GITHUB_CLIENT_SECRET
+      );
+      return consentForm(user.login, signed);
+    }
+
+    // ---- Bee-token consent (capture into encrypted props) ----
+    if (url.pathname === "/consent" && request.method === "POST") {
+      const form = await request.formData();
+      const signed = String(form.get("s") ?? "");
+      const beeToken = String(form.get("bee_token") ?? "").trim();
+
+      const cs = await verifyConsent<ConsentState>(signed, env.GITHUB_CLIENT_SECRET);
+      if (!cs || !cs.login || !cs.req) {
+        return html(`<h2>Consent state invalid or tampered.</h2><p>Restart the connection from your client.</p>`, 400);
+      }
+
+      // Defense in depth: re-check the allow-list against the signed login.
+      if (!isAllowed(cs.login, env)) {
+        return html(`<h2>Not authorized</h2><p><b>${cs.login}</b> is not on this instance's allow-list.</p>`, 403);
+      }
+
+      if (!beeToken) {
+        return consentForm(cs.login, signed, "Please paste your Bee API token.");
+      }
+
+      // Validate the token before binding it — a bad token must not become a
+      // confusing post-connect failure. This is the first real call through the
+      // private-CA bridge; a transport error here means the bridge isn't ready.
+      const check = await beeGetMe(beeToken, env.BEE_API_BASE);
+      if (!check.ok) {
+        return consentForm(cs.login, signed, `Bee did not accept that: ${check.message}`);
+      }
+
+      // Bind identity + Bee token into the user's encrypted grant props.
       const { redirectTo } = await env.OAUTH_PROVIDER.completeAuthorization({
-        request: oauthReqInfo,
-        userId: user.login,
-        metadata: { label: user.login },
+        request: cs.req,
+        userId: cs.login,
+        metadata: { label: cs.login },
         scope: ["bee_read"],
-        props: { login: user.login },
+        props: { login: cs.login, beeToken },
       });
       return Response.redirect(redirectTo, 302);
     }
