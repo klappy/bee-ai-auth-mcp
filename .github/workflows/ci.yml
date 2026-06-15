@@ -67,7 +67,10 @@ jobs:
           # generatePreviewAlias): lowercase, replace each non-alphanumeric
           # char with '-', collapse repeats, trim leading/trailing '-'.
           SLUG=$(echo "$REF" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9-]/-/g; s/-+/-/g; s/^-+|-+$//g')
-          BASE_URL="https://${SLUG}-bee-ai-auth-mcp.klappy.workers.dev"
+          # NOTE: the deployed Worker name is `bee-mcp` (config `name` is
+          # `bee-ai-auth-mcp`; the D0015 rename will reconcile these — update
+          # this host when it lands).
+          BASE_URL="https://${SLUG}-bee-mcp.klappy.workers.dev"
           echo "base_url=${BASE_URL}" >> "$GITHUB_OUTPUT"
           echo "Branch: ${REF}"
           echo "Preview: ${BASE_URL}"

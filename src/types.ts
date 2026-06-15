@@ -22,10 +22,6 @@ export interface Env {
   // ---- transport / misc ----
   /** Optional comma-separated extra origins allowed to call /mcp with an Origin header. */
   ALLOWED_ORIGINS?: string;
-  /** Deploy-injected commit SHA, surfaced at /version so CI can confirm the
-   *  preview serves the commit under test before smoking. Set by the Workers
-   *  Builds deploy: `wrangler deploy --var COMMIT_SHA:$WORKERS_CI_COMMIT_SHA`. */
-  COMMIT_SHA?: string;
   /** Provider state: hashed OAuth grants. */
   OAUTH_KV: KVNamespace;
   /** Injected by OAuthProvider on the default handler. */
