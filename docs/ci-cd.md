@@ -15,8 +15,9 @@ build then a deploy command — **automatically, in Cloudflare's CI, with no hum
 - **Push/merge to `main` → production deploy.**
 
 Proven, not asserted: the `ca27a8b` push to `docs/phase-1-build-ledger-and-resume`
-auto-deployed a preview at `https://docs-phase-1-build-ledger-and-resume-bee-mcp.klappy.workers.dev`
-— the build log shows Workers Builds running `npx wrangler versions upload` itself.
+auto-deployed a preview by itself — the build log shows Workers Builds running `npx wrangler
+versions upload`. (That build predated the Worker rename; the Worker is now `bee-ai-auth-mcp`,
+so current previews use that name.)
 
 > **Do not describe deployment as a manual `wrangler deploy`, a laptop step, or anything
 > needing a CF API token.** Crew triggers a deploy by pushing a branch; the operator promotes

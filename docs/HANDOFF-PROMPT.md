@@ -11,7 +11,7 @@ Repo: `klappy/bee-ai-auth-mcp`. Access via the **Git Repo Auth** MCP (`github_to
 
 **Read these from the repo, in order, before building:** `RESUME.md` → `PRD.md` (v0.3) → `docs/phase-1-build-handoff.md` → `odd/ledger/2026-06-15-bee-leg-private-ca-and-multitenancy.md` (E0012). They are the contract; do not work from this prompt's summary where they disagree.
 
-**DONE — don't redo:** auth core live + phone-validated at `bee.klappy.dev` (E0011); GitHub OAuth identity gate; `ALLOWED_GITHUB_LOGIN=klappy`; MCP connect works; Worker deployed as `bee-mcp`; spine + CI on `main`. Network path resolved: Bee uses a **private CA** (E0012). Custody crypto verified: `workers-oauth-provider` 0.7.2 is per-grant token-wrapped, no master key.
+**DONE — don't redo:** auth core live + phone-validated at `bee.klappy.dev` (E0011); GitHub OAuth identity gate; `ALLOWED_GITHUB_LOGIN=klappy`; MCP connect works; Worker deployed as `bee-ai-auth-mcp`; spine + CI on `main`. Network path resolved: Bee uses a **private CA** (E0012). Custody crypto verified: `workers-oauth-provider` 0.7.2 is per-grant token-wrapped, no master key.
 
 **OBJECTIVE (Phase-1 Bee leg, single-tenant):** make `whoami` return the operator's Bee identity, built on the ratified custody amendment.
 1. **Bridge:** build + deploy a single shared, stateless, **empty-toolbox** Cloudflare Container running caddy that trusts `bee-ca.pem` and forwards `/v1/*` to Bee (public cert facing the Worker). `scratch`/distroless, no shell, read-only FS, caps dropped, non-root, digest-pinned; **never log `Authorization`**. Point `BEE_API_BASE` at the bridge. The bridge's own fetch to `/v1/me` is the definitive private-CA reachability check.
@@ -24,4 +24,4 @@ Repo: `klappy/bee-ai-auth-mcp`. Access via the **Git Repo Auth** MCP (`github_to
 
 **Constraints:** honest + safest — neither the Bee token nor the relay token in any log/URL/error/output (the relay token unwraps the Bee token; treat it as a key). Validation needs a fresh context (not same-session). Don't force `fetch` past the bridge. Confirm `/v1/*` schemas against the live API; don't fabricate.
 
-**Open forks (don't bank):** multi-tenant go/no-go (widen the allow-list — the one-way door); Bee public-cert/Tier-0 ask (removes the bridge + residual); drop-GitHub-for-single-tenant; `bee-mcp`→`bee-ai-auth-mcp` rename (D0015); Phase-2 `/v1/changes` + `/v1/search/conversations` live confirm-or-drop.
+**Open forks (don't bank):** multi-tenant go/no-go (widen the allow-list — the one-way door); Bee public-cert/Tier-0 ask (removes the bridge + residual); drop-GitHub-for-single-tenant; Phase-2 `/v1/changes` + `/v1/search/conversations` live confirm-or-drop.
