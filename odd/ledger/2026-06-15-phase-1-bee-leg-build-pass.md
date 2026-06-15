@@ -8,6 +8,8 @@ DOLCHEO per `klappy://canon/definitions/dolcheo-vocabulary`. Continues the trail
 
 **[D0027] Bridge image = static caddy on `distroless/static:nonroot`, not `scratch` + a stock caddy binary.** A self-correction during the build: copying the `caddy:2-alpine` binary onto `scratch` would fail at runtime (musl-linked, no libc on scratch). The empty-toolbox spec (E0012 D0025) is satisfied by an `xcaddy`-built static binary on `distroless/static:nonroot` — no shell, no package manager, CA roots present, non-root uid/gid 65532. Run-time hardening (read-only FS, `--cap-drop=ALL`, `no-new-privileges`, tmpfs for caddy's ACME dirs) is documented in `bridge/README.md` for the deploy step.
 
+**[D0028] Bridge runs in the SAME Cloudflare project as the relay Worker — one bound container, not a separate deployment (operator ruling, 2026-06-15).** The V8 isolate still cannot do private-CA TLS (E0012), so a caddy container process stays mandatory — but it binds into the relay Worker's own wrangler project and is reached over an internal Worker→container call, not a standalone `bee-bridge` service with its own public hostname/cert. Refines E0012 D0021 (path = a CF caddy container); a different axis from D0022 (per-*user* containers, still rejected). Rationale: maintainability-one-person; smaller external surface (no second public hostname/cert; the Worker→bridge hop is internal); the only thing separation would buy — one shared bridge fronting multiple relays — is the deferred substrate story (YAGNI for single-tenant Phase-1). Supersedes the separate-deployment shape the `bridge/` artifacts originally sketched. Next-build opens: confirm CF Containers binding mechanics against current docs; watch container cold-start coupling on the Bee request path; the empty-toolbox hardening is image-level and unaffected.
+
 ## Observations
 
 **[O] In-container static verification is green; runtime is unobserved.** `tsc --noEmit` clean; 15 unit tests pass (the 11 prior plus 4 new signed-consent round-trip/tamper tests in `test/state.test.ts`), 2 live-smoke skipped by design. This proves the static surface only. The Bee wire (`whoami` over the bridge) was never exercised — that is the DoD's job and requires deploy + fresh context.
@@ -17,6 +19,8 @@ DOLCHEO per `klappy://canon/definitions/dolcheo-vocabulary`. Continues the trail
 ## Learnings
 
 **[L] Merge-to-`main` is a code milestone, not the validated DoD.** The release-validation-gate's independent fresh-context check on the load-bearing surface still has not run, because the runtime path was never deployed. The honest state is "code merged, wire unproven." Do not promote to prod before the fresh-context green.
+
+**[L] Default to the least infrastructure that satisfies the constraints, not the most-isolated option.** Twice this session the crew reached for the more-separated default — a public CA cert framed as an operator-supplied secret, and the bridge defaulted to its own deployment — and both fought *maintainability-one-person* and manufactured operator setup friction. Corrected default: when an isolation/separation choice is open, take the lighter-weight option unless a NAMED, PRESENT requirement (not a deferred/aspirational one) demands the heavier one. Separation is earned by a concrete need, not assumed. Debrief item, not blame (E0010 posture).
 
 ## Constraints
 
