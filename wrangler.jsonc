@@ -16,16 +16,37 @@
   "vars": {
     // Comma-separated GitHub login(s) allowed to use this self-host instance.
     // REQUIRED — the instance denies all logins until this is set.
-    "ALLOWED_GITHUB_LOGIN": "klappy",
-    // Bee direct API base — points at the private-CA Container bridge (see PRD
-    // v0.3 / docs/phase-1-build-handoff.md). The /v1/* calls hang off this.
-    "BEE_API_BASE": ""
-  }
+    "ALLOWED_GITHUB_LOGIN": "klappy"
+  },
+  // ---- private-CA bridge as a bound Cloudflare Container (D0028 / ledger E0014) ----
+  // The relay reaches Bee via an INTERNAL Worker->container call
+  // (getContainer(env.BEE_BRIDGE) in src/bee.ts) — there is NO public bridge
+  // hostname and NO BEE_API_BASE URL. The image is bridge/Dockerfile (caddy; see
+  // bridge/Caddyfile + bridge/README.md). Confirm this block against current
+  // Cloudflare Containers docs before deploy: the image is the stable part, this
+  // binding config is version-sensitive. Workers Builds builds the image on push
+  // once the build command is set to `wrangler containers build --push` (a
+  // one-time dashboard setting — operator).
+  "containers": [
+    {
+      "class_name": "BeeBridge",
+      "image": "./bridge/Dockerfile",
+      "instance_type": "basic",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "class_name": "BeeBridge", "name": "BEE_BRIDGE" }]
+  },
+  // First (and only) migration — register the BeeBridge DO class. Confirmed by
+  // observation that root wrangler.jsonc had no prior migrations block, so `v1`
+  // is correct as the initial tag (ledger E0014).
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BeeBridge"] }]
   // Secrets (set via `wrangler secret put`, never committed, never in chat):
   //   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET  (a GitHub *OAuth App* — identity only, not a GitHub App;
   //                                            CLIENT_SECRET also HMAC-signs the consent round-trip)
-  // NOTE: there is NO BEE_API_TOKEN secret in v0.3. Each user's Bee bearer is
+  // NOTE: there is NO BEE_API_TOKEN secret (v0.3+). Each user's Bee bearer is
   // captured at the consent step and held only in their encrypted grant props
-  // (per-grant custody; ledger E0012). BEE_API_BASE below must point at the
-  // private-CA Container bridge (see bridge/), never at Bee directly.
+  // (per-grant custody; ledger E0012). The relay reaches Bee only through the
+  // bound BEE_BRIDGE container above (see bridge/), never a public URL.
 }

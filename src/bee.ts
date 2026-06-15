@@ -8,12 +8,13 @@
  * value the operator just pasted (to validate it before binding). This module
  * never touches `env.BEE_API_TOKEN` (there is none).
  *
- * NETWORK PATH (private-CA bridge, resolved E0012): `base` points at the caddy
- * Container bridge, which presents a PUBLIC cert to this Worker and re-originates
- * TLS to Bee trusting bee-ca.pem. So this is a plain `fetch` to a public-cert
- * host — the old "Worker can't trust Bee's private CA" seam is handled by the
- * bridge, not here. A transport failure now means the bridge is unreachable or
- * misconfigured (or BEE_API_BASE is unset), not a Worker TLS-trust problem.
+ * NETWORK PATH (private-CA bridge, resolved E0012; bound container, D0028): the
+ * caller passes the bound Container stub (`getContainer(env.BEE_BRIDGE)`) and we
+ * call it over an INTERNAL Worker->container fetch. Inside, caddy re-originates
+ * TLS to Bee trusting bee-ca.pem, so the old "Worker can't trust Bee's private
+ * CA" seam is handled by the container, not here. A transport failure now means
+ * the bridge container is unreachable or misconfigured (or the BEE_BRIDGE binding
+ * is missing), not a Worker TLS-trust problem.
  *
  * HONEST + SAFEST (binding): the Bee bearer is attached only to the outbound
  * request. It is NEVER logged and NEVER serialized into a returned error. Errors
@@ -32,20 +33,24 @@ export interface BeeError {
   message: string;
 }
 
-/** Call GET {base}/v1/me with an explicit bearer. The single Bee primitive. */
-export async function beeGetMe(beeToken: string, beeApiBase: string): Promise<BeeWhoami | BeeError> {
-  if (!beeToken || !beeApiBase) {
+/** Call GET /v1/me through the bound bridge container with an explicit bearer.
+ *  The single Bee primitive. `bridge` is the stub from getContainer(env.BEE_BRIDGE). */
+export async function beeGetMe(beeToken: string, bridge: DurableObjectStub): Promise<BeeWhoami | BeeError> {
+  if (!beeToken || !bridge) {
     return {
       ok: false,
       status: null,
       message:
-        "Bee not configured: BEE_API_BASE must point at the private-CA bridge and the grant must carry a Bee token (reconnect to supply one).",
+        "Bee not configured: the BEE_BRIDGE container binding must be present and the grant must carry a Bee token (reconnect to supply one).",
     };
   }
 
   let res: Response;
   try {
-    res = await fetch(`${beeApiBase.replace(/\/+$/, "")}/v1/me`, {
+    // Internal Worker->container call. The host in this URL is arbitrary (the
+    // bound container is addressed by the stub, not by DNS); caddy's :8080 port
+    // site accepts any Host and forwards only /v1/* to Bee.
+    res = await bridge.fetch("http://bee-bridge/v1/me", {
       headers: {
         authorization: `Bearer ${beeToken}`,
         accept: "application/json",
@@ -53,13 +58,13 @@ export async function beeGetMe(beeToken: string, beeApiBase: string): Promise<Be
       },
     });
   } catch {
-    // Bridge unreachable / not deployed / BEE_API_BASE wrong. Do NOT echo the
-    // request or any secret — a generic, actionable message only.
+    // Bridge container unreachable / not deployed. Do NOT echo the request or any
+    // secret — a generic, actionable message only.
     return {
       ok: false,
       status: null,
       message:
-        "Could not reach the Bee API through the bridge. Confirm the private-CA Container bridge is deployed and BEE_API_BASE points at it (see bridge/README.md).",
+        "Could not reach the Bee API through the bridge. Confirm the private-CA Container bridge is deployed and the BEE_BRIDGE binding is wired (see bridge/README.md).",
     };
   }
 

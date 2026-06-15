@@ -55,7 +55,9 @@ jobs:
     name: Resolve preview URL
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Must stay strictly above the poll deadline below (~9 min) so the loop's
+    # explicit "build never went live" failure fires before GitHub's hard kill.
+    timeout-minutes: 12
     needs: check
     outputs:
       base_url: ${{ steps.url.outputs.base_url }}
@@ -85,10 +87,13 @@ jobs:
           EXPECTED_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
           URL="${{ steps.url.outputs.base_url }}/version"
           echo "Polling ${URL} for ${EXPECTED_SHA}"
-          # Bound the poll by wall-clock time (~5 min, per docs/ci-cd.md) instead
-          # of a fixed count: a slow/hanging curl (--max-time 10) must not push the
-          # loop past the job's timeout-minutes and mask the explicit failure below.
-          DEADLINE=$(( $(date +%s) + 300 ))
+          # Bound the poll by wall-clock time (~9 min) instead of a fixed count: a
+          # slow/hanging curl (--max-time 10) must not push the loop past the job's
+          # timeout-minutes and mask the explicit failure below. Budget raised from
+          # ~5 min because this project now ships a bound Container (BeeBridge), so
+          # Workers Builds builds a Docker image before deploy — materially slower
+          # than the old plain-Worker upload (docs/ci-cd.md).
+          DEADLINE=$(( $(date +%s) + 540 ))
           i=0
           while [ "$(date +%s)" -lt "$DEADLINE" ]; do
             i=$((i + 1))

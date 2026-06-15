@@ -1,4 +1,5 @@
 import type { OAuthHelpers } from "@cloudflare/workers-oauth-provider";
+import type { BeeBridge } from "./bridge";
 
 export interface Env {
   // ---- user<->relay leg: GitHub OAuth as the identity gate ----
@@ -18,12 +19,14 @@ export interface Env {
   // There is NO BEE_API_TOKEN Worker secret. Each user's Bee bearer is captured
   // at OAuth consent and held only inside THEIR encrypted grant props
   // (GrantProps.beeToken), decrypted in-Worker per request. See ledger E0012.
-  /** Bee direct API base — points at the private-CA Container bridge (caddy),
-   *  NOT at Bee directly. Bee's direct API uses a private CA that a stock Worker
-   *  `fetch` cannot trust; the bridge terminates a public cert facing the Worker
-   *  and re-originates TLS to Bee trusting bee-ca.pem. The /v1/* calls hang off
-   *  this. See PRD v0.3 "The private-CA bridge" and bridge/. */
-  BEE_API_BASE: string;
+  /** The private-CA bridge, bound as a Cloudflare Container (D0028, ledger E0014).
+   *  Replaces the old BEE_API_BASE public URL: the Worker reaches Bee via an
+   *  INTERNAL Worker->container call (`getContainer(env.BEE_BRIDGE)`), so there is
+   *  no public bridge hostname and no public cert. The container re-originates TLS
+   *  to Bee trusting bee-ca.pem (Bee's direct API uses a private CA that a stock
+   *  Worker `fetch` cannot trust). The /v1/* calls hang off this binding. See PRD
+   *  v0.4 "The private-CA bridge", src/bridge.ts, and bridge/. */
+  BEE_BRIDGE: DurableObjectNamespace<BeeBridge>;
 
   // ---- transport / misc ----
   /** Optional comma-separated extra origins allowed to call /mcp with an Origin header. */

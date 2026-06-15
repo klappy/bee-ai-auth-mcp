@@ -19,6 +19,7 @@
  */
 
 import type { AuthRequest } from "@cloudflare/workers-oauth-provider";
+import { getContainer } from "@cloudflare/containers";
 import { encodeState, decodeState, signConsent, verifyConsent } from "./state";
 import { beeGetMe } from "./bee";
 import type { Env } from "./types";
@@ -175,8 +176,9 @@ export const BeeAuthHandler = {
 
       // Validate the token before binding it — a bad token must not become a
       // confusing post-connect failure. This is the first real call through the
-      // private-CA bridge; a transport error here means the bridge isn't ready.
-      const check = await beeGetMe(beeToken, env.BEE_API_BASE);
+      // private-CA bridge container; a transport error here means it isn't ready.
+      const stub = getContainer(env.BEE_BRIDGE); // shared singleton; never per-user (E0014)
+      const check = await beeGetMe(beeToken, stub);
       if (!check.ok) {
         return consentForm(cs.login, signed, `Bee did not accept that: ${check.message}`);
       }

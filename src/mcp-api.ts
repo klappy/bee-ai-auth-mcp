@@ -12,6 +12,7 @@
 
 import { createMcpHandler } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { getContainer } from "@cloudflare/containers";
 import { beeGetMe } from "./bee";
 import type { Env, GrantProps } from "./types";
 
@@ -36,7 +37,11 @@ function buildServer(env: Env, props: GrantProps): McpServer {
       inputSchema: {},
     },
     async () => {
-      const result = await beeGetMe(props.beeToken, env.BEE_API_BASE);
+      // One shared, token-agnostic bridge: getContainer with no name resolves the
+      // singleton ("cf-singleton-container"). Do NOT pass a per-user name — that
+      // would shard the deliberately single shared bridge (multitenancy rule, E0014).
+      const stub = getContainer(env.BEE_BRIDGE);
+      const result = await beeGetMe(props.beeToken, stub);
       if (!result.ok) {
         const wall = {
           error: "bee_unreachable_or_rejected",
