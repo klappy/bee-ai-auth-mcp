@@ -16,7 +16,7 @@ date: 2026-06-15
 
 > A hosted, MIT, self-host-first MCP credential relay that exposes a Bee pendant's retrieval API to any MCP client (Claude, Cursor, other agents) across every surface — built on a per-grant encrypted-custody core that runs single-tenant today and is multi-tenant-capable by config.
 
-**This PRD is a DRAFT pending the operator's author pass.** Nothing here commits until reviewed. Drafted by the first officer from session decisions; v0.3 folds in the 2026-06-15 session (private-CA resolution, the custody amendment, and the verified `workers-oauth-provider` crypto).
+**This PRD is a DRAFT pending the operator's author pass.** Nothing here commits until reviewed. Drafted by the first officer from session decisions; v0.3 folds in the 2026-06-15 session (private-CA resolution, the custody amendment, and the verified `workers-oauth-provider` crypto). v0.4 folds in the bound-container resolution (D0028, E0014): the bridge is a Cloudflare Container bound to the Worker, reached by an internal `getContainer().fetch()` call — no public ACME cert, no `BEE_API_BASE` URL — and the custody rule is extended to state the bridge is token-agnostic shared infrastructure.
 
 ---
 
@@ -24,8 +24,8 @@ date: 2026-06-15
 
 | Field | Value |
 |-------|-------|
-| **PRD Version** | v0.3 (custody amendment + private-CA resolution, 2026-06-15) |
-| **Status** | Draft — Phase 1 (per-grant custody, single-tenant) ready to build; network path resolved; Phases 2–3 open |
+| **PRD Version** | v0.4 (bound-container bridge + token-agnostic custody, 2026-06-15) |
+| **Status** | Draft — Phase 1 (per-grant custody, single-tenant) ready to build; network path resolved as a bound Container; Phases 2–3 open |
 | **Created** | 2026-06-14 |
 | **Author** | Klappy (operator) — review pending |
 | **Preview Deploy Required** | Yes (hosted Worker; online-evidence requirement applies) |
@@ -51,6 +51,8 @@ Give any MCP client read access to a Bee pendant's captured conversations on eve
 
 **What the amendment does NOT do:** it does not open the multi-tenant door. The irreversible step — accepting a *third party's* token — happens only when the allow-list is widened. That decision remains deferred and operator-owned.
 
+**Bridge custody rule (v0.4, per E0014):** the Bee bearer is **not** infrastructure config. The bridge is **token-agnostic shared infrastructure** — each request carries its own user's bearer in the `Authorization` header, passed through unchanged, **never injected by the bridge, never logged**. There is no `BEE_API_TOKEN` Worker secret and no token baked into the container. This is the rule the public site copy must reflect.
+
 ---
 
 ## Success Criteria
@@ -59,7 +61,7 @@ Give any MCP client read access to a Bee pendant's captured conversations on eve
 - [ ] The **relay↔Bee** credential is held in per-grant encrypted props, per-user isolated, decrypted only in-Worker at request time, never logged, never exposed to the model/client.
 - [ ] The GitHub allow-list gates tenancy and is set to exactly one login; the instance denies all other logins.
 - [ ] `whoami` returns the operator's Bee identity over `/v1/me`, demonstrated on a **mobile** surface over the connector (phone-only, three-pass, fresh-context wire check).
-- [ ] The Worker→Bee leg traverses the CF Container bridge (see Approach) because Bee uses a private CA; no secret appears in bridge logs.
+- [ ] The Worker→Bee leg traverses the bound Container bridge (see Approach) because Bee uses a private CA; the bridge passes each request's own bearer through and no secret appears in bridge logs.
 - [ ] Published MIT, open-source, with sanitized prior art (no PII).
 - [ ] Deployed preview reachable; closure carries independent fresh-context validation per release-validation-gate.
 
@@ -102,7 +104,7 @@ One thin **auth core** + a **pull/MCP retrieval egress**, on Cloudflare Workers,
 - **Bend:** relay from GitHub-token-*minting* → Bee-credential-*holding* (token captured at consent into encrypted grant props); Bee client reaches Bee through the bridge.
 - **Build (minimal):** auth core + pull egress + the bridge. Transport/framing/OAuth are borrowed, not handrolled.
 
-**The private-CA bridge (network path, resolved 2026-06-15).** Bee's direct API uses a **private CA** (Bee docs, 2026-06-07: "the Bee API uses a private CA (not a public CA)"; `bee-cli/sources/certs.ts` ships the roots). A stock Cloudflare Worker `fetch` trusts only public CAs; Workers VPC + Origin-CA trusts public + Cloudflare Origin CA only; the mTLS Workers binding presents a *client* cert (wrong direction). None trusts Bee's third-party server CA. Per the operator ruling "must run on CF infra, no multi-host split," the path is a **single shared, stateless Cloudflare Container** running caddy with `bee-ca.pem` in its trust pool: it terminates TLS with a public cert facing the Worker and re-originates TLS to Bee trusting the private CA. `BEE_API_BASE` points at the bridge; `src/bee.ts` is unchanged.
+**The private-CA bridge (network path, resolved 2026-06-15; wiring refined by D0028/E0014).** Bee's direct API uses a **private CA** (Bee docs, 2026-06-07: "the Bee API uses a private CA (not a public CA)"; `bee-cli/sources/certs.ts` ships the roots). A stock Cloudflare Worker `fetch` trusts only public CAs; Workers VPC + Origin-CA trusts public + Cloudflare Origin CA only; the mTLS Workers binding presents a *client* cert (wrong direction). None trusts Bee's third-party server CA. Per the operator ruling "must run on CF infra, no multi-host split," the path is a **bound Cloudflare Container** — a Durable Object class `BeeBridge` (`defaultPort = 8080`) running a single static caddy with `bee-ca.pem` in its trust pool. The Worker reaches it by an **internal `getContainer(env.BEE_BRIDGE).fetch(...)` call, not a public URL** — so there is **no `BEE_API_BASE` and no public ACME cert**. The container serves plain HTTP on `:8080` for the internal Worker↔container leg and re-originates TLS to Bee, trusting the private CA (`tls_server_name $BEE_SNI`, upstream `$BEE_UPSTREAM`). **The only TLS hop is container→Bee; the Worker↔container leg is internal to Cloudflare.** This requires the Workers **Paid** plan (confirmed). `src/bee.ts` calls the container stub; there is no base-URL variable.
 
 **Bridge hardening (empty toolbox).** `scratch`/distroless image, single static caddy binary, no shell / package manager / debugger / second process, read-only root FS, all Linux capabilities dropped, non-root, image pinned by digest; caddy never logs the `Authorization` header. This eliminates the accidental-log / planted-tool / second-process class. The irreducible residual (the token is plaintext in caddy's memory in flight) is inherent to any forwarding relay and is bounded by minimal surface, not by crypto.
 
@@ -125,7 +127,7 @@ Per `klappy://canon/definition-of-done` + `klappy://docs/appendices/online-evide
 
 - [ ] Deployed preview reachable online; evidence viewable without running code locally.
 - [ ] Live proof that OAuth completes, the Bee token is captured into encrypted grant props, and `whoami` returns the Bee account over the connector on a **mobile** surface (phone-only, three-pass, fresh-context).
-- [ ] The Container bridge is deployed, hardened to the empty-toolbox spec, and `BEE_API_BASE` points at it; a manual check confirms no token in bridge logs.
+- [ ] The Container bridge is deployed bound to the Worker (DO class `BeeBridge`, reached via `getContainer(env.BEE_BRIDGE)`), hardened to the empty-toolbox spec, with no `BEE_API_BASE` URL; a manual check confirms no token in bridge logs.
 - [ ] GitHub allow-list set to one login; a second login is denied (demonstrated, not asserted).
 - [ ] Load-bearing surface (auth core, custody, Bee client, bridge) passes **independent fresh-context validation** before any prod promotion — same-session smoke does not count.
 - [ ] No secret in logs, URLs, errors, or client-visible output — neither the Bee token nor the relay token, in Worker `observability` or the bridge. (Audit what `observability: enabled` captures.)
@@ -164,7 +166,7 @@ Per `klappy://canon/definition-of-done` + `klappy://docs/appendices/online-evide
 
 **Relationship to other tracks:** Omi = adopted long-term wire (Track A). This PRD = the substrate + interim wire. Tier-0/public-cert ask = field-wide (Track C-adjacent). Refinery (Product B) and push→AMS (Product C) = separate. Publish prior art = behind sanitization (Track D).
 
-**Decision trail:** `odd/ledger/2026-06-15-bee-leg-private-ca-and-multitenancy.md` (E0012: gate resolution, bridge decision, crypto verification, custody amendment, rejections). Prior: `odd/ledger/2026-06-14-*` (validation, planning, deploy-connect). Build contract: `docs/phase-1-build-handoff.md`.
+**Decision trail:** `odd/ledger/2026-06-15-session-close-bridge-wiring-handoff.md` (E0014: bound-container wiring D0028, token-agnostic bridge rule — the basis for v0.4). `odd/ledger/2026-06-15-bee-leg-private-ca-and-multitenancy.md` (E0012: gate resolution, bridge decision, crypto verification, custody amendment, rejections). Prior: `odd/ledger/2026-06-14-*` (validation, planning, deploy-connect). Build contract: `docs/phase-1-build-handoff.md`.
 
 ---
 
