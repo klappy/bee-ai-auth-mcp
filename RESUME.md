@@ -6,6 +6,8 @@
 
 The auth core is **live and phone-validated** at `bee.klappy.dev` (E0011); `main` is current. The Phase-1 **Bee leg is built and merged** — per-grant encrypted custody + the private-CA bridge artifacts (E0013). What remains is **not building but proving**: stand up the bridge and validate `whoami` on the wire, phone-only, fresh context. **Your job: deploy the bridge + run the fresh-context wire validation** (the DoD). Decision trail: `odd/ledger/2026-06-15-phase-1-bee-leg-build-pass.md` (E0013) → `odd/ledger/2026-06-15-bee-leg-private-ca-and-multitenancy.md` (E0012). Authoritative spec: `PRD.md` (v0.3). Deploy runbook: `bridge/README.md`. Read those, then deploy + validate. Merge-to-`main` is a code milestone, not the validated DoD — do not promote to prod before the fresh-context green.
 
+**Deploy model:** a `git push` auto-deploys via Cloudflare's connected Git integration (Workers Builds) — branch push = preview (`wrangler versions upload`), merge to `main` = prod. No manual `wrangler`, no CF token. See `docs/ci-cd.md`.
+
 **Custody amendment (ratified 2026-06-15):** Phase 1 is built on **per-grant encrypted custody** (Bee token in the user's encrypted grant props), **not** the old Model-A Worker secret. Tenancy is the GitHub allow-list, kept at **one login (`klappy`)** — Tier-2 architecture, Tier-1 tenant. This supersedes the Model-A lock; see E0012.
 
 ## 0. Bootstrap (do this first)

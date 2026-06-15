@@ -4,6 +4,24 @@
 
 Mirrors `klappy/git-repo-auth-mcp`, adapted for bee-ai-auth-mcp (no GitHub-App key, so no PKCS conversion test; the live wire check is `whoami`, not token minting).
 
+## Deployment model — READ FIRST (it's githook auto-deploy, not manual)
+
+**A `git push` deploys. That is the whole mechanism.** Cloudflare's Git integration
+(Workers Builds) is connected to this repo (set up in E0011). On every push it runs the
+build then a deploy command — **automatically, in Cloudflare's CI, with no human running
+`wrangler` and no Cloudflare API token anywhere**:
+
+- **Branch push → preview deploy** via `npx wrangler versions upload` (a versioned preview, not promoted).
+- **Push/merge to `main` → production deploy.**
+
+Proven, not asserted: the `ca27a8b` push to `docs/phase-1-build-ledger-and-resume`
+auto-deployed a preview at `https://docs-phase-1-build-ledger-and-resume-bee-mcp.klappy.workers.dev`
+— the build log shows Workers Builds running `npx wrangler versions upload` itself.
+
+> **Do not describe deployment as a manual `wrangler deploy`, a laptop step, or anything
+> needing a CF API token.** Crew triggers a deploy by pushing a branch; the operator promotes
+> to prod by merging. `wrangler` runs *inside* the CI — it is never a manual step here.
+
 ## `ci.yml` — on every push/PR to `main`
 
 1. **check** — `npm ci` → `npm run typecheck` → `npm test`. Pure units, no network. This is the gate that must stay green.

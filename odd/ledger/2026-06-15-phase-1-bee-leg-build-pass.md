@@ -16,6 +16,9 @@ DOLCHEO per `klappy://canon/definitions/dolcheo-vocabulary`. Continues the trail
 
 **[O] Two facts were deliberately not fabricated.** `bridge/bee-ca.pem` ships as a labelled placeholder (real roots come from `bee-cli/sources/certs.ts`), and Bee's real direct API host is left as the `BEE_UPSTREAM`/`BEE_SNI` operator-fill (the docs publish only the `$BEE_API_BASE` placeholder). Confirmed against Bee docs (2026-06-07): `GET /v1/me` exists and the direct API uses a private CA. The CF Containers wrangler shape in `bridge/wrangler.jsonc` is a flagged starting point, not verified against live CF docs this session.
 
+
+**[O · proven by build log] Deployment is githook auto-deploy — confirmed, not inferred.** The `ca27a8b` push to `docs/phase-1-build-ledger-and-resume` triggered Cloudflare Workers Builds, which ran `npx wrangler versions upload` itself and published a preview at `docs-phase-1-build-ledger-and-resume-bee-mcp.klappy.workers.dev`. No human ran `wrangler`; no CF API token was involved. The connected Git integration (E0011) is the deploy mechanism: branch push = preview, merge to `main` = prod. The build log also surfaced a Worker-name mismatch — config says `bee-ai-auth-mcp`, the CI Worker is `bee-mcp` (the D0015 rename, now a live warning; CF offered to open a PR to reconcile).
+
 ## Learnings
 
 **[L] Merge-to-`main` is a code milestone, not the validated DoD.** The release-validation-gate's independent fresh-context check on the load-bearing surface still has not run, because the runtime path was never deployed. The honest state is "code merged, wire unproven." Do not promote to prod before the fresh-context green.
@@ -25,6 +28,9 @@ DOLCHEO per `klappy://canon/definitions/dolcheo-vocabulary`. Continues the trail
 ## Constraints
 
 **[C] The relay token and the Bee token never appear in any log/URL/error/output** — carried forward from E0012 and honored in the new code: errors return status + generic text only; the consent form posts the token but nothing logs it; the bridge Caddyfile uses JSON access logs with no request-header logging. The audit-`observability` constraint is part of the DoD validation, still owed.
+
+
+**[C] Never reframe deployment as a manual `wrangler`/CF-token step.** Deploy here is githook-driven (push → Workers Builds). Recurring crew failure this session: re-deriving "manual wrangler deploy" / "needs a CF API token" from general knowledge instead of from `docs/ci-cd.md` and observed build logs. The frame is fixed in `docs/ci-cd.md` ("Deployment model — READ FIRST"); read it before describing deploy.
 
 ## Handoff
 
