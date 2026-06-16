@@ -21,8 +21,15 @@
     // the container as caddy's {$BEE_UPSTREAM}/{$BEE_SNI}. Not a credential — the
     // Bee API still requires a per-user bearer — and the same for every self-host
     // instance, so it lives here as plain config rather than a secret.
-    "BEE_UPSTREAM": "api.bee.computer:443",
-    "BEE_SNI": "api.bee.computer"
+    //
+    // REAL host confirmed 2026-06-15 from `bee status` (CLI prod base
+    // https://app-api-developer.ce.bee.amazon.dev/) and verified: it resolves and
+    // its cert chains to bridge/bee-ca.pem. The prior value `api.bee.computer` was
+    // a placeholder guess that does NOT resolve (NXDOMAIN), so caddy's reverse_proxy
+    // failed to dial it and returned 502 — the observed "Bee returned an unexpected
+    // status (502)" at the consent step. (Supersedes the D0032 placeholder.)
+    "BEE_UPSTREAM": "app-api-developer.ce.bee.amazon.dev:443",
+    "BEE_SNI": "app-api-developer.ce.bee.amazon.dev"
   },
   // ---- private-CA bridge as a bound Cloudflare Container (D0028 / ledger E0014) ----
   // The relay reaches Bee via an INTERNAL Worker->container call
