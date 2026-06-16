@@ -83,3 +83,104 @@ export async function beeGetMe(beeToken: string, bridge: DurableObjectStub): Pro
   const account = (await res.json().catch(() => null)) as unknown;
   return { ok: true, account };
 }
+
+/** Bee's search endpoints are POST + JSON body but are READ operations (no
+ *  mutation). They are the only non-GET paths bee_read is permitted to call. */
+const BEE_SEARCH_PATHS = new Set<string>([
+  "/v1/search/conversations",
+  "/v1/search/conversations/neural",
+]);
+
+export interface BeeReadResult {
+  ok: true;
+  status: number;
+  body: unknown;
+  truncated?: boolean;
+}
+
+/** Generalized read passthrough — the Phase-2 `bee_read` primitive. Read-only BY
+ *  CONSTRUCTION: it issues GET to any /v1/* path, OR POST to an allow-listed
+ *  /v1/search/* path (non-mutating search). It never issues a mutating verb, so
+ *  the read-only guarantee is structural, not advisory. /v1/stream (SSE) is
+ *  refused (long-lived, not request/response). Same custody, bridge, and
+ *  no-secret-in-errors rules as beeGetMe. */
+export async function beeRead(
+  beeToken: string,
+  bridge: DurableObjectStub,
+  rawPath: string,
+  searchBody?: unknown
+): Promise<BeeReadResult | BeeError> {
+  if (!beeToken || !bridge) {
+    return {
+      ok: false,
+      status: null,
+      message:
+        "Bee not configured: the BEE_BRIDGE container binding must be present and the grant must carry a Bee token (reconnect to supply one).",
+    };
+  }
+  const path = (rawPath || "").trim();
+  if (!path.startsWith("/v1/") || path.includes("..")) {
+    return { ok: false, status: null, message: "Path must be a Bee API path beginning with /v1/ (no traversal)." };
+  }
+  const pathname = path.split("?")[0];
+  if (pathname === "/v1/stream") {
+    return { ok: false, status: null, message: "/v1/stream is a Server-Sent Events stream and is not available through bee_read." };
+  }
+  const isSearch = BEE_SEARCH_PATHS.has(pathname);
+  const method = isSearch ? "POST" : "GET";
+
+  const headers: Record<string, string> = {
+    authorization: `Bearer ${beeToken}`,
+    accept: "application/json",
+    "user-agent": "bee-ai-auth-mcp",
+  };
+  const init: RequestInit = { method, headers };
+  if (isSearch) {
+    headers["content-type"] = "application/json";
+    init.body = JSON.stringify(searchBody ?? {});
+  }
+
+  let res: Response;
+  try {
+    res = await bridge.fetch(`http://bee-bridge${path}`, init);
+  } catch {
+    return {
+      ok: false,
+      status: null,
+      message:
+        "Could not reach the Bee API through the bridge. Confirm the private-CA Container bridge is deployed and the BEE_BRIDGE binding is wired (see bridge/README.md).",
+    };
+  }
+
+  if (!res.ok) {
+    return {
+      ok: false,
+      status: res.status,
+      message:
+        res.status === 401 || res.status === 403
+          ? "Bee rejected the credential (401/403). Reconnect and paste a current Bee token, or rotate it in the Bee app."
+          : `Bee returned an unexpected status (${res.status}).`,
+    };
+  }
+
+  const text = await res.text().catch(() => "");
+  const CAP = 512 * 1024; // guard so a huge list can't blow the client's context
+  if (text.length > CAP) {
+    return {
+      ok: true,
+      status: res.status,
+      truncated: true,
+      body: {
+        note: "Response exceeded the 512KB read cap and was truncated. Use pagination (limit/cursor) or a narrower path/query.",
+        preview: text.slice(0, CAP),
+      },
+    };
+  }
+  let body: unknown;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    body = text;
+  }
+  return { ok: true, status: res.status, body };
+}

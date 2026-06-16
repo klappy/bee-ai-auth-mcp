@@ -5,15 +5,18 @@
  * read from the decrypted grant per request — never from env, never logged,
  * never returned.
  *
- * Phase 1 registers one tool: `whoami` over Bee GET /v1/me — the single
- * confirmed endpoint, and the live-credential smoke test for the all-surface
- * claim. Retrieval tools (Phase 2) are deferred.
+ * Tools: `whoami` (Phase 1, Bee GET /v1/me — the live-credential smoke check)
+ * plus the Phase-2 read surface — `bee_docs` (serves the Bee-API-usage reference)
+ * and `bee_read` (GET any /v1/* path, or POST to the allow-listed /v1/search/*;
+ * read-only by construction). `bee_write` remains deferred to the write phase.
  */
 
 import { createMcpHandler } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { getContainer } from "@cloudflare/containers";
-import { beeGetMe } from "./bee";
+import { z } from "zod";
+import { beeGetMe, beeRead } from "./bee";
+import { BEE_API_USAGE_DOC } from "./bee-api-usage-doc";
 import type { Env, GrantProps } from "./types";
 
 function buildServer(env: Env, props: GrantProps): McpServer {
@@ -54,6 +57,63 @@ function buildServer(env: Env, props: GrantProps): McpServer {
         connected_as: props.login, // who authenticated to the relay
         bee: result.account, // the Bee account /v1/me returned
       };
+      return { content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }] };
+    }
+  );
+
+  server.registerTool(
+    "bee_docs",
+    {
+      title: "Bee API usage reference",
+      annotations: {
+        title: "Bee API usage reference",
+        readOnlyHint: true,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      description:
+        "Return the Bee API usage reference: which /v1/* read endpoints exist, how to shape paths and the search body, pagination/cursors, and what is excluded. Read this before calling bee_read.",
+      inputSchema: {},
+    },
+    async () => ({
+      content: [{ type: "text" as const, text: BEE_API_USAGE_DOC }],
+    })
+  );
+
+  server.registerTool(
+    "bee_read",
+    {
+      title: "Read from the Bee API",
+      annotations: {
+        title: "Read from the Bee API",
+        readOnlyHint: true,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+      description:
+        "Read from the Bee API through the relay (your Bee token is read from your encrypted grant — never shown). Give a `path` beginning with /v1/. A GET is issued for every path EXCEPT the /v1/search/* endpoints, which are POSTed with the `search` body. Read-only by construction: it never issues a mutating verb. See bee_docs for the endpoint list.",
+      inputSchema: {
+        path: z
+          .string()
+          .describe(
+            "Bee API path beginning with /v1/ (e.g. /v1/conversations, /v1/conversations/:id, /v1/changes?cursor=..., /v1/search/conversations)."
+          ),
+        search: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe(
+            "JSON body for the /v1/search/* endpoints only (e.g. { query, limit, cursor }); ignored for GET paths."
+          ),
+      },
+    },
+    async ({ path, search }) => {
+      const stub = getContainer(env.BEE_BRIDGE);
+      const result = await beeRead(props.beeToken, stub, path, search);
+      if (!result.ok) {
+        const wall = { error: "bee_read_failed", status: result.status, detail: result.message };
+        return { content: [{ type: "text" as const, text: JSON.stringify(wall, null, 2) }], isError: true };
+      }
+      const payload = { status: result.status, truncated: result.truncated ?? false, body: result.body };
       return { content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }] };
     }
   );
