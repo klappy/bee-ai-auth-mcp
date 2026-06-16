@@ -60,9 +60,9 @@
       "assets": { "directory": "./public" },
       "vars": { "ALLOWED_GITHUB_LOGIN": "klappy" },
       "kv_namespaces": [
-        // Staging needs its OWN namespace — do NOT reuse prod's id above. Create it:
-        //   `wrangler kv namespace create OAUTH_KV --env staging`, then paste the id.
-        { "binding": "OAUTH_KV", "id": "REPLACE_WITH_STAGING_OAUTH_KV_ID" }
+        // Staging's OWN namespace (title: bee-ai-auth-mcp-oauth-staging), created via
+        // the Cloudflare connector — separate from prod's id above.
+        { "binding": "OAUTH_KV", "id": "8a69b6a6f7fe4793a2b18e2f21bf8c7d" }
       ],
       "durable_objects": {
         // No `script_name` → staging binds its own BeeBridge (isolated storage),

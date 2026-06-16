@@ -24,10 +24,13 @@ green. Until then, `main` and prod stay clean.
 
 ## Operator steps (Cloudflare dashboard / a CF-authenticated shell)
 
-1. **Create the staging KV namespace** (its own, not prod's):
-   `wrangler kv namespace create OAUTH_KV --env staging`
-   Paste the returned id into `wrangler.jsonc` → `env.staging.kv_namespaces[0].id`
-   (replacing `REPLACE_WITH_STAGING_OAUTH_KV_ID`), then commit that one-line change.
+The KV namespace (step 1) was created through the Cloudflare connector. The
+remaining steps are not exposed by that connector — secrets and Workers Builds
+configuration are dashboard / `wrangler` actions — so they need you.
+
+1. **Staging KV namespace — DONE.** Created via the Cloudflare connector as
+   `bee-ai-auth-mcp-oauth-staging` (id `8a69b6a6f7fe4793a2b18e2f21bf8c7d`) and already
+   wired into `env.staging.kv_namespaces`. No action needed.
 
 2. **GitHub OAuth for staging.** Either add the staging callback to the existing
    OAuth App, or (cleaner) create a separate staging OAuth App. Callback URL:
