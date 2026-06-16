@@ -16,7 +16,13 @@
   "vars": {
     // Comma-separated GitHub login(s) allowed to use this self-host instance.
     // REQUIRED — the instance denies all logins until this is set.
-    "ALLOWED_GITHUB_LOGIN": "klappy"
+    "ALLOWED_GITHUB_LOGIN": "klappy",
+    // Bee's direct-API endpoint, read by BeeBridge (src/bridge.ts) and passed to
+    // the container as caddy's {$BEE_UPSTREAM}/{$BEE_SNI}. Not a credential — the
+    // Bee API still requires a per-user bearer — and the same for every self-host
+    // instance, so it lives here as plain config rather than a secret.
+    "BEE_UPSTREAM": "api.bee.computer:443",
+    "BEE_SNI": "api.bee.computer"
   },
   // ---- private-CA bridge as a bound Cloudflare Container (D0028 / ledger E0014) ----
   // The relay reaches Bee via an INTERNAL Worker->container call
