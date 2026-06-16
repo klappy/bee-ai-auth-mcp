@@ -7,7 +7,7 @@ tier: 3
 voice: neutral
 stability: draft
 tags: ["docs", "prd", "bee-ai-auth-mcp", "mcp", "auth", "credential-relay", "cloudflare-workers"]
-date: 2026-06-15
+date: 2026-06-16
 ---
 
 # 📋 PRD: bee-ai-auth-mcp
@@ -18,14 +18,16 @@ date: 2026-06-15
 
 **This PRD is a DRAFT pending the operator's author pass.** Nothing here commits until reviewed. Drafted by the first officer from session decisions; v0.3 folds in the 2026-06-15 session (private-CA resolution, the custody amendment, and the verified `workers-oauth-provider` crypto). v0.4 folds in the bound-container resolution (D0028, E0014): the bridge is a Cloudflare Container bound to the Worker, reached by an internal `getContainer().fetch()` call — no public ACME cert, no `BEE_API_BASE` URL — and the custody rule is extended to state the bridge is token-agnostic shared infrastructure.
 
+**v0.5:** appends the Phase 2 section (Read-Only Retrieval + Laptop-Free Token Acquisition) at the end of this document. All Phase 1 content above is unchanged.
+
 ---
 
 ## PRD Identity
 
 | Field | Value |
 |-------|-------|
-| **PRD Version** | v0.4 (bound-container bridge + token-agnostic custody, 2026-06-15) |
-| **Status** | Draft — Phase 1 (per-grant custody, single-tenant) ready to build; network path resolved as a bound Container; Phases 2–3 open |
+| **PRD Version** | v0.5 (Phase 2: Read-Only Retrieval + Laptop-Free Token Acquisition, 2026-06-16) |
+| **Status** | Draft — Phase 1 wire validated (E0019); Phase 2 (read-only retrieval + laptop-free acquisition) specced, gated on the Phase-2 6B + Bee-API-usage doc; Phase 3 open |
 | **Created** | 2026-06-14 |
 | **Author** | Klappy (operator) — review pending |
 | **Preview Deploy Required** | Yes (hosted Worker; online-evidence requirement applies) |
@@ -173,3 +175,71 @@ Per `klappy://canon/definition-of-done` + `klappy://docs/appendices/online-evide
 ## Attempt Policy
 
 **This PRD may be attempted multiple times.** Do not extend a failed attempt; start a new attempt. Each attempt is evaluated independently. Failed attempts inform future attempts or PRD revisions (E0010: failures go to the debrief and become canon).
+
+---
+
+## Phase 2 — Read-Only Retrieval Surface + Laptop-Free Token Acquisition (v0.5)
+
+**Objective**  
+Deliver a remote, read-only MCP connector that gives any MCP client (Claude, Cursor, etc.) access to a Bee pendant’s conversations and related entities across every surface with **zero client-side install**, while maintaining the minimal relay surface and read-only-by-default posture established in Phase 1.
+
+**Locked Decisions**  
+- Per-user containers running the Bee CLI + local MCP are rejected (see `klappy://canon/constraints/borrow-evaluation-before-implementation` and Phase 1 D0022).  
+- Read-only-by-default is deliberate and load-bearing (git-auth parity matrix).  
+- A Bee Skill is the wrong layer for a remote connector (`RESUME.md` §4.3). The remote-native equivalent is the docs tool + rich descriptions.  
+- Token *use* is already laptop-free and mobile-validated (E0019). Token *acquisition* remains the open gap.  
+- All implementation in Phase 2 must satisfy the borrow-evaluation gate.
+
+**Phase 2 Scope (docs-first, minimal)**
+
+### 2.1 Author Bee-API-usage Document (docs-first)
+Author a project-owned `Bee-API-usage` document sourced from Bee’s proxy and skill documentation plus live endpoint enumeration. This document becomes the single source of truth.
+
+### 2.2 `bee_docs` Tool
+Implement a `bee_docs` tool following the `git-repo-auth-mcp` pattern. The tool serves the project-authored `Bee-API-usage` document (not raw vendor pages).
+
+### 2.3 Read/Write Passthrough Tools (method-split, vodka-thin)
+Rather than one tool per endpoint, the read/write surface is two method-keyed passthrough tools over the documented `/v1/*` API — full parity with zero per-endpoint coupling, so a Bee API change cannot break the tool surface.
+
+- **`bee_read`** (this phase) — forwards a caller-supplied `/v1/*` path to Bee through the bridge using **GET only**. No method parameter, no request body; the read-only guarantee is structural — the tool can only issue read primitives (like git's read side). It reaches the entire read surface, and `bee_docs` supplies the path/param knowledge.
+- **`bee_write`** (deferred to the write phase) — the same passthrough shape, restricted to the write primitives (`POST` / `PUT` / `PATCH` / `DELETE`). Specced here; not built or exposed in the read phase.
+
+`bee_read` response handling: async-by-default for long calls, paginated and size-capped, summary-vs-full where the upstream supports it. The SSE `/v1/stream` endpoint stays out of the synchronous passthrough, handled separately if/when needed. There is no endpoint allow-list to freeze — an unknown path simply returns the upstream's own status.
+### 2.4 Laptop-Free Token Acquisition (QR Pairing Caller)
+The relay itself becomes the Bee app-pairing caller:  
+- Consent page renders a QR code.  
+- User approves in the Bee app.  
+- Relay polls, decrypts (tweetnacl box), and binds the token into the user’s encrypted per-grant props.  
+- **Blocker**: Requires a Bee-registered `app_id`.  
+  - Preferred path: Obtain an official `app_id` from Bee (sharpens the Tier-0 petition).  
+  - Demo path (private-proof-only): Borrow the CLI’s public `app_id` — never the shipped public path.
+
+**Gates**  
+- **Phase-2 6B borrow-evaluation** must be completed and accepted before any implementation of 2.1–2.3 (`klappy://canon/constraints/borrow-evaluation-before-implementation`).  
+- **Release-validation-gate** applies to all code and load-bearing surface changes (fresh-context, different-context validation — not same-session smoke).
+
+**Success Criteria (Phase 2)**  
+- `Bee-API-usage` document authored and accepted.  
+- Phase-2 6B table completed and accepted.  
+- `bee_docs` tool + the `bee_read` GET passthrough live and validated on mobile (three-pass, fresh context).  
+- QR pairing flow either unblocked via official `app_id` or clearly documented with next action.  
+- Magical first run under 60 seconds on the `app_id` pairing path; not claimed for the pasted-token interim (where the user supplies a bearer manually)
+- All changes delivered via feature branch + operator-authored PR.
+
+**Out of Scope (Phase 2)**  
+- Activating `bee_write` / any mutating calls — the write tool is specced in §2.3 but built in the write phase, not this one  
+- Multi-tenant hardening (Tier 2)  
+- Push/SSE streaming (Product C)  
+- Refinery / encode layer (Product B)  
+- Per-user containers or forking the Bee Skill
+
+**Open Items**  
+- Bee `app_id` registration (vendor-dependent)  
+- Document the known endpoints (`/v1/me`, `/v1/conversations`, `/v1/search/conversations`, `/v1/changes`) in the Bee-API-usage doc — the passthrough reaches any path at runtime, so no tool-surface freeze is required
+- Optional canon proposal to explicitly cover architecture assertions under `klappy://canon/principles/code-claims-require-code-observation`
+
+**Relationship to Previous Versions**  
+This section elaborates the Phase 2 row of the Phases table above with the v0.5 design. Phase 1 (auth core + private-CA bridge + per-grant custody) remains unchanged and is considered complete.
+
+---
+
