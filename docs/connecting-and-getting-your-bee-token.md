@@ -94,7 +94,7 @@ no computer, no CLI. The protocol carries no secret, and the decrypt is pure JS
   - made-up `app_id` → `{"ok":false,"error":"app_not_found"}` (HTTP 404)
   - the CLI's registered `app_id` → `{"ok":true,"status":"pending",...}` (HTTP 200)
 
-So the relay cannot invent its own `app_id`. Two paths:
+So a relay that *reimplements* the pairing cannot invent its own `app_id`. **Scope:** this gate applies **only** to that no-CLI relay-native variant — the CLI-assisted paste path above needs no `app_id` from us, and for single-tenant (operator-only) use the question is moot; it matters only for a public / multi-tenant relay. Three paths:
 - **Clean:** obtain our own `app_id` from Bee (or self-serve app registration).
   This sharpens the standing Tier-0 petition from "please add OAuth" to "you
   already ship an app-pairing device grant — please register an `app_id` for
@@ -103,6 +103,13 @@ So the relay cannot invent its own `app_id`. Two paths:
   official CLI's identity, the in-app consent would name the CLI (not this
   relay), and it is fragile / ToS-risky. Fine to prove the flow end-to-end in
   private; **not** the blessed path for a public MIT relay.
+- **CLI broker:** run the actual Bee CLI server-side as a one-shot to broker the
+  handshake — laptop-free for the user, uses the CLI's *genuine* `app_id` (no
+  registration, not a reimplementation, so not the impersonation problem).
+  Caveat: the in-app consent still names the CLI, not this relay — acceptable
+  single-tenant, not for a public relay. Far narrower than the per-user
+  data-plane container rejected in D0022 (a transient auth handshake, not an
+  always-on MCP).
 
 ## Validation status (honest)
 
@@ -115,4 +122,4 @@ So the relay cannot invent its own `app_id`. Two paths:
   `app-api-developer.ce.bee.amazon.dev` (from `bee status`).
 - **Remaining (formal DoD):** a three-pass re-run, a demonstrated second-login
   denial, and a no-token-in-logs audit.
-- **Not built:** relay-side QR pairing (above) — gated on a Bee `app_id`.
+- **Not built:** the *laptop-free* acquisition upgrade — relay-native (no-CLI) variant is gated on a Bee `app_id` (public/multi-tenant only, not a Phase-2 dependency); CLI-broker variant unevaluated. The CLI-assisted paste path (above) is the working acquisition path and needs no `app_id`.

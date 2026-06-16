@@ -205,14 +205,14 @@ Rather than one tool per endpoint, the read/write surface is two method-keyed pa
 - **`bee_write`** (deferred to the write phase) — the same passthrough shape, restricted to the write primitives (`POST` / `PUT` / `PATCH` / `DELETE`). Specced here; not built or exposed in the read phase.
 
 `bee_read` response handling: async-by-default for long calls, paginated and size-capped, summary-vs-full where the upstream supports it. The SSE `/v1/stream` endpoint stays out of the synchronous passthrough, handled separately if/when needed. There is no endpoint allow-list to freeze — an unknown path simply returns the upstream's own status.
-### 2.4 Laptop-Free Token Acquisition (QR Pairing Caller)
-The relay itself becomes the Bee app-pairing caller:  
-- Consent page renders a QR code.  
-- User approves in the Bee app.  
-- Relay polls, decrypts (tweetnacl box), and binds the token into the user’s encrypted per-grant props.  
-- **Blocker**: Requires a Bee-registered `app_id`.  
-  - Preferred path: Obtain an official `app_id` from Bee (sharpens the Tier-0 petition).  
-  - Demo path (private-proof-only): Borrow the CLI’s public `app_id` — never the shipped public path.
+### 2.4 Token Acquisition — CLI-assisted today; laptop-free is an optional upgrade (not a Phase-2 gate)
+Acquisition today is the validated CLI-assisted path: the user runs `bee login --qr` once (the CLI carries its own registered device `app_id`), then pastes the token at the consent screen, where the relay validates it via `GET /v1/me` and binds it into the user's encrypted grant. This needs **no `app_id` from us** and is the proven path (whoami green on mobile).
+
+Dropping the one-time laptop step is an upgrade, not a Phase-2 dependency:
+- **Relay-native pairing** — the relay itself POSTs to Bee's pairing endpoint, renders the QR, polls, decrypts (tweetnacl box), binds. Since the Worker is not the CLI it must present a **Bee-registered `app_id`** (an invented one returns `app_not_found`). This is the only path that requires registering an `app_id`, and it matters only for a **public / multi-tenant** relay — for single-tenant (operator-only) use it is moot.
+- **CLI broker** — run the actual Bee CLI server-side as a one-shot to broker the handshake: laptop-free, uses the CLI's genuine `app_id` (no registration, not a reimplementation). Caveat: in-app consent names the CLI, not this relay — fine single-tenant, not for a public relay. Far narrower than the per-user data-plane container rejected in D0022 (a transient auth handshake, not an always-on MCP).
+
+`app_id` registration therefore gates only the relay-native public variant — tracked as a Phase-3 vendor ask, not a Phase-2 blocker.
 
 **Gates**  
 - **Phase-2 6B borrow-evaluation** must be completed and accepted before any implementation of 2.1–2.3 (`klappy://canon/constraints/borrow-evaluation-before-implementation`).  
@@ -234,7 +234,7 @@ The relay itself becomes the Bee app-pairing caller:
 - Per-user containers or forking the Bee Skill
 
 **Open Items**  
-- Bee `app_id` registration (vendor-dependent)  
+- Bee `app_id` registration — only the relay-native laptop-free variant on a public/multi-tenant relay needs it; not a Phase-2 dependency (vendor-dependent, Phase 3)
 - Document the known endpoints (`/v1/me`, `/v1/conversations`, `/v1/search/conversations`, `/v1/changes`) in the Bee-API-usage doc — the passthrough reaches any path at runtime, so no tool-surface freeze is required
 - Optional canon proposal to explicitly cover architecture assertions under `klappy://canon/principles/code-claims-require-code-observation`
 
