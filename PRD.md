@@ -221,10 +221,11 @@ Dropping the one-time laptop step is an upgrade, not a Phase-2 dependency:
 **Success Criteria (Phase 2)**  
 - `Bee-API-usage` document authored and accepted.  
 - Phase-2 6B table completed and accepted.  
-- `bee_docs` tool + the `bee_read` GET passthrough live and validated on mobile (three-pass, fresh context).  
+- `bee_docs` tool + the `bee_read` passthrough (GET any `/v1/*`, POST only to the allow-listed `/v1/search/*`) live and validated on mobile (three-pass, fresh context).  
 - QR pairing flow either unblocked via official `app_id` or clearly documented with next action.  
 - Magical first run under 60 seconds on the `app_id` pairing path; not claimed for the pasted-token interim (where the user supplies a bearer manually)
 - All changes delivered via feature branch + operator-authored PR.
+- **Orientation surfaces synced to the shipped artifact in the same change set** — `README.md`, `RESUME.md`, the `public/` site, and this PRD's phases table reflect what merged (and decisions banked), not a later follow-up (per `klappy://canon/principles/code-claims-require-code-observation`). Merging code or banking a decision without syncing the orientation layer is **not done**.
 
 **Out of Scope (Phase 2)**  
 - Activating `bee_write` / any mutating calls — the write tool is specced in §2.3 but built in the write phase, not this one  
