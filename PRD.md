@@ -59,7 +59,7 @@ Author a project-owned `Bee-API-usage` document sourced from Bee’s proxy and s
 Implement a `bee_docs` tool following the `git-repo-auth-mcp` pattern. The tool serves the project-authored `Bee-API-usage` document (not raw vendor pages).
 
 ### 2.3 Scoped Read-Only Retrieval Tools
-After live enumeration of `/v1/changes` and `/v1/search/conversations`, implement retrieval tools **only** for confirmed read endpoints.  
+Implement retrieval tools **only** for confirmed read endpoints. `/v1/conversations` is already confirmed (Bee public docs) and is the primary conversation retrieval surface; `/v1/changes` and `/v1/search/conversations` are unconfirmed and subject to live enumeration (confirm-or-drop) before they are added.  
 - No write/mutation endpoints are exposed.  
 - Async, pagination, and summary modes are supported where the upstream provides them.  
 - Confirm-or-drop discipline is enforced before any tool surface is frozen.
