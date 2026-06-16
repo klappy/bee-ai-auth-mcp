@@ -41,7 +41,7 @@
     <p class="breadcrumb"><a href="/">Home</a> / Set up</p>
     <p class="eyebrow">Self-host guide</p>
     <h1>Run your own instance.</h1>
-    <p class="lede">About fifteen minutes. You'll need a Cloudflare account, the <code>wrangler</code> CLI, a Bee API token from the Bee app, and a GitHub account. Your Bee token never leaves your own deployment.</p>
+    <p class="lede">About fifteen minutes. You'll need a Cloudflare account on the <strong>Workers Paid</strong> plan (the bridge runs as a Container), the <code>wrangler</code> CLI, a GitHub account, and a Bee token (we'll show you how to get one). Your Bee token never leaves your own deployment — it's pasted at the consent screen, not stored as a secret.</p>
   </section>
 
   <section class="prose flush" style="padding-top:36px">
@@ -71,23 +71,26 @@ wrangler secret put GITHUB_CLIENT_SECRET</pre>
         <div class="callout info"><p class="h">OAuth App, not GitHub App</p><p>GitHub offers two things under Developer settings. Pick <em>OAuth Apps</em> — bee only reads your login, so it doesn't need a GitHub App's installations, permissions, or webhooks.</p></div>
       </li>
       <li>
-        <h3>Add your Bee token</h3>
-        <p>Your own Bee bearer, from the Bee app. Stored as a secret — never committed, never logged.</p>
-        <pre>wrangler secret put BEE_API_TOKEN</pre>
+        <h3>Get your Bee token (you paste it after deploy)</h3>
+        <p>There's no Bee secret to set — your token is captured at the consent screen when you connect, and held only in your own encrypted grant. To obtain one: in the Bee iOS app, unlock Developer Mode (tap the app Version 5x); then on a computer with Node:</p>
+        <pre>npm i -g @beeai/cli
+bee login --qr   <span class="c"># approve the scan in your Bee app</span>
+security find-generic-password -s bee-cli -a token:prod -w   <span class="c"># prints your token (macOS); or: cat ~/.bee/token-prod</span></pre>
+        <p>Hold onto that token for the last step. A one-tap in-app QR pairing is planned so this won't need a computer (pending a Bee-registered app id).</p>
       </li>
       <li>
-        <h3>Set your two config values</h3>
-        <p>In <code>wrangler.jsonc</code> set <code>ALLOWED_GITHUB_LOGIN</code> to your GitHub username (the instance denies every login until you do) and <code>BEE_API_BASE</code> to Bee's API host.</p>
-        <div class="callout"><p class="h">Keep these in the file</p><p>These are config <em>vars</em>, not secrets — a dashboard value gets reset to the file's value on every deploy. Set them in <code>wrangler.jsonc</code> so they stick. (Secrets, by contrast, persist across deploys.)</p></div>
+        <h3>Set your allow-list</h3>
+        <p>In <code>wrangler.jsonc</code> set <code>ALLOWED_GITHUB_LOGIN</code> to your GitHub username — the instance denies every login until you do. Bee's API host (<code>BEE_UPSTREAM</code>/<code>BEE_SNI</code>), the <code>BEE_BRIDGE</code> Container, and Bee's CA roots (<code>bridge/bee-ca.pem</code>) are already committed, so there's nothing else to fill in.</p>
+        <div class="callout"><p class="h">Keep config in the file, not the dashboard</p><p>These are config <em>vars</em>, not secrets — a dashboard value gets reset to the file's value on every deploy. Set them in <code>wrangler.jsonc</code> so they stick. (Secrets, by contrast, persist across deploys.)</p></div>
       </li>
       <li>
-        <h3>Deploy</h3>
-        <p>Ship it. If you use Cloudflare's Git integration, a push deploys automatically — no flags needed.</p>
-        <pre>npm run deploy</pre>
+        <h3>Deploy by pushing</h3>
+        <p>Connect the repo to Cloudflare Workers Builds, then just push: a push to <code>main</code> deploys to prod (and builds the bridge container image); a branch push is a preview. No manual <code>wrangler deploy</code>.</p>
+        <pre>git push origin main</pre>
       </li>
       <li>
-        <h3>Connect and check</h3>
-        <p>Add your worker URL as a custom connector in Claude, approve the GitHub login, then run the <code>whoami</code> tool. Identity works immediately; the Bee call depends on the reachability check below.</p>
+        <h3>Connect, paste, and check</h3>
+        <p>Add your worker URL as a custom connector in Claude, approve the GitHub login, then <strong>paste your Bee token at the consent screen</strong>. Run the <code>whoami</code> tool — it returns your Bee identity through the bridge. Phase 1 ships only this one tool; retrieval is Phase 2.</p>
       </li>
     </ol>
   </section>
@@ -101,15 +104,18 @@ wrangler secret put GITHUB_CLIENT_SECRET</pre>
     <h3>"Not authorized" after logging in</h3>
     <p>The login worked, but your username isn't on the allow-list. Set <code>ALLOWED_GITHUB_LOGIN</code> to your GitHub login in <code>wrangler.jsonc</code> and redeploy.</p>
 
-    <h3>whoami can't reach Bee</h3>
-    <p>That's the private-CA wall: a Worker's <code>fetch</code> trusts only public certificates. Check Bee's real API cert from a non-proxied environment first — if it's private, the path is Workers VPC (Origin-CA) or mTLS. See <a href="/under-the-hood">under the hood</a> for the seam.</p>
+    <h3>whoami returns a 502</h3>
+    <p>The bridge couldn't reach Bee. Most often <code>BEE_UPSTREAM</code>/<code>BEE_SNI</code> point at the wrong host — they must be Bee's real direct-API host (from <code>bee status</code>), and that host's cert must chain to <code>bridge/bee-ca.pem</code>. The first call also cold-starts the container, so if the very first attempt hiccups, retry once.</p>
+
+    <h3>whoami says "Grant has no Bee credential"</h3>
+    <p>Your connector grant predates the consent step. Disconnect and reconnect — the consent screen will then capture your Bee token.</p>
 
     <h3>Config values are empty after a deploy</h3>
-    <p><code>ALLOWED_GITHUB_LOGIN</code> or <code>BEE_API_BASE</code> reset to blank? They're vars — put the real values in <code>wrangler.jsonc</code>, not just the dashboard, so each deploy keeps them.</p>
+    <p><code>ALLOWED_GITHUB_LOGIN</code>, <code>BEE_UPSTREAM</code>, or <code>BEE_SNI</code> reset to blank? They're vars — put the real values in <code>wrangler.jsonc</code>, not just the dashboard, so each deploy keeps them.</p>
 
     <div class="callout info" style="margin-top:24px"><p class="h">Optional — a custom domain</p><p>In the Cloudflare dashboard: your Worker → Settings → Domains &amp; Routes → Add Custom Domain. Cloudflare provisions the DNS record and cert automatically if the domain's zone is on your account.</p></div>
 
-    <p style="margin-top:22px">Full detail and the locked execution contract live in the repo's <a href="https://github.com/klappy/bee-ai-auth-mcp/blob/main/README.md">README</a> and <a href="https://github.com/klappy/bee-ai-auth-mcp/blob/main/docs/phase-1-execution-handoff.md">execution handoff</a>.</p>
+    <p style="margin-top:22px">Full detail lives in the repo's <a href="https://github.com/klappy/bee-ai-auth-mcp/blob/main/README.md">README</a> and the <a href="https://github.com/klappy/bee-ai-auth-mcp/blob/main/docs/connecting-and-getting-your-bee-token.md">connect &amp; token guide</a>.</p>
   </section>
 
 </main>

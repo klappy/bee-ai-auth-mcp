@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Under the hood — bee-ai-auth-mcp</title>
-<meta name="description" content="How bee-ai-auth-mcp is built: one Cloudflare Worker, two-leg auth (GitHub OAuth for identity + your Bee token as a Worker secret), workers-oauth-provider grant storage, the MCP surface, and the private-CA seam." />
+<meta name="description" content="How bee-ai-auth-mcp is built: one Cloudflare Worker, two-leg auth (GitHub OAuth for identity + your Bee token captured at consent into an encrypted grant), workers-oauth-provider storage, a private-CA Container bridge, and the MCP surface." />
 <meta property="og:type" content="article" />
 <meta property="og:title" content="Under the hood — bee-ai-auth-mcp" />
 <meta property="og:description" content="One Worker, two legs of trust, and an honest account of what's gated and why." />
@@ -67,9 +67,9 @@
     <p>GitHub here is identity only — no repository scope, no data access. The relay never stores your GitHub token; it reads a username and lets it go.</p>
     <div class="callout info"><p class="h">Why an OAuth App, not a GitHub App</p><p>The sibling <code>git-repo-auth</code> uses a GitHub <em>App</em> because it mints repository tokens. bee only needs to read a login, so a plain <strong>GitHub OAuth App</strong> is the right, smaller primitive. Its <code>client_id</code> and <code>client_secret</code> are the two secrets this leg needs.</p></div>
 
-    <h2>Leg two — the relay ↔ Bee <span class="tag gated">gated</span></h2>
-    <p>This leg carries <em>your</em> Bee credential to Bee. In Phase 1 (Model A, self-host) the credential is <strong>your own Bee token, stored as a Worker secret</strong> — not collected per user, not custodied for anyone else. The relay reaches exactly one confirmed endpoint, <code>GET /v1/me</code>, behind the <code>whoami</code> tool.</p>
-    <div class="callout"><p class="h">The private-CA seam</p><p>A Cloudflare Worker's <code>fetch</code> trusts only publicly-trusted certificates, and there's no per-request CA override. Bee's docs indicate a private CA for the direct API. So this call works <em>if and only if</em> Bee's real API base presents a public cert — otherwise it fails at TLS and the path is Workers VPC (Origin-CA) or mTLS. That reachability check, run from a non-proxied environment, is the open Phase-1 tripwire.</p></div>
+    <h2>Leg two — the relay ↔ Bee <span class="tag live">live</span></h2>
+    <p>This leg carries <em>your</em> Bee credential to Bee. The token is <strong>captured at a consent step when you connect and held only in your own encrypted grant props</strong> — there is no <code>BEE_API_TOKEN</code> Worker secret, and nothing is custodied for anyone else. The relay reaches exactly one confirmed endpoint, <code>GET /v1/me</code>, behind the <code>whoami</code> tool.</p>
+    <div class="callout"><p class="h">The private-CA bridge</p><p>A Cloudflare Worker's <code>fetch</code> trusts only publicly-trusted certificates, and Bee's direct API uses a private CA. So the relay reaches Bee through a <strong>Cloudflare Container bound to the Worker</strong> (<code>BEE_BRIDGE</code>) running caddy, which trusts <code>bee-ca.pem</code> and re-originates TLS to Bee. The Worker->container hop is internal (no public hostname or cert); only the container->Bee hop is TLS. Requires the Workers Paid plan.</p></div>
 
     <h2>What's stored</h2>
     <p>The only persistent state is the OAuth provider's grants in the <code>OAUTH_KV</code> namespace. Grant props are encrypted per-grant with key material derived from the token itself — token-derived, not KMS-backed. A storage-only leak therefore reveals metadata, not usable credentials. The Bee bearer never appears in logs, URLs, errors, or tool output; errors return a status and a generic message, never the request or the token.</p>
@@ -78,7 +78,7 @@
     <p>Tools are added deliberately, against confirmed endpoints only:</p>
     <table class="matrix">
       <tr><th>Tool / endpoint</th><th>Status</th><th>Notes</th></tr>
-      <tr><td>whoami → /v1/me</td><td><span class="tag gated">gated</span></td><td>Wired; live once reachability is confirmed.</td></tr>
+      <tr><td>whoami → /v1/me</td><td><span class="tag live">live</span></td><td>Returns your Bee identity through the bridge — validated end-to-end.</td></tr>
       <tr><td>/v1/conversations</td><td><span class="tag next">phase 2</span></td><td>Confirmed in Bee's docs; read-only, paginated, size-capped.</td></tr>
       <tr><td>/v1/search/conversations</td><td><span class="tag next">unconfirmed</span></td><td>Not in Bee's public docs — confirm-or-drop against the live API first.</td></tr>
       <tr><td>/v1/changes</td><td><span class="tag next">unconfirmed</span></td><td>Same — frozen out of the tool surface until verified.</td></tr>

@@ -51,8 +51,14 @@ function consentForm(login: string, signed: string, error?: string): Response {
        <input type="password" name="bee_token" placeholder="Bee API token" autocomplete="off" autofocus>
        <button type="submit">Authorize</button>
      </form>
-     <p style="font-size:0.85em">Where do I get this? See <a href="${BEE_TOKEN_HELP}" target="_blank" rel="noopener">Bee developer mode</a>.
-        To revoke later: disconnect here (deletes our copy) and rotate the token in the Bee app.</p>`,
+     <p style="font-size:0.9em"><b>How do I get my Bee token?</b></p>
+     <ol style="font-size:0.9em;padding-left:1.2em">
+       <li>In the <b>Bee iOS app</b>, open Settings and tap the app <b>Version 5 times</b> to turn on Developer Mode (<a href="${BEE_TOKEN_HELP}" target="_blank" rel="noopener">Bee's guide</a>).</li>
+       <li>On a computer with Node, run <code>npm i -g @beeai/cli</code>, then <code>bee login --qr</code>, and approve the scan in your Bee app.</li>
+       <li>Print your token — macOS Keychain: <code>security find-generic-password -s bee-cli -a token:prod -w</code>; or file store: <code>cat ~/.bee/token-prod</code>.</li>
+       <li>Paste it above and choose Authorize.</li>
+     </ol>
+     <p style="font-size:0.85em">Full walkthrough: <a href="/setup">setup guide</a>. A one-tap in-app QR pairing is planned so this won't need a computer (pending Bee app registration). To revoke: disconnect here to delete this copy, then re-pair or rotate in the Bee app.</p>`,
     error ? 400 : 200
   );
 }
