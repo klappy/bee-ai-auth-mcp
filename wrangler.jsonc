@@ -41,45 +41,7 @@
   // First (and only) migration — register the BeeBridge DO class. Confirmed by
   // observation that root wrangler.jsonc had no prior migrations block, so `v1`
   // is correct as the initial tag (ledger E0014).
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BeeBridge"] }],
-
-  // ---- staging environment (Wrangler env; deploy with `wrangler deploy --env staging`) ----
-  // Deploys a SEPARATE Worker `bee-ai-auth-mcp-staging` (Wrangler appends the env
-  // name to `name`) with its OWN isolated Durable Object storage and its OWN KV, so
-  // staging never touches the reserved production Worker `bee-ai-auth-mcp`. Bindings
-  // and vars are NOT inherited by environments, so each is redeclared here; the DO
-  // migration is declared per-env (it overrides the top level) so the BeeBridge class
-  // is registered on the staging Worker too. Inherited from the top level (do NOT
-  // redeclare): main, compatibility_date/flags, observability, build. Secrets are
-  // per-env — set GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET with
-  // `wrangler secret put <NAME> --env staging` (never committed), and add the staging
-  // URL to the GitHub OAuth App's callback list. See docs/staging-setup.md.
-  "env": {
-    "staging": {
-      "workers_dev": true,
-      "assets": { "directory": "./public" },
-      "vars": { "ALLOWED_GITHUB_LOGIN": "klappy" },
-      "kv_namespaces": [
-        // Staging's OWN namespace (title: bee-ai-auth-mcp-oauth-staging), created via
-        // the Cloudflare connector — separate from prod's id above.
-        { "binding": "OAUTH_KV", "id": "8a69b6a6f7fe4793a2b18e2f21bf8c7d" }
-      ],
-      "durable_objects": {
-        // No `script_name` → staging binds its own BeeBridge (isolated storage),
-        // not the production Worker's Objects.
-        "bindings": [{ "class_name": "BeeBridge", "name": "BEE_BRIDGE" }]
-      },
-      "containers": [
-        {
-          "class_name": "BeeBridge",
-          "image": "./bridge/Dockerfile",
-          "instance_type": "basic",
-          "max_instances": 1
-        }
-      ],
-      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BeeBridge"] }]
-    }
-  }
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BeeBridge"] }]
   // Secrets (set via `wrangler secret put`, never committed, never in chat):
   //   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET  (a GitHub *OAuth App* — identity only, not a GitHub App;
   //                                            CLIENT_SECRET also HMAC-signs the consent round-trip)
