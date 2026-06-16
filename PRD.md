@@ -74,7 +74,7 @@ The relay itself becomes the Bee app-pairing caller:
   - Demo path (private-proof-only): Borrow the CLI’s public `app_id` — never the shipped public path.
 
 **Gates**  
-- **Phase-2 6B borrow-evaluation** must be completed and accepted before any implementation of 2.1–2.3 (`klappy://canon/constraints/borrow-evaluation-before-implementation`).  
+- **Phase-2 6B borrow-evaluation** must be completed and accepted before any implementation of 2.1–2.4 (`klappy://canon/constraints/borrow-evaluation-before-implementation`).  
 - **Release-validation-gate** applies to all code and load-bearing surface changes (fresh-context, different-context validation — not same-session smoke).
 
 **Success Criteria (Phase 2)**  
