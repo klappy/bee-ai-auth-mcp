@@ -26,6 +26,11 @@ import { McpApiHandler } from "./mcp-api";
 import { isOriginAllowed } from "./origin";
 import type { Env } from "./types";
 
+// The bound private-CA bridge container (D0028). The runtime must see this DO
+// class at the top level for the wrangler `migrations` entry to register it
+// (new_sqlite_classes: ["BeeBridge"]); the Worker reaches it via env.BEE_BRIDGE.
+export { BeeBridge } from "./bridge";
+
 const provider = new OAuthProvider({
   apiRoute: "/mcp",
   apiHandler: McpApiHandler,
