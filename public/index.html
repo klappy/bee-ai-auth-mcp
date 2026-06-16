@@ -40,7 +40,7 @@
 <main class="wrap">
 
   <section class="hero flush">
-    <p class="eyebrow">Self-host · MIT · Phase 1</p>
+    <p class="eyebrow">Self-host · MIT · Phase 1 — live</p>
     <h1>Your Bee pendant remembers everything. <span class="hl">This lets Claude read it — from your phone.</span></h1>
     <p class="lede">Bee's official connector runs only on a computer you leave on. This is a small Cloudflare Worker you host yourself — you sign in with GitHub, and your Bee token is captured when you connect and stays encrypted inside <em>your</em> deployment — held by no third party.</p>
     <div class="cta-row">
@@ -49,14 +49,14 @@
     </div>
 
     <div class="relay">
-      <p class="relay-cap">The two-leg wire — one live, one gated</p>
+      <p class="relay-cap">The two-leg wire — both legs live</p>
       <div class="legs">
         <div class="node"><svg class="hex" width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12l6 10-6 10H6L0 12 6 2z" fill="#0E5A4A"/></svg><div><div class="nm">You + your MCP client</div><div class="ds">Claude on web, iOS, iPadOS, Cowork</div></div></div>
         <div class="leg-label"><span class="pill live">Live</span> GitHub OAuth — proves you own this instance</div>
         <div class="arrow"></div>
         <div class="node"><svg class="hex" width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12l6 10-6 10H6L0 12 6 2z" fill="#16201B"/></svg><div><div class="nm">Your Worker (the relay)</div><div class="ds">Holds your Bee token only in your encrypted grant</div></div></div>
-        <div class="leg-label"><span class="pill gated">Gated</span> your Bee token → Bee's API, pending a cert check</div>
-        <div class="arrow dashed"></div>
+        <div class="leg-label"><span class="pill live">Live</span> your Bee token → Bee's API, through a private-CA bridge</div>
+        <div class="arrow"></div>
         <div class="node"><svg class="hex" width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12l6 10-6 10H6L0 12 6 2z" fill="#E0A323"/></svg><div><div class="nm">Bee API</div><div class="ds">Read-only — your captured conversations</div></div></div>
       </div>
     </div>
@@ -75,18 +75,17 @@
     <p>One leg authenticates <em>you</em> to your relay. The other carries <em>your</em> Bee credential to Bee. They never mix, and the relay never collects anyone else's token.</p>
     <div class="steps">
       <div class="step"><div class="num">1</div><div><h3>You connect with GitHub</h3><p>A standard OAuth redirect proves you're an allowed operator of this instance. Identity only — no repository access, no data read. Logins outside your allow-list are refused.</p></div></div>
-      <div class="step"><div class="num">2</div><div><h3>Your Bee token is your Worker's own secret</h3><p>You set it once, in your own deployment. It never appears in logs, URLs, errors, or tool output. The relay custodies no credential but your own.</p></div></div>
-      <div class="step"><div class="num">3</div><div><h3>Claude calls read-only tools</h3><p>Your MCP client reaches tools that proxy Bee's API. Phase 1 ships the identity check (<code>whoami</code>); read-only conversation retrieval is next.</p></div></div>
+      <div class="step"><div class="num">2</div><div><h3>You paste your Bee token once, at connect</h3><p>It's captured at a consent step and held only inside your own encrypted grant — never a shared Worker secret, never shown to the AI client, never logged. The relay custodies no credential but your own.</p></div></div>
+      <div class="step"><div class="num">3</div><div><h3>Claude calls read-only tools</h3><p>Your MCP client reaches tools that proxy Bee's API through a private-CA bridge. Phase 1 ships exactly one — the identity check, <code>whoami</code>; read-only conversation retrieval is Phase 2.</p></div></div>
     </div>
   </section>
 
   <section id="status">
     <p class="kicker">What's true today</p>
-    <h2>Phase 1: the secure front door is up.</h2>
+    <h2>Phase 1: the wire works, end to end.</h2>
     <p>This project tells you exactly what works and what doesn't — no demo that quietly fakes a working pendant.</p>
     <div class="status">
-      <div class="row live"><div class="mark">✓</div><div><div class="t">Live now</div><div class="d">Deploy &amp; health checks, the GitHub identity gate, and the <code>whoami</code> tool's auth path — running on Cloudflare Workers.</div></div></div>
-      <div class="row gated"><div class="mark">◷</div><div><div class="t">Gated on a one-time check</div><div class="d"><code>whoami</code>'s call to Bee waits on a reachability test: Workers trust only public certificates, and Bee's API may sit behind a private CA.</div></div></div>
+      <div class="row live"><div class="mark">✓</div><div><div class="t">Live now</div><div class="d">The whole path: GitHub identity gate → your Bee token captured at consent into an encrypted grant → a private-CA Container bridge → Bee. <code>whoami</code> returns your Bee identity over the live connector, validated on mobile.</div></div></div>
       <div class="row next"><div class="mark">→</div><div><div class="t">Next — Phase 2</div><div class="d">Read-only conversation retrieval: paginated, size-capped, summary-or-full — never a raw transcript dump into your context.</div></div></div>
       <div class="row later"><div class="mark">◌</div><div><div class="t">Later, eyes-open</div><div class="d">A hosted multi-tenant option, deferred on purpose. <a href="/roadmap">Why →</a></div></div></div>
     </div>
@@ -97,7 +96,7 @@
     <h2>No central pile of keys to lose.</h2>
     <div class="compare">
       <div class="card"><h3>A hosted store of everyone's tokens</h3><ul><li>Holds long-lived credentials for many people at once</li><li>One breach exposes every connected account</li><li>Someone must harden, rotate, and watch it forever</li><li>Only safe once the upstream issues short-lived keys</li></ul></div>
-      <div class="card good"><h3>Self-host — what Phase 1 is</h3><ul><li>Your Bee token is your own Worker secret, nowhere else</li><li>The blast radius is exactly one person: you</li><li>No trust required in an operator you've never met</li><li>Revoke any time by rotating the token in the Bee app</li></ul></div>
+      <div class="card good"><h3>Self-host — what Phase 1 is</h3><ul><li>Your Bee token lives only in your own encrypted grant, nowhere central</li><li>The blast radius is exactly one person: you</li><li>No trust required in an operator you've never met</li><li>Revoke any time: disconnect deletes the copy; re-pair in the Bee app</li></ul></div>
     </div>
     <p style="margin-top:20px"><a href="/security">Read the full security model →</a></p>
   </section>
@@ -105,7 +104,7 @@
   <section id="setup-teaser">
     <p class="kicker">Run your own</p>
     <h2>Self-host in a few steps.</h2>
-    <p>You'll need a Cloudflare account, a Bee API token, and a GitHub OAuth App. The short version: create a KV namespace, register a GitHub OAuth App pointed at your <code>/callback</code>, set your secrets, deploy, and connect it in Claude.</p>
+    <p>You'll need a Cloudflare account (Workers Paid, for the bridge container), a GitHub OAuth App, and a Bee token. The short version: create a KV namespace, register a GitHub OAuth App pointed at your <code>/callback</code>, set your GitHub secrets and your allow-list, push to deploy, then connect it in Claude and paste your Bee token at the consent screen.</p>
     <div class="cta-row"><a class="btn btn-primary" href="/setup">Full setup guide →</a><a class="btn btn-ghost" href="https://github.com/klappy/bee-ai-auth-mcp">Read the source</a></div>
   </section>
 

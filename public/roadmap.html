@@ -49,7 +49,7 @@
     <div class="status">
       <div class="row live"><div class="mark">✓</div><div><div class="t">Deployed &amp; healthy</div><div class="d">The Worker is live; health and version checks respond, and the static site serves.</div></div></div>
       <div class="row live"><div class="mark">✓</div><div><div class="t">GitHub identity gate</div><div class="d">OAuth registration, authorize, and the allow-list check all work end-to-end.</div></div></div>
-      <div class="row gated"><div class="mark">◷</div><div><div class="t">whoami → Bee</div><div class="d">Wired, but waiting on the private-CA reachability check from a non-proxied environment.</div></div></div>
+      <div class="row live"><div class="mark">✓</div><div><div class="t">whoami → Bee</div><div class="d">Live — returns your Bee identity end-to-end through the private-CA bridge, validated on mobile.</div></div></div>
       <div class="row next"><div class="mark">→</div><div><div class="t">Conversation retrieval</div><div class="d">Phase 2 — read-only, over Bee's confirmed endpoints.</div></div></div>
     </div>
   </section>
@@ -57,7 +57,7 @@
   <section class="prose">
     <h2>The phases</h2>
     <h3>Phase 1 — Auth core &amp; whoami <span class="tag live">current</span></h3>
-    <p>The Bee-independent spine: OAuth front door, the identity gate, the MCP transport, and a Tier-1 self-host deploy. Built and deployed; the one Bee-touching call is gated on reachability.</p>
+    <p>The full Tier-1 self-host path: OAuth front door, the identity gate, the MCP transport, consent-time Bee-token capture into encrypted grants, and the private-CA Container bridge. Built, deployed, and wire-validated — <code>whoami</code> returns your Bee identity end-to-end.</p>
 
     <h3>Phase 2 — Read-only retrieval <span class="tag next">next</span></h3>
     <p>Tools over Bee's <code>/v1/conversations</code> (confirmed) — async-by-default, paginated, size-capped, summary-or-full, never a raw transcript dump into your context. <code>/v1/search/conversations</code> and <code>/v1/changes</code> aren't in Bee's public docs and stay out of the tool surface until confirmed against the live API.</p>
