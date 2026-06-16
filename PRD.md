@@ -198,12 +198,13 @@ Author a project-owned `Bee-API-usage` document sourced from Bee’s proxy and s
 ### 2.2 `bee_docs` Tool
 Implement a `bee_docs` tool following the `git-repo-auth-mcp` pattern. The tool serves the project-authored `Bee-API-usage` document (not raw vendor pages).
 
-### 2.3 Scoped Read-Only Retrieval Tools
-After live enumeration of `/v1/changes` and `/v1/search/conversations`, implement retrieval tools **only** for confirmed read endpoints.  
-- No write/mutation endpoints are exposed.  
-- Async, pagination, and summary modes are supported where the upstream provides them.  
-- Confirm-or-drop discipline is enforced before any tool surface is frozen.
+### 2.3 Read/Write Passthrough Tools (method-split, vodka-thin)
+Rather than one tool per endpoint, the read/write surface is two method-keyed passthrough tools over the documented `/v1/*` API — full parity with zero per-endpoint coupling, so a Bee API change cannot break the tool surface.
 
+- **`bee_read`** (this phase) — forwards a caller-supplied `/v1/*` path to Bee through the bridge using **GET only**. No method parameter, no request body; the read-only guarantee is structural — the tool can only issue read primitives (like git's read side). It reaches the entire read surface, and `bee_docs` supplies the path/param knowledge.
+- **`bee_write`** (deferred to the write phase) — the same passthrough shape, restricted to the write primitives (`POST` / `PUT` / `PATCH` / `DELETE`). Specced here; not built or exposed in the read phase.
+
+`bee_read` response handling: async-by-default for long calls, paginated and size-capped, summary-vs-full where the upstream supports it. The SSE `/v1/stream` endpoint stays out of the synchronous passthrough, handled separately if/when needed. There is no endpoint allow-list to freeze — an unknown path simply returns the upstream's own status.
 ### 2.4 Laptop-Free Token Acquisition (QR Pairing Caller)
 The relay itself becomes the Bee app-pairing caller:  
 - Consent page renders a QR code.  
@@ -220,13 +221,13 @@ The relay itself becomes the Bee app-pairing caller:
 **Success Criteria (Phase 2)**  
 - `Bee-API-usage` document authored and accepted.  
 - Phase-2 6B table completed and accepted.  
-- `bee_docs` tool + scoped read-only retrieval tools live and validated on mobile (three-pass, fresh context).  
+- `bee_docs` tool + the `bee_read` GET passthrough live and validated on mobile (three-pass, fresh context).  
 - QR pairing flow either unblocked via official `app_id` or clearly documented with next action.  
 - Magical first run under 60 seconds where applicable.  
 - All changes delivered via feature branch + operator-authored PR.
 
 **Out of Scope (Phase 2)**  
-- Write/mutation tools  
+- Activating `bee_write` / any mutating calls — the write tool is specced in §2.3 but built in the write phase, not this one  
 - Multi-tenant hardening (Tier 2)  
 - Push/SSE streaming (Product C)  
 - Refinery / encode layer (Product B)  
@@ -234,7 +235,7 @@ The relay itself becomes the Bee app-pairing caller:
 
 **Open Items**  
 - Bee `app_id` registration (vendor-dependent)  
-- Live-API enumeration of `/v1/changes` + `/v1/search/conversations`  
+- Document the known endpoints (`/v1/me`, `/v1/conversations`, `/v1/search/conversations`, `/v1/changes`) in the Bee-API-usage doc — the passthrough reaches any path at runtime, so no tool-surface freeze is required
 - Optional canon proposal to explicitly cover architecture assertions under `klappy://canon/principles/code-claims-require-code-observation`
 
 **Relationship to Previous Versions**  
