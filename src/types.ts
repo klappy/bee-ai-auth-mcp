@@ -27,6 +27,15 @@ export interface Env {
    *  Worker `fetch` cannot trust). The /v1/* calls hang off this binding. See PRD
    *  v0.4 "The private-CA bridge", src/bridge.ts, and bridge/. */
   BEE_BRIDGE: DurableObjectNamespace<BeeBridge>;
+  /** Bee's REAL direct-API endpoint for the bridge's re-originated TLS leg. A CF
+   *  container does NOT inherit the Worker's env, so BeeBridge (src/bridge.ts)
+   *  reads these and passes them to caddy as {$BEE_UPSTREAM}/{$BEE_SNI}
+   *  (bridge/Caddyfile). Operator-set secrets — the real host is not publicly
+   *  documented (from bee-cli config), so they are never committed. */
+  /** Host:port of Bee's direct API (e.g. api.bee.computer:443). */
+  BEE_UPSTREAM: string;
+  /** Bee's hostname for SNI + cert validation (usually the upstream host). */
+  BEE_SNI: string;
 
   // ---- transport / misc ----
   /** Optional comma-separated extra origins allowed to call /mcp with an Origin header. */

@@ -7,8 +7,10 @@
  * stock Worker `fetch` cannot do because Bee's direct API uses a private CA
  * (ledger E0012).
  *
- * This class is intentionally empty: it is a typed handle for the Cloudflare
- * Containers runtime, not application logic. The bridge is token-AGNOSTIC shared
+ * This class holds no application logic: it is a typed handle for the Cloudflare
+ * Containers runtime whose only job is to pass the bridge's upstream config
+ * (BEE_UPSTREAM/BEE_SNI) into the container, since a CF container does not inherit
+ * the Worker's env. The bridge is still token-AGNOSTIC shared
  * infrastructure (multitenancy rule, E0014): every request carries its own user's
  * bearer in `Authorization`, passed straight through to Bee — never injected here,
  * never stored, never logged. There is one shared instance (the `getContainer`
@@ -21,12 +23,23 @@
  */
 
 import { Container } from "@cloudflare/containers";
+import type { Env } from "./types";
 
-export class BeeBridge extends Container {
+export class BeeBridge extends Container<Env> {
   /** caddy's internal listener (bridge/Caddyfile `:8080` site). The Worker's
    *  container fetch is forwarded here by the Containers runtime. */
   defaultPort = 8080;
   /** Idle the instance after inactivity; it cold-starts on the next request.
    *  whoami is bursty, not steady, so there is no value in holding it warm. */
   sleepAfter = "10m";
+
+  /** A Cloudflare container does NOT inherit the Worker's vars/secrets, so caddy's
+   *  {$BEE_UPSTREAM}/{$BEE_SNI} (bridge/Caddyfile) would start empty and the
+   *  reverse_proxy to Bee would fail. Pass the operator-set secrets through as the
+   *  container's environment. Token-AGNOSTIC still holds: no per-user bearer is set
+   *  here — that rides the Authorization header per request, straight to Bee. */
+  envVars = {
+    BEE_UPSTREAM: this.env.BEE_UPSTREAM,
+    BEE_SNI: this.env.BEE_SNI,
+  };
 }
