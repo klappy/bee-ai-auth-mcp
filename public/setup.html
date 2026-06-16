@@ -76,7 +76,7 @@ wrangler secret put GITHUB_CLIENT_SECRET</pre>
         <pre>npm i -g @beeai/cli
 bee login --qr   <span class="c"># approve the scan in your Bee app</span>
 security find-generic-password -s bee-cli -a token:prod -w   <span class="c"># prints your token (macOS); or: cat ~/.bee/token-prod</span></pre>
-        <p>Hold onto that token for the last step. A one-tap in-app QR pairing is planned so this won't need a computer (pending a Bee-registered app id).</p>
+        <p>Hold onto that token for the last step. A one-tap in-app QR pairing is a future upgrade (needs a Bee-registered app id, and only matters for a public/multi-tenant relay) — the paste path above is the working flow.</p>
       </li>
       <li>
         <h3>Set your allow-list</h3>
@@ -90,7 +90,7 @@ security find-generic-password -s bee-cli -a token:prod -w   <span class="c"># p
       </li>
       <li>
         <h3>Connect, paste, and check</h3>
-        <p>Add your worker URL as a custom connector in Claude, approve the GitHub login, then <strong>paste your Bee token at the consent screen</strong>. Run the <code>whoami</code> tool — it returns your Bee identity through the bridge. Phase 1 ships only this one tool; retrieval is Phase 2.</p>
+        <p>Add your worker URL as a custom connector in Claude, approve the GitHub login, then <strong>paste your Bee token at the consent screen</strong>. Run <code>whoami</code> — it returns your Bee identity through the bridge. The Phase-2 read surface (<code>bee_docs</code> + <code>bee_read</code>, read-only) is also available.</p>
       </li>
     </ol>
   </section>

@@ -68,7 +68,7 @@
     <div class="callout info"><p class="h">Why an OAuth App, not a GitHub App</p><p>The sibling <code>git-repo-auth</code> uses a GitHub <em>App</em> because it mints repository tokens. bee only needs to read a login, so a plain <strong>GitHub OAuth App</strong> is the right, smaller primitive. Its <code>client_id</code> and <code>client_secret</code> are the two secrets this leg needs.</p></div>
 
     <h2>Leg two — the relay ↔ Bee <span class="tag live">live</span></h2>
-    <p>This leg carries <em>your</em> Bee credential to Bee. The token is <strong>captured at a consent step when you connect and held only in your own encrypted grant props</strong> — there is no <code>BEE_API_TOKEN</code> Worker secret, and nothing is custodied for anyone else. The relay reaches exactly one confirmed endpoint, <code>GET /v1/me</code>, behind the <code>whoami</code> tool.</p>
+    <p>This leg carries <em>your</em> Bee credential to Bee. The token is <strong>captured at a consent step when you connect and held only in your own encrypted grant props</strong> — there is no <code>BEE_API_TOKEN</code> Worker secret, and nothing is custodied for anyone else. The relay reaches Bee's read surface: <code>GET /v1/me</code> behind <code>whoami</code>, plus the Phase-2 <code>bee_read</code> passthrough (GET any <code>/v1/*</code>, POST only to <code>/v1/search/*</code>) and the <code>bee_docs</code> reference tool.</p>
     <div class="callout"><p class="h">The private-CA bridge</p><p>A Cloudflare Worker's <code>fetch</code> trusts only publicly-trusted certificates, and Bee's direct API uses a private CA. So the relay reaches Bee through a <strong>Cloudflare Container bound to the Worker</strong> (<code>BEE_BRIDGE</code>) running caddy, which trusts <code>bee-ca.pem</code> and re-originates TLS to Bee. The Worker->container hop is internal (no public hostname or cert); only the container->Bee hop is TLS. Requires the Workers Paid plan.</p></div>
 
     <h2>What's stored</h2>
@@ -79,7 +79,8 @@
     <table class="matrix">
       <tr><th>Tool / endpoint</th><th>Status</th><th>Notes</th></tr>
       <tr><td>whoami → /v1/me</td><td><span class="tag live">live</span></td><td>Returns your Bee identity through the bridge — validated end-to-end.</td></tr>
-      <tr><td>/v1/conversations</td><td><span class="tag next">phase 2</span></td><td>Confirmed in Bee's docs; read-only, paginated, size-capped.</td></tr>
+      <tr><td>bee_read → /v1/* (GET) + /v1/search/* (POST)</td><td><span class="tag live">merged — validating</span></td><td>Read-only retrieval passthrough; /v1/stream + mutations refused, size-capped. Phase 2, merged to main.</td></tr>
+      <tr><td>bee_docs</td><td><span class="tag live">merged — validating</span></td><td>Serves the Bee-API-usage reference so the client knows what paths exist.</td></tr>
       <tr><td>/v1/search/conversations</td><td><span class="tag next">unconfirmed</span></td><td>Not in Bee's public docs — confirm-or-drop against the live API first.</td></tr>
       <tr><td>/v1/changes</td><td><span class="tag next">unconfirmed</span></td><td>Same — frozen out of the tool surface until verified.</td></tr>
     </table>

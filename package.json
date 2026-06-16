@@ -2,7 +2,7 @@
   "name": "bee-ai-auth-mcp",
   "version": "0.1.0",
   "private": true,
-  "description": "Self-host-first, OAuth-secured MCP relay exposing a Bee pendant's retrieval API to any MCP client. Phase 1: auth core + whoami. MIT.",
+  "description": "Self-host-first, OAuth-secured MCP relay exposing a Bee pendant's retrieval API to any MCP client. Phase 1: auth core + whoami. Phase 2: read surface (bee_docs + bee_read). MIT.",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",

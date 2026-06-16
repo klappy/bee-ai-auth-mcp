@@ -1,3 +1,5 @@
+> **Historical Phase-1 artifact (point-in-time).** Superseded by current state in `RESUME.md` / `PRD.md` v0.5. Phase 2 (`bee_docs` + `bee_read`, read-only) shipped — see `odd/ledger/2026-06-16-phase2-read-surface-built-and-merged.md` (E0020). Kept for the record; do not read as current state.
+
 # Fresh-Session Build Prompt (copy-paste)
 
 > Paste the block below into a fresh session to build the Phase-1 Bee leg. It is deliberately thin: the substance lives in the repo, and the fresh session reads it from there (`klappy://canon/methods/fresh-session-over-context-carry`).

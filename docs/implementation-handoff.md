@@ -1,3 +1,5 @@
+> **Historical Phase-1 artifact (point-in-time).** Superseded by current state in `RESUME.md` / `PRD.md` v0.5. Phase 2 (`bee_docs` + `bee_read`, read-only) shipped — see `odd/ledger/2026-06-16-phase2-read-surface-built-and-merged.md` (E0020). Kept for the record; do not read as current state.
+
 # bee-mcp Implementation Handoff — Porting git-repo-auth, Grounded in Its Repo + Ledger
 
 **Date:** 2026-06-14

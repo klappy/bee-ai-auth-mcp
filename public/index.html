@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>bee-ai-auth-mcp — your Bee pendant's memory, in Claude, self-hosted</title>
-<meta name="description" content="A small Cloudflare Worker you host yourself that opens your Bee pendant's conversations to Claude and any MCP client — on every surface, without handing your Bee token to anyone. Self-host-first, MIT, Phase 1." />
+<meta name="description" content="A small Cloudflare Worker you host yourself that opens your Bee pendant's conversations to Claude and any MCP client — on every surface, without handing your Bee token to anyone. Self-host-first, MIT. Phase 2: read-only retrieval (bee_docs + bee_read), merged." />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="bee-ai-auth-mcp — your pendant's memory, in Claude" />
 <meta property="og:description" content="Self-host-first MCP relay for a Bee pendant. You connect with GitHub; your Bee token is captured when you connect and stays encrypted inside your own deployment — held by no third party." />
@@ -40,7 +40,7 @@
 <main class="wrap">
 
   <section class="hero flush">
-    <p class="eyebrow">Self-host · MIT · Phase 1 — live</p>
+    <p class="eyebrow">Self-host · MIT · Phase 2 — read surface merged</p>
     <h1>Your Bee pendant remembers everything. <span class="hl">This lets Claude read it — from your phone.</span></h1>
     <p class="lede">Bee's official connector runs only on a computer you leave on. This is a small Cloudflare Worker you host yourself — you sign in with GitHub, and your Bee token is captured when you connect and stays encrypted inside <em>your</em> deployment — held by no third party.</p>
     <div class="cta-row">
@@ -76,17 +76,17 @@
     <div class="steps">
       <div class="step"><div class="num">1</div><div><h3>You connect with GitHub</h3><p>A standard OAuth redirect proves you're an allowed operator of this instance. Identity only — no repository access, no data read. Logins outside your allow-list are refused.</p></div></div>
       <div class="step"><div class="num">2</div><div><h3>You paste your Bee token once, at connect</h3><p>It's captured at a consent step and held only inside your own encrypted grant — never a shared Worker secret, never shown to the AI client, never logged. The relay custodies no credential but your own.</p></div></div>
-      <div class="step"><div class="num">3</div><div><h3>Claude calls read-only tools</h3><p>Your MCP client reaches tools that proxy Bee's API through a private-CA bridge. Phase 1 ships exactly one — the identity check, <code>whoami</code>; read-only conversation retrieval is Phase 2.</p></div></div>
+      <div class="step"><div class="num">3</div><div><h3>Claude calls read-only tools</h3><p>Your MCP client reaches tools that proxy Bee's API through a private-CA bridge. It ships <code>whoami</code> (identity check) plus the Phase-2 read surface — <code>bee_docs</code> and <code>bee_read</code> (read-only retrieval) — merged to main, phone validation pending.</p></div></div>
     </div>
   </section>
 
   <section id="status">
     <p class="kicker">What's true today</p>
-    <h2>Phase 1: the wire works, end to end.</h2>
+    <h2>Phase 2: the read surface is in.</h2>
     <p>This project tells you exactly what works and what doesn't — no demo that quietly fakes a working pendant.</p>
     <div class="status">
       <div class="row live"><div class="mark">✓</div><div><div class="t">Live now</div><div class="d">The whole path: GitHub identity gate → your Bee token captured at consent into an encrypted grant → a private-CA Container bridge → Bee. <code>whoami</code> returns your Bee identity over the live connector, validated on mobile.</div></div></div>
-      <div class="row next"><div class="mark">→</div><div><div class="t">Next — Phase 2</div><div class="d">Read-only conversation retrieval: paginated, size-capped, summary-or-full — never a raw transcript dump into your context.</div></div></div>
+      <div class="row next"><div class="mark">→</div><div><div class="t">Just merged — Phase 2</div><div class="d">Read-only retrieval: <code>bee_docs</code> + <code>bee_read</code> (GET any <code>/v1/*</code>, POST only to <code>/v1/search/*</code>; mutations refused). Merged to main; phone validation pending.</div></div></div>
       <div class="row later"><div class="mark">◌</div><div><div class="t">Later, eyes-open</div><div class="d">A hosted multi-tenant option, deferred on purpose. <a href="/roadmap">Why →</a></div></div></div>
     </div>
   </section>
@@ -96,7 +96,7 @@
     <h2>No central pile of keys to lose.</h2>
     <div class="compare">
       <div class="card"><h3>A hosted store of everyone's tokens</h3><ul><li>Holds long-lived credentials for many people at once</li><li>One breach exposes every connected account</li><li>Someone must harden, rotate, and watch it forever</li><li>Only safe once the upstream issues short-lived keys</li></ul></div>
-      <div class="card good"><h3>Self-host — what Phase 1 is</h3><ul><li>Your Bee token lives only in your own encrypted grant, nowhere central</li><li>The blast radius is exactly one person: you</li><li>No trust required in an operator you've never met</li><li>Revoke any time: disconnect deletes the copy; re-pair in the Bee app</li></ul></div>
+      <div class="card good"><h3>Self-host — what this is</h3><ul><li>Your Bee token lives only in your own encrypted grant, nowhere central</li><li>The blast radius is exactly one person: you</li><li>No trust required in an operator you've never met</li><li>Revoke any time: disconnect deletes the copy; re-pair in the Bee app</li></ul></div>
     </div>
     <p style="margin-top:20px"><a href="/security">Read the full security model →</a></p>
   </section>

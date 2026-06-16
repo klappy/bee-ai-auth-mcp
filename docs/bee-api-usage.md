@@ -2,7 +2,7 @@
 title: "Bee API Usage — the read surface bee_docs serves and bee_read calls"
 kind: docs
 audience: "AI client (via bee_docs) + maintainer"
-status: draft
+status: current
 date: 2026-06-16
 observed_server_time: "2026-06-16T20:33Z"
 source: "https://docs.bee.computer/docs/proxy (Bee, last updated 2026-06-07) + repo connect-flow findings (docs/connecting-and-getting-your-bee-token.md)"
@@ -29,8 +29,7 @@ forwards it to Bee through the private-CA bridge using the user's own bound bear
 - **`bee_docs`** — returns this document, so you know what paths exist and how to
   shape them.
 
-Method rule for `bee_read` (**PROPOSED — pending operator ruling, see Design
-Decision below**): **GET** to any `/v1/*` path, **plus POST allow-listed to
+Method rule for `bee_read` (**settled — D0034, option 1; implemented E0020**): **GET** to any `/v1/*` path, **plus POST allow-listed to
 `/v1/search/*` only**. No other method, no body except on the two search paths.
 The read-only guarantee is structural — the tool cannot mutate.
 
@@ -55,20 +54,9 @@ not exhaustive): `insights`, `locations`, `photos`, `todoSuggestions`, `todayBri
 Because the passthrough forwards **any** `/v1/*` path, these work without being
 enumerated here — there is no tool surface to freeze.
 
-## Design decision needed: search is POST
+## Why search is POST (settled — D0034, option 1)
 
-Bee's search endpoints use **POST with a JSON body**, even though they are read
-operations. A strictly GET-only `bee_read` therefore **cannot search** — which
-would drop the most valuable retrieval capability. Options:
-
-1. **`bee_read` = GET any `/v1/*` + POST allow-listed to `/v1/search/*` only.**
-   One tool; guarantee becomes "GET anything, or POST only to the search paths
-   (which do not mutate)." *(Doc currently written to this option.)*
-2. **A separate `bee_search` tool** (POST, restricted to `/v1/search/*`), leaving
-   `bee_read` strictly GET.
-3. **`bee_read` GET-only, no search** until the write phase.
-
-This is the one open call before `bee_read` is implemented.
+Bee's search endpoints use **POST with a JSON body**, even though they are read operations. A strictly GET-only `bee_read` could not search — the most valuable retrieval capability — so the rule allows it: `bee_read` issues **GET** to any `/v1/*`, and **POST only** to the allow-listed `/v1/search/*`. The read-only guarantee stays structural: POST is permitted to the search paths alone, which do not mutate. **Implemented and merged (E0020).** A separate `bee_search` tool was considered and rejected — search is still a read, so it stays in `bee_read`: fewer tools, good docs.
 
 ## Pagination & cursors
 
