@@ -45,11 +45,13 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
       // singleton ("cf-singleton-container"). Do NOT pass a per-user name — that
       // would shard the deliberately single shared bridge (multitenancy rule, E0014).
       const stub = getContainer(env.BEE_BRIDGE);
-      const t0 = Date.now();
       const result = await beeGetMe(props.beeToken, stub);
-      tele.bridgeMs = Date.now() - t0;
+      // bridge_ms/bridge_state come from the bridge.fetch leg measured inside
+      // bee.ts — not the whole call (which includes the body read). bridgeCold is
+      // set for non-2xx too: a cold container can still return 401/403/5xx.
+      tele.bridgeMs = result.bridgeMs;
       tele.statusClass = statusClassOf(result.ok ? 200 : result.status);
-      if (result.ok) tele.bridgeCold = result.bridgeCold;
+      tele.bridgeCold = result.bridgeCold;
       if (!result.ok) {
         const wall = {
           error: "bee_unreachable_or_rejected",
@@ -117,11 +119,13 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
     withTelemetry(env, tenantKey, "bee_read", (tele) => async ({ path, search }: { path: string; search?: Record<string, unknown> }) => {
       tele.pathClass = classifyPath(path);
       const stub = getContainer(env.BEE_BRIDGE);
-      const t0 = Date.now();
       const result = await beeRead(props.beeToken, stub, path, search);
-      tele.bridgeMs = Date.now() - t0;
+      // bridge_ms/bridge_state come from the bridge.fetch leg measured inside
+      // bee.ts — not the whole call (which includes the body read). bridgeCold is
+      // set for non-2xx too: a cold container can still return 401/403/5xx.
+      tele.bridgeMs = result.bridgeMs;
       tele.statusClass = statusClassOf(result.status);
-      if (result.ok) tele.bridgeCold = result.bridgeCold;
+      tele.bridgeCold = result.bridgeCold;
       if (!result.ok) {
         const wall = { error: "bee_read_failed", status: result.status, detail: result.message };
         return { content: [{ type: "text" as const, text: JSON.stringify(wall, null, 2) }], isError: true };

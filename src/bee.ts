@@ -27,12 +27,20 @@ export interface BeeWhoami {
   account: unknown; // shape unconfirmed against the live API — passed through minimally
   /** Whether the bridge container served this request cold (telemetry only). */
   bridgeCold?: boolean;
+  /** bridge.fetch round-trip wall-clock in ms — the cold/warm leg only (telemetry only). */
+  bridgeMs?: number;
 }
 
 export interface BeeError {
   ok: false;
   status: number | null;
   message: string;
+  /** Whether the bridge container served this request cold (telemetry only).
+   *  Present whenever the bridge responded — including non-2xx, which still
+   *  carries x-bridge-cold; absent only when no round-trip happened. */
+  bridgeCold?: boolean;
+  /** bridge.fetch round-trip wall-clock in ms — the cold/warm leg only (telemetry only). */
+  bridgeMs?: number;
 }
 
 /** Call GET /v1/me through the bound bridge container with an explicit bearer.
@@ -48,6 +56,7 @@ export async function beeGetMe(beeToken: string, bridge: DurableObjectStub): Pro
   }
 
   let res: Response;
+  const t0 = Date.now();
   try {
     // Internal Worker->container call. The host in this URL is arbitrary (the
     // bound container is addressed by the stub, not by DNS); caddy's :8080 port
@@ -67,8 +76,15 @@ export async function beeGetMe(beeToken: string, bridge: DurableObjectStub): Pro
       status: null,
       message:
         "Could not reach the Bee API through the bridge. Confirm the private-CA Container bridge is deployed and the BEE_BRIDGE binding is wired (see bridge/README.md).",
+      bridgeMs: Date.now() - t0,
     };
   }
+  // bridge_ms is the bridge.fetch round-trip ONLY (the cold/warm-sensitive leg,
+  // docs/telemetry-governance.md) — captured here, before res.json() reads the
+  // body, so payload transfer never inflates the cold/warm signal. x-bridge-cold
+  // rides every proxied response (success or not), so read it for both branches.
+  const bridgeMs = Date.now() - t0;
+  const bridgeCold = res.headers.get("x-bridge-cold") === "1";
 
   if (!res.ok) {
     // Never serialize the upstream body or our request — status + generic text only.
@@ -79,11 +95,13 @@ export async function beeGetMe(beeToken: string, bridge: DurableObjectStub): Pro
         res.status === 401 || res.status === 403
           ? "Bee rejected the credential (401/403). Reconnect and paste a current Bee token, or rotate it in the Bee app."
           : `Bee returned an unexpected status (${res.status}).`,
+      bridgeCold,
+      bridgeMs,
     };
   }
 
   const account = (await res.json().catch(() => null)) as unknown;
-  return { ok: true, account, bridgeCold: res.headers.get("x-bridge-cold") === "1" };
+  return { ok: true, account, bridgeCold, bridgeMs };
 }
 
 /** Bee's search endpoints are POST + JSON body but are READ operations (no
@@ -100,6 +118,8 @@ export interface BeeReadResult {
   truncated?: boolean;
   /** Whether the bridge container served this request cold (telemetry only). */
   bridgeCold?: boolean;
+  /** bridge.fetch round-trip wall-clock in ms — the cold/warm leg only (telemetry only). */
+  bridgeMs?: number;
 }
 
 /** Generalized read passthrough — the Phase-2 `bee_read` primitive. Read-only BY
@@ -145,6 +165,7 @@ export async function beeRead(
   }
 
   let res: Response;
+  const t0 = Date.now();
   try {
     res = await bridge.fetch(`http://bee-bridge${path}`, init);
   } catch {
@@ -153,8 +174,16 @@ export async function beeRead(
       status: null,
       message:
         "Could not reach the Bee API through the bridge. Confirm the private-CA Container bridge is deployed and the BEE_BRIDGE binding is wired (see bridge/README.md).",
+      bridgeMs: Date.now() - t0,
     };
   }
+  // bridge_ms is the bridge.fetch round-trip ONLY (the cold/warm-sensitive leg,
+  // docs/telemetry-governance.md) — captured here, before res.text() downloads
+  // up to the 512KB body, so payload size never inflates the cold/warm signal.
+  // x-bridge-cold rides every proxied response (success or not), so read it for
+  // all branches below.
+  const bridgeMs = Date.now() - t0;
+  const bridgeCold = res.headers.get("x-bridge-cold") === "1";
 
   if (!res.ok) {
     return {
@@ -164,6 +193,8 @@ export async function beeRead(
         res.status === 401 || res.status === 403
           ? "Bee rejected the credential (401/403). Reconnect and paste a current Bee token, or rotate it in the Bee app."
           : `Bee returned an unexpected status (${res.status}).`,
+      bridgeCold,
+      bridgeMs,
     };
   }
 
@@ -174,7 +205,8 @@ export async function beeRead(
       ok: true,
       status: res.status,
       truncated: true,
-      bridgeCold: res.headers.get("x-bridge-cold") === "1",
+      bridgeCold,
+      bridgeMs,
       body: {
         note: "Response exceeded the 512KB read cap and was truncated. Use pagination (limit/cursor) or a narrower path/query.",
         preview: text.slice(0, CAP),
@@ -187,5 +219,5 @@ export async function beeRead(
   } catch {
     body = text;
   }
-  return { ok: true, status: res.status, body, bridgeCold: res.headers.get("x-bridge-cold") === "1" };
+  return { ok: true, status: res.status, body, bridgeCold, bridgeMs };
 }
