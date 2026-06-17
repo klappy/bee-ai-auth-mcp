@@ -13,6 +13,13 @@
     // Create your own: `wrangler kv namespace create OAUTH_KV`, then paste the id here.
     { "binding": "OAUTH_KV", "id": "8f260f3c8ab6476dbea2b17926bf38bf" }
   ],
+  // ---- OPTIONAL telemetry sink (Analytics Engine) — observability, not custody ----
+  // Records shape, never substance (see src/telemetry.ts, docs/telemetry-governance.md).
+  // OPTIONAL by design: remove this block to run with telemetry as a silent no-op.
+  // The dataset name is STICKY (renaming forfeits history) — chosen deliberately.
+  "analytics_engine_datasets": [
+    { "binding": "BEE_TELEMETRY", "dataset": "bee_telemetry" }
+  ],
   "vars": {
     // Comma-separated GitHub login(s) allowed to use this self-host instance.
     // REQUIRED — the instance denies all logins until this is set.

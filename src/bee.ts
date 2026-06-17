@@ -25,6 +25,8 @@
 export interface BeeWhoami {
   ok: true;
   account: unknown; // shape unconfirmed against the live API — passed through minimally
+  /** Whether the bridge container served this request cold (telemetry only). */
+  bridgeCold?: boolean;
 }
 
 export interface BeeError {
@@ -81,7 +83,7 @@ export async function beeGetMe(beeToken: string, bridge: DurableObjectStub): Pro
   }
 
   const account = (await res.json().catch(() => null)) as unknown;
-  return { ok: true, account };
+  return { ok: true, account, bridgeCold: res.headers.get("x-bridge-cold") === "1" };
 }
 
 /** Bee's search endpoints are POST + JSON body but are READ operations (no
@@ -96,6 +98,8 @@ export interface BeeReadResult {
   status: number;
   body: unknown;
   truncated?: boolean;
+  /** Whether the bridge container served this request cold (telemetry only). */
+  bridgeCold?: boolean;
 }
 
 /** Generalized read passthrough — the Phase-2 `bee_read` primitive. Read-only BY
@@ -170,6 +174,7 @@ export async function beeRead(
       ok: true,
       status: res.status,
       truncated: true,
+      bridgeCold: res.headers.get("x-bridge-cold") === "1",
       body: {
         note: "Response exceeded the 512KB read cap and was truncated. Use pagination (limit/cursor) or a narrower path/query.",
         preview: text.slice(0, CAP),
@@ -182,5 +187,5 @@ export async function beeRead(
   } catch {
     body = text;
   }
-  return { ok: true, status: res.status, body };
+  return { ok: true, status: res.status, body, bridgeCold: res.headers.get("x-bridge-cold") === "1" };
 }

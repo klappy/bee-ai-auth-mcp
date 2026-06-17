@@ -17,9 +17,10 @@ import { getContainer } from "@cloudflare/containers";
 import { z } from "zod";
 import { beeGetMe, beeRead } from "./bee";
 import { BEE_API_USAGE_DOC } from "./bee-api-usage-doc";
+import { classifyPath, deriveTenantKey, statusClassOf, withTelemetry } from "./telemetry";
 import type { Env, GrantProps } from "./types";
 
-function buildServer(env: Env, props: GrantProps): McpServer {
+function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer {
   const server = new McpServer({ name: "bee-ai-auth-mcp", version: "0.1.0" });
 
   server.registerTool(
@@ -39,12 +40,16 @@ function buildServer(env: Env, props: GrantProps): McpServer {
         "is read from your encrypted grant and is never returned.",
       inputSchema: {},
     },
-    async () => {
+    withTelemetry(env, tenantKey, "whoami", (tele) => async () => {
       // One shared, token-agnostic bridge: getContainer with no name resolves the
       // singleton ("cf-singleton-container"). Do NOT pass a per-user name — that
       // would shard the deliberately single shared bridge (multitenancy rule, E0014).
       const stub = getContainer(env.BEE_BRIDGE);
+      const t0 = Date.now();
       const result = await beeGetMe(props.beeToken, stub);
+      tele.bridgeMs = Date.now() - t0;
+      tele.statusClass = statusClassOf(result.ok ? 200 : result.status);
+      if (result.ok) tele.bridgeCold = result.bridgeCold;
       if (!result.ok) {
         const wall = {
           error: "bee_unreachable_or_rejected",
@@ -58,7 +63,7 @@ function buildServer(env: Env, props: GrantProps): McpServer {
         bee: result.account, // the Bee account /v1/me returned
       };
       return { content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }] };
-    }
+    })
   );
 
   server.registerTool(
@@ -75,8 +80,11 @@ function buildServer(env: Env, props: GrantProps): McpServer {
         "Return the Bee API usage reference: which /v1/* read endpoints exist, how to shape paths and the search body, pagination/cursors, and what is excluded. Read this before calling bee_read.",
       inputSchema: {},
     },
-    async () => ({
-      content: [{ type: "text" as const, text: BEE_API_USAGE_DOC }],
+    withTelemetry(env, tenantKey, "bee_docs", (tele) => async () => {
+      tele.statusClass = "2xx"; // local doc, no network leg
+      return {
+        content: [{ type: "text" as const, text: BEE_API_USAGE_DOC }],
+      };
     })
   );
 
@@ -106,16 +114,21 @@ function buildServer(env: Env, props: GrantProps): McpServer {
           ),
       },
     },
-    async ({ path, search }) => {
+    withTelemetry(env, tenantKey, "bee_read", (tele) => async ({ path, search }: { path: string; search?: Record<string, unknown> }) => {
+      tele.pathClass = classifyPath(path);
       const stub = getContainer(env.BEE_BRIDGE);
+      const t0 = Date.now();
       const result = await beeRead(props.beeToken, stub, path, search);
+      tele.bridgeMs = Date.now() - t0;
+      tele.statusClass = statusClassOf(result.status);
+      if (result.ok) tele.bridgeCold = result.bridgeCold;
       if (!result.ok) {
         const wall = { error: "bee_read_failed", status: result.status, detail: result.message };
         return { content: [{ type: "text" as const, text: JSON.stringify(wall, null, 2) }], isError: true };
       }
       const payload = { status: result.status, truncated: result.truncated ?? false, body: result.body };
       return { content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }] };
-    }
+    })
   );
 
   return server;
@@ -135,7 +148,8 @@ export const McpApiHandler = {
         { status: 403 }
       );
     }
-    const handler = createMcpHandler(buildServer(env, props), { route: "/mcp" });
+    const tenantKey = await deriveTenantKey(env, props.login);
+    const handler = createMcpHandler(buildServer(env, props, tenantKey), { route: "/mcp" });
     return handler(request, env, ctx);
   },
 };

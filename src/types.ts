@@ -42,6 +42,10 @@ export interface Env {
   ALLOWED_ORIGINS?: string;
   /** Provider state: hashed OAuth grants + token-wrapped encrypted props. */
   OAUTH_KV: KVNamespace;
+  /** OPTIONAL telemetry sink (Analytics Engine). Unbound => every emit is a
+   *  silent no-op (self-host respect). Records shape, never substance — see
+   *  src/telemetry.ts and docs/telemetry-governance.md. */
+  BEE_TELEMETRY?: AnalyticsEngineDataset;
   /** Injected by OAuthProvider on the default handler. */
   OAUTH_PROVIDER: OAuthHelpers;
 }
