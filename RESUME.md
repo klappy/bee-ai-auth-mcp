@@ -55,6 +55,7 @@ Reference repo this is ported from: **`klappy/git-repo-auth-mcp`** (the proven s
 
 - `RESUME.md` — this file. The entry point.
 - `PRD.md` — authoritative spec, **v0.5** (Phase 2 read surface specced). Read after this file.
+- `planning/multi-environment-topology.md` — **queued/deferred** target ops topology: dev (`main`) → staging → production (`production`) promotion chain, per-env config, and the setup checklist. Not built yet; staging slots in later with no rework.
 - `src/` — the Worker spine. `bee.ts` is the Bee client (`beeGetMe` + the `beeRead` passthrough); `bee-auth.ts` captures the token into encrypted grant props; `mcp-api.ts` registers `whoami`, `bee_docs`, `bee_read`. `docs/bee-api-usage.md` + `scripts/gen-bee-docs.mjs` feed `bee_docs`.
 - `.github/workflows/` + `test/` + `docs/ci-cd.md` — the CI/CD pipeline and its contract.
 - `docs/phase-1-build-handoff.md` — **the build contract for the Bee leg (read this to build).**
