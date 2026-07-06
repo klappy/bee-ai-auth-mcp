@@ -69,6 +69,7 @@ describe("sealed pairing state", () => {
     sk: "sk-b64",
     requestId: "req_1",
     login: "klappy",
+    clientId: "client-abc",
     iat: Date.now(),
   };
 

@@ -173,6 +173,9 @@ export interface SealedPairingState {
   requestId: string;
   /** gate-verified login this pairing belongs to; must match the signed consent state */
   login: string;
+  /** OAuth client this pairing was started for; must match the signed consent
+   *  state so a captured blob can't be replayed against a different client */
+  clientId: string;
   /** issued-at, ms epoch */
   iat: number;
 }
@@ -236,6 +239,7 @@ export async function unsealPairingState(
     typeof state?.sk !== "string" ||
     typeof state?.requestId !== "string" ||
     typeof state?.login !== "string" ||
+    typeof state?.clientId !== "string" ||
     typeof state?.iat !== "number"
   ) {
     return null;

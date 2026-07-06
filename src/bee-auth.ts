@@ -113,8 +113,8 @@ function consentForm(login: string, signed: string, error?: string): Response {
        var statusEl = document.getElementById('qr-status');
        var boxEl = document.getElementById('qr-box');
        var linkEl = document.getElementById('qr-link');
-       var p = null, expiresAt = 0, attempt = 0, done = false;
-       function post(path, body) {
+      var p = null, expiresAt = 0, attempt = 0, done = false, timer = null, polling = false;
+      function post(path, body) {
          return fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
            .then(function (r) { return r.json(); });
        }
@@ -123,8 +123,9 @@ function consentForm(login: string, signed: string, error?: string): Response {
          var r = document.getElementById('qr-retry');
          if (r) r.addEventListener('click', function (e) { e.preventDefault(); start(); });
        }
-       function start() {
-         attempt = 0; done = false; boxEl.innerHTML = ''; linkEl.innerHTML = '';
+      function start() {
+        if (timer) { clearTimeout(timer); timer = null; }
+        attempt = 0; done = false; polling = false; boxEl.innerHTML = ''; linkEl.innerHTML = '';
          statusEl.textContent = 'Getting a pairing code…';
          post('/pairing/start', { s: s }).then(function (d) {
            if (d.status !== 'pending') { retryLink(d.message || 'Could not start pairing.'); return; }
@@ -139,16 +140,20 @@ function consentForm(login: string, signed: string, error?: string): Response {
        function schedule() {
          if (done) return;
          if (Date.now() >= expiresAt) { boxEl.innerHTML = ''; retryLink('That code expired.'); return; }
-         attempt++;
-         // Steady 3s early, then doubling, capped at the CLI's 30s MAX_BACKOFF.
-         var delay = Math.min(3000 * Math.pow(2, Math.max(0, attempt - 4)), 30000);
-         setTimeout(poll, delay);
-       }
-       function poll() {
-         if (done) return;
-         post('/pairing/status', { s: s, p: p }).then(function (d) {
-           if (done) return;
-           if (d.status === 'completed') {
+        attempt++;
+        // Steady 3s early, then doubling, capped at the CLI's 30s MAX_BACKOFF.
+        var delay = Math.min(3000 * Math.pow(2, Math.max(0, attempt - 4)), 30000);
+        timer = setTimeout(poll, delay);
+      }
+      function poll() {
+        // Guard against overlapping in-flight polls so two responses can't both
+        // observe 'completed' and race a duplicate finish.
+        if (done || polling) return;
+        polling = true;
+        post('/pairing/status', { s: s, p: p }).then(function (d) {
+          polling = false;
+          if (done) return;
+          if (d.status === 'completed') {
              done = true;
              statusEl.textContent = 'Paired! Finishing sign-in…';
              var f = document.querySelector('form[action="/consent"]');
@@ -158,8 +163,8 @@ function consentForm(login: string, signed: string, error?: string): Response {
            }
            if (d.status === 'expired') { boxEl.innerHTML = ''; retryLink('That code expired.'); return; }
            if (d.status === 'pending') { schedule(); return; }
-           retryLink(d.message || 'Pairing failed.');
-         }).catch(function () { schedule(); }); // transient network blip: keep polling inside the expiry window
+          retryLink(d.message || 'Pairing failed.');
+        }).catch(function () { polling = false; schedule(); }); // transient network blip: keep polling inside the expiry window
        }
        start();
      })();
@@ -335,6 +340,7 @@ export const BeeAuthHandler = {
           sk: bytesToB64(kp.secretKey),
           requestId: outcome.requestId,
           login: cs.login,
+          clientId: cs.req.clientId,
           iat: Date.now(),
         },
         env.GITHUB_CLIENT_SECRET
@@ -361,7 +367,7 @@ export const BeeAuthHandler = {
         return json({ status: "error", message: "Not authorized." }, 403);
       }
       const st = await unsealPairingState(str(body?.["p"]), env.GITHUB_CLIENT_SECRET);
-      if (!st || st.login !== cs.login) {
+      if (!st || st.login !== cs.login || st.clientId !== cs.req.clientId) {
         return json({ status: "error", message: "Pairing state invalid or stale — get a new code." }, 400);
       }
 
