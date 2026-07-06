@@ -113,7 +113,7 @@ function consentForm(login: string, signed: string, error?: string): Response {
        var statusEl = document.getElementById('qr-status');
        var boxEl = document.getElementById('qr-box');
        var linkEl = document.getElementById('qr-link');
-      var p = null, expiresAt = 0, attempt = 0, done = false, timer = null, polling = false;
+      var p = null, expiresAt = 0, attempt = 0, done = false, timer = null, polling = false, gen = 0;
       function post(path, body) {
          return fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
            .then(function (r) { return r.json(); });
@@ -125,34 +125,40 @@ function consentForm(login: string, signed: string, error?: string): Response {
        }
       function start() {
         if (timer) { clearTimeout(timer); timer = null; }
+        // Bump the generation so any in-flight start/poll from an earlier tap
+        // resolves into a stale run and is ignored — otherwise a slow response
+        // could overwrite p/qrSvg/connectUrl for a keypair the page no longer shows.
+        var myGen = ++gen;
         attempt = 0; done = false; polling = false; boxEl.innerHTML = ''; linkEl.innerHTML = '';
          statusEl.textContent = 'Getting a pairing code…';
          post('/pairing/start', { s: s }).then(function (d) {
+           if (myGen !== gen) return;
            if (d.status !== 'pending') { retryLink(d.message || 'Could not start pairing.'); return; }
            p = d.p;
            expiresAt = Date.parse(d.expiresAt) || (Date.now() + 5 * 60 * 1000);
            boxEl.innerHTML = d.qrSvg;
            linkEl.innerHTML = 'On this phone already? <a href="' + d.connectUrl + '" target="_blank" rel="noopener">Open in the Bee app</a>, approve, then come back to this tab.';
            statusEl.textContent = 'Scan with your phone camera and approve in the Bee app — this page finishes by itself.';
-           schedule();
-         }).catch(function () { retryLink('Could not reach the relay.'); });
+           schedule(myGen);
+         }).catch(function () { if (myGen !== gen) return; retryLink('Could not reach the relay.'); });
        }
-       function schedule() {
-         if (done) return;
+       function schedule(myGen) {
+         if (done || myGen !== gen) return;
          if (Date.now() >= expiresAt) { boxEl.innerHTML = ''; retryLink('That code expired.'); return; }
         attempt++;
         // Steady 3s early, then doubling, capped at the CLI's 30s MAX_BACKOFF.
         var delay = Math.min(3000 * Math.pow(2, Math.max(0, attempt - 4)), 30000);
-        timer = setTimeout(poll, delay);
+        timer = setTimeout(function () { poll(myGen); }, delay);
       }
-      function poll() {
+      function poll(myGen) {
         // Guard against overlapping in-flight polls so two responses can't both
-        // observe 'completed' and race a duplicate finish.
-        if (done || polling) return;
+        // observe 'completed' and race a duplicate finish, and drop polls left
+        // over from a superseded generation.
+        if (done || polling || myGen !== gen) return;
         polling = true;
         post('/pairing/status', { s: s, p: p }).then(function (d) {
           polling = false;
-          if (done) return;
+          if (done || myGen !== gen) return;
           if (d.status === 'completed') {
              done = true;
              statusEl.textContent = 'Paired! Finishing sign-in…';
@@ -162,9 +168,9 @@ function consentForm(login: string, signed: string, error?: string): Response {
              return;
            }
            if (d.status === 'expired') { boxEl.innerHTML = ''; retryLink('That code expired.'); return; }
-           if (d.status === 'pending') { schedule(); return; }
+           if (d.status === 'pending') { schedule(myGen); return; }
           retryLink(d.message || 'Pairing failed.');
-        }).catch(function () { polling = false; schedule(); }); // transient network blip: keep polling inside the expiry window
+        }).catch(function () { polling = false; if (myGen !== gen) return; schedule(myGen); }); // transient network blip: keep polling inside the expiry window
        }
        start();
      })();
