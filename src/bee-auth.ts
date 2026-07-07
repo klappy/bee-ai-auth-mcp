@@ -160,6 +160,7 @@ function consentForm(login: string, signed: string, error?: string): Response {
           polling = false;
           if (done || myGen !== gen) return;
           if (d.status === 'completed') {
+             if (!d.redirectTo) { retryLink(d.message || 'Pairing finished but no sign-in link was returned.'); return; }
              done = true;
              statusEl.textContent = 'Paired! Finishing sign-in…';
              var f = document.querySelector('form[action="/consent"]');
