@@ -56,12 +56,17 @@ export class BeeBridge extends Container<Env> {
   }
 
   override async fetch(request: Request): Promise<Response> {
-    const res = await super.fetch(request);
-    // onStart fires inside super.fetch on a cold start, so read the flag after.
-    const cold = this.coldPending;
-    this.coldPending = false;
-    const headers = new Headers(res.headers);
-    headers.set("x-bridge-cold", cold ? "1" : "0");
-    return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+    try {
+      const res = await super.fetch(request);
+      // onStart fires inside super.fetch on a cold start, so read the flag after.
+      const cold = this.coldPending;
+      const headers = new Headers(res.headers);
+      headers.set("x-bridge-cold", cold ? "1" : "0");
+      return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+    } finally {
+      // Clear even when super.fetch throws, so a failed cold request can't leave
+      // the flag set and mark later warm requests as cold in telemetry.
+      this.coldPending = false;
+    }
   }
 }

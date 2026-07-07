@@ -158,8 +158,13 @@ function consentForm(login: string, signed: string, error?: string): Response {
         polling = true;
         post('/pairing/status', { s: s, p: p }).then(function (d) {
           polling = false;
-          if (done || myGen !== gen) return;
+          // 'completed' means the server already ran completeAuthorization and
+          // consumed this single-use request, so honor the redirect even if a
+          // newer generation (a fresh "Get a new code") superseded this poll —
+          // otherwise the OAuth redirect the MCP client is waiting for is lost.
+          // Only done (a completion path already took over) suppresses it.
           if (d.status === 'completed') {
+             if (done) return;
              if (!d.redirectTo) { retryLink(d.message || 'Pairing finished but no sign-in link was returned.'); return; }
              done = true;
              statusEl.textContent = 'Paired! Finishing sign-in…';
@@ -168,6 +173,7 @@ function consentForm(login: string, signed: string, error?: string): Response {
              location.assign(d.redirectTo);
              return;
            }
+           if (done || myGen !== gen) return;
            if (d.status === 'expired') { boxEl.innerHTML = ''; retryLink('That code expired.'); return; }
            if (d.status === 'pending') { schedule(myGen); return; }
           retryLink(d.message || 'Pairing failed.');
