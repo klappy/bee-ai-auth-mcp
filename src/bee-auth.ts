@@ -173,6 +173,15 @@ function consentForm(login: string, signed: string, error?: string): Response {
           retryLink(d.message || 'Pairing failed.');
         }).catch(function () { polling = false; if (myGen !== gen) return; schedule(myGen); }); // transient network blip: keep polling inside the expiry window
        }
+       var pasteForm = document.querySelector('form[action="/consent"]');
+       if (pasteForm) pasteForm.addEventListener('submit', function () {
+         // The paste path is taking over this single-use authorization request:
+         // stop QR polling and bump the generation so no in-flight or scheduled
+         // poll can also reach completeAuthorization. Mirrors how a completed QR
+         // disables this form — the two completion paths never run concurrently.
+         done = true; gen++;
+         if (timer) { clearTimeout(timer); timer = null; }
+       });
        start();
      })();
      </script>`,
