@@ -1,0 +1,37 @@
+# 2026-07-05 — bee-ai-auth-mcp: server-side consent QR pairing built (E0021)
+
+DOLCHEO per `klappy://canon/definitions/dolcheo-vocabulary`. Single chartered session (Orient → Plan → Gate → captain's "go" → Execute). Observed server_time `2026-07-06T00:58Z`–`01:04Z` UTC; civil date 2026-07-05 (operator local, per the charter's own anchoring of 00:39Z to 07-05). IDs continue from the observed high-water on `main` (D0037 / E0020). Charter: "Server-Side Bee QR Pairing from the Claude Connect Workflow."
+
+## Decisions
+
+**[D0038] Stateless, sealed, client-carried custody for the ephemeral pairing keypair.** The Worker holds no pairing state: `/pairing/start` mints the x25519 keypair and returns it inside `p`, an AES-256-GCM blob under an HKDF-SHA256 key derived from `GITHUB_CLIENT_SECRET` (already the consent-HMAC anchor — no new secret to steward, no new trust boundary). The consent page posts `p` back on every poll; the secret key is plaintext only inside a single request invocation, at rest nowhere. Alternative rejected: `OAUTH_KV{requestId → sk}` with TTL — the charter's §5 boundary ("ephemeral secret keys … never written outside the encrypted grant") forbids it as written, and the idempotent-poll fact (O below) removes any need for it. Disconfirmer, named: if the pairing service ever binds requestIds to the originating session/IP, client-carried state does not save the design and the feature reverts to planning per the charter's stop conditions.
+
+**[D0039] QR auto-starts on consent-page load, with a tappable `bee.computer/connect#…` link beside it.** Friction-zero per the charter's mission; the link covers the case where the operator is already on the phone and cannot scan their own screen. Cost: one ~5-minute pairing request per consent page view. Expired codes offer a one-tap "Get a new code" restart. Paste path retained directly below (charter §5: never removed). Both flags (F1/F3) were presented at the gate and accepted with the captain's "go".
+
+**[D0040] Borrow verdicts (6B table in the gated plan, `borrow-evaluation-before-implementation`).** `tweetnacl@^1.0.3` Borrow=applied (the CLI's own crypto_box primitive family; pure JS; Workers-safe). `uqr@^0.1.3` Borrow=applied (zero-dep SVG QR built for edge runtimes). Bide=inspected-and-rejected for Workers WebCrypto (X25519 present, xsalsa20-poly1305 absent — *foundational gap*: a NaCl box cannot be opened without the cipher) and for `@noble/curves+ciphers` (*gross overcomplication* relative to a one-dep exact-semantics match; named successor). Tripwires: a disqualifying tweetnacl CVE or Workers shipping xsalsa20 → adopt noble. External QR-image APIs rejected (*improper authority*: leaks the connect URL, and the requestId is the approval capability). Build=minimal: the ~30-line envelope parse (`1 ‖ nonce24 ‖ senderPk32 ‖ box`) that nothing upstream parses. Reversibility: forward=low, backward=low — each substrate sits behind one small module (`src/pairing.ts`).
+
+## Observations
+
+**[O] The poll IS the pairing POST — the service is idempotent on `publicKey`.** Read from the `@beeai/cli@0.7.3` binary (resume flow re-POSTs `existingState.publicKey`) and confirmed by live probe at `2026-07-06T00:49Z`: two identical POSTs from this build container returned `200` with the **same** `requestId` (`3qslz5mwvgk04rybt9b5szi6`), both `pending`, `expiresAt` ≈ +5 min. No separate status endpoint exists. This fact is what makes D0038's fully stateless Worker possible.
+
+**[O] Charter stop-condition #1 cleared: the pairing endpoint accepts server-origin requests.** A plain datacenter-IP `fetch` with no special headers was served normally. Corollary: the operator's original local `bee login --qr` failure (never root-caused; error text lost) is now **presumed environmental**, not endpoint-side — the endpoint is demonstrably healthy from a non-CLI, non-residential origin. If the deployed Worker's POST fails where the container's succeeded, that distinction is the first thing to check.
+
+**[O] Protocol facts re-verified against the binary — zero drift since the prior session.** `@beeai/cli` latest is still `0.7.3`. `PAIRING_PATH = "/apps/pairing/request"`, base `https://auth.beeai-services.com`, body `{ app_id, publicKey }`, prod app_id `ph9fssu1kv1b0hns69fxf7rx`, envelope `version(1)=0x01 ‖ nonce(24) ‖ senderPk(32) ‖ box (≥73B)`, backoff `min(1000·2^(attempt−1), 30000)`, ~5-min expiry with a `now+5min` fallback deadline.
+
+**[O] Deploy skew: prod `/version` = `e9c77f8`, an ancestor of but behind HEAD `56740f3`** (the 2026-06-17 telemetry merge). Not a blocker for this branch, but the E2E run must first confirm `/version` advances past the merge of this feature — otherwise the phone will be validating stale code. Worth checking whether Workers Builds is wired to fire on merges to `main`.
+
+**[O] Evidence for this branch:** `tsc --noEmit` clean; unit suite green — `Test Files 4 passed (4), Tests 30 passed (30)` including 8 new `test/pairing.test.ts` cases (real `nacl.box` envelope round-trip proving CLI wire compatibility, wrong-version/truncation/wrong-key rejects, sealed-state round-trip + tamper + wrong-secret + staleness rejects, pairing POST body shape + outcome mapping). `test/smoke.live.test.ts` self-skips without `SMOKE_BASE_URL`, so the full `npm test` remains network-free.
+
+## Learnings
+
+**[L] Reverse-read the binary before trusting the charter's protocol summary.** The charter carried the request shape faithfully but did not pin the poll mechanism; the binary revealed the idempotent-POST design, which in turn dissolved the hardest open design question (server-side state) before it was ever asked. One `npm pack` + `strings` pass was cheaper than any amount of speculation about a status endpoint.
+
+**[L] A live probe is the cheapest stop-condition test.** One throwaway keypair and two POSTs (nothing to approve, nothing secret emitted, request self-expires) converted "the endpoint might reject server origins" from a plan-killing unknown into a cleared precondition, and produced the environmental-failure diagnosis as a free side effect.
+
+## Constraints honored
+
+**[C]** `borrow-evaluation-before-implementation` — table + reversibility note produced in planning, before the gate; Build=minimal only. `release-validation-gate` — merge blocked behind Bugbot disposition + independent fresh-context validation (pending; see H). Charter §5 — Bee token, ephemeral secret keys, and grant contents never logged/echoed (requestIds and public keys only); paste path retained; GitHub OAuth leg untouched; no push to `main`; PR opened by the operator via the hand-off link, not by the model.
+
+## Handoffs
+
+**[H] To validation (fresh context — same-session review does not count):** review `feat/consent-qr-pairing` against the gated plan and charter §5 — with emphasis on: no secret material in any log/telemetry/error path; the QR path converging on the *same* `completeAuthorization` + `beeGetMe` gate as paste; sealed-state binding to the signed login; envelope-parse bounds. Then the charter-§1 live run with the operator (only the operator can approve in the Bee app): connect → GitHub → consent renders QR → scan/tap → approve → grant holds token → `whoami` returns the operator's Bee identity — **after** confirming deployed `/version` includes this merge (see deploy-skew O). Visual proof of the consent screen lands there; the build container has no browser, so the preflight "visual proof for UI changes" pitfall is carried to the phone run, not skipped.

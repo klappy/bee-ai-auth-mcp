@@ -76,7 +76,7 @@ wrangler secret put GITHUB_CLIENT_SECRET</pre>
         <pre>npm i -g @beeai/cli
 bee login --qr   <span class="c"># approve the scan in your Bee app</span>
 security find-generic-password -s bee-cli -a token:prod -w   <span class="c"># prints your token (macOS); or: cat ~/.bee/token-prod</span></pre>
-        <p>Hold onto that token for the last step. A one-tap in-app QR pairing is a future upgrade (needs a Bee-registered app id, and only matters for a public/multi-tenant relay) — the paste path above is the working flow.</p>
+        <p>Hold onto that token if you take the paste route — but you usually won't need it: the consent screen offers <b>one-tap QR pairing</b>. Scan (or tap the link if you're already on your phone), approve in the Bee app, and the relay captures the token directly into your encrypted grant. Heads-up: the approval presents as the <b>Bee CLI</b> — the relay performs the CLI's pairing handshake server-side under the CLI's registered app id, which is fine for self-hosting; a relay-registered app id remains the gate for a public/multi-tenant relay. The paste path above stays as the fallback.</p>
       </li>
       <li>
         <h3>Set your allow-list</h3>
