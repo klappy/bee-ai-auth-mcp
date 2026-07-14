@@ -1,0 +1,19 @@
+# Drop-in: .github/dependabot.yml
+# Source: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuring-dependabot-version-updates
+# Free on all repos (public + private). Remove the npm block for non-Node repos;
+# swap for "pip" on Python repos. github-actions block applies to EVERY repo with workflows.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

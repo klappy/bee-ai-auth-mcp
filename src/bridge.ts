@@ -42,4 +42,31 @@ export class BeeBridge extends Container<Env> {
     BEE_UPSTREAM: this.env.BEE_UPSTREAM,
     BEE_SNI: this.env.BEE_SNI,
   };
+
+  /** Cold-start signal (telemetry only — shape, not application logic). `onStart`
+   *  fires when the container starts; the first request after a start is served
+   *  "cold". We surface that to the Worker as an `x-bridge-cold` response header
+   *  so telemetry can split the bimodal cold/warm latency (the whole point of the
+   *  baseline). Read+cleared per request; the DO instance loses it on eviction,
+   *  which is exactly a cold start. See docs/telemetry-governance.md. */
+  private coldPending = false;
+
+  override onStart(): void {
+    this.coldPending = true;
+  }
+
+  override async fetch(request: Request): Promise<Response> {
+    try {
+      const res = await super.fetch(request);
+      // onStart fires inside super.fetch on a cold start, so read the flag after.
+      const cold = this.coldPending;
+      const headers = new Headers(res.headers);
+      headers.set("x-bridge-cold", cold ? "1" : "0");
+      return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+    } finally {
+      // Clear even when super.fetch throws, so a failed cold request can't leave
+      // the flag set and mark later warm requests as cold in telemetry.
+      this.coldPending = false;
+    }
+  }
 }

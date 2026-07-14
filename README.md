@@ -17,6 +17,15 @@
 
 A thin Cloudflare Worker: `@cloudflare/workers-oauth-provider` handles the user<->relay OAuth leg; your Bee credential is captured at consent and held in encrypted per-grant props (no shared Worker secret), used read-only against Bee's `/v1/*` API through a bound private-CA Container bridge; `@modelcontextprotocol/sdk` + `agents` expose tools reachable by any MCP client (Claude, Cursor, other agents) on every surface. Ships self-host-first (Tier 1); a hardened hosted posture (Tier 2) is deferred. Built to the security and validation bar of its sibling, `git-repo-auth`.
 
+## Connecting — QR pairing at consent
+
+Adding this relay as a custom connector walks you through GitHub sign-in and then a consent screen. That screen pairs directly with your Bee: it shows a QR (and a tappable link if you're already on your phone) — scan, approve in the Bee app, and the relay receives your token encrypted to a single-use key it minted for that page view, validates it through the bridge, and seals it into your encrypted grant. No CLI install, no keychain spelunking, no copy/paste. The paste box remains right below as the fallback.
+
+Two things worth knowing:
+
+- **The approval presents as the Bee CLI.** The relay performs the CLI's own pairing handshake server-side, borrowing the CLI's registered `app_id` — fine for a personal self-host, and the honest label for what's actually happening. A relay-registered app id is the gate for any public/multi-tenant deployment (rationale and protocol facts in `src/pairing.ts`).
+- **Nothing secret rides in the QR.** The code encodes only `https://bee.computer/connect#<requestId>`; the token comes back NaCl-boxed to an ephemeral key that never exists at rest anywhere — the consent page carries it between polls only as AES-GCM ciphertext.
+
 ## License
 
 MIT. See `LICENSE`.
