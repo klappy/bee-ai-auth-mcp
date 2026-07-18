@@ -122,6 +122,40 @@ describe("postPairing", () => {
     expect((await postPairing("P", respond(500, { nope: true }))).status).toBe("error");
     expect((await postPairing("P", respond(200, { status: "??" }))).status).toBe("error");
   });
+
+  it("accepts completed WITHOUT requestId (falls back to empty string)", async () => {
+    expect(
+      await postPairing("P", respond(200, { ok: true, status: "completed", encryptedToken: "ZZ" }))
+    ).toEqual({ status: "completed", requestId: "", encryptedToken: "ZZ" });
+  });
+
+  it("still maps completed WITH requestId unchanged", async () => {
+    expect(
+      await postPairing("P", respond(200, { ok: true, status: "completed", requestId: "r9", encryptedToken: "ZZ" }))
+    ).toEqual({ status: "completed", requestId: "r9", encryptedToken: "ZZ" });
+  });
+
+  it("redacts token-bearing keys in unexpected-shape diagnostics", async () => {
+    const secret = "S".repeat(52);
+    const out = await postPairing(
+      "P",
+      respond(200, { ok: true, status: "done?", encryptedToken: secret })
+    );
+    expect(out.status).toBe("error");
+    const message = (out as { status: "error"; message: string }).message;
+    expect(message).toContain("unexpected pairing response shape (http 200)");
+    expect(message).toContain("<redacted:52>");
+    expect(message).not.toContain(secret);
+  });
+
+  it("keeps pending and expired mappings unchanged after the diagnostics change", async () => {
+    expect(
+      await postPairing("P", respond(200, { ok: true, status: "pending", requestId: "r1", expiresAt: "2026-07-18T00:00:00.000Z" }))
+    ).toEqual({ status: "pending", requestId: "r1", expiresAt: "2026-07-18T00:00:00.000Z" });
+    expect(await postPairing("P", respond(200, { ok: true, status: "expired", requestId: "r1" }))).toEqual({
+      status: "expired",
+    });
+  });
 });
 
 describe("helpers", () => {
