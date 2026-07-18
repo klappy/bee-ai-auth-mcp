@@ -10,7 +10,7 @@
  *        { app_id, publicKey (base64 x25519) }
  *     -> { ok, status: "pending",   requestId, expiresAt }       (fresh key)
  *     -> { ok, status: "pending",   requestId, expiresAt }       (re-POST = poll)
- *     -> { ok, status: "completed", requestId, encryptedToken }  (after approval)
+ *     -> { ok, status: "completed", encryptedToken [, requestId] } (after approval)
  *     -> { ok, status: "expired",   requestId }                  (~5-min window)
  *
  *   The poll IS the same POST — the service is idempotent on publicKey, so a
@@ -92,6 +92,47 @@ export type PairingOutcome =
   | { status: "expired" }
   | { status: "error"; message: string };
 
+// ---- sanitized shape diagnostics ----
+// When the service answers 200 with a body we don't recognize, we want the
+// *shape* in the error/log so the next failure is self-diagnosing — without
+// ever letting token/secret material through. Keys matching /token|secret|key/i
+// are redacted to "<redacted:N>" (N = value length); everything else is
+// JSON-rendered and truncated. requestIds and public keys are the only
+// pairing material allowed in output (charter §5) — and /key/i redacts the
+// public key anyway, erring on the safe side.
+const SENSITIVE_KEY_RE = /token|secret|key/i;
+const DIAG_VALUE_MAX = 40;
+const DIAG_MESSAGE_MAX = 240;
+
+function truncateStr(s: string, max: number): string {
+  return s.length <= max ? s : s.slice(0, max - 1) + "…";
+}
+
+function renderValue(v: unknown): string {
+  try {
+    return JSON.stringify(v) ?? String(v);
+  } catch {
+    return "<unrenderable>";
+  }
+}
+
+/** Shallow-map a response body into a redaction-safe, truncated description. */
+export function sanitizePairingBody(body: unknown): string {
+  if (body === null || typeof body !== "object" || Array.isArray(body)) {
+    return truncateStr(renderValue(body), DIAG_VALUE_MAX);
+  }
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(body as Record<string, unknown>)) {
+    if (SENSITIVE_KEY_RE.test(k)) {
+      const n = typeof v === "string" ? v.length : renderValue(v).length;
+      parts.push(`${k}=<redacted:${n}>`);
+    } else {
+      parts.push(`${k}=${truncateStr(renderValue(v), DIAG_VALUE_MAX)}`);
+    }
+  }
+  return `{${parts.join(", ")}}`;
+}
+
 export async function postPairing(
   publicKeyB64: string,
   fetcher: typeof fetch = fetch
@@ -123,14 +164,27 @@ export async function postPairing(
       }
       break;
     case "completed":
-      if (typeof requestId === "string" && typeof encryptedToken === "string") {
-        return { status: "completed", requestId, encryptedToken };
+      // Tolerate completed responses without requestId — the sealed pairing
+      // state already carries the authoritative requestId, and the current
+      // service may no longer echo it on completion. encryptedToken alone is
+      // what the completed path actually needs.
+      if (typeof encryptedToken === "string") {
+        return {
+          status: "completed",
+          requestId: typeof requestId === "string" ? requestId : "",
+          encryptedToken,
+        };
       }
       break;
     case "expired":
       return { status: "expired" };
   }
-  return { status: "error", message: "unexpected pairing response shape" };
+  const message = truncateStr(
+    `unexpected pairing response shape (http ${res.status}): ${sanitizePairingBody(data)}`,
+    DIAG_MESSAGE_MAX
+  );
+  console.log(message);
+  return { status: "error", message };
 }
 
 /** The QR/deep-link target. Encodes ONLY the requestId — no secret in the image. */
