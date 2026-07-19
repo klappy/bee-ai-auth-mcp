@@ -11,10 +11,14 @@ relates_to: "odd/ledger/2026-06-15-bridge-deployed-container-env-fix-validation-
 
 # Connecting bee-ai-auth-mcp — How a User Gets Their Bee Token
 
-> This is the connect-flow runbook the consent screen links to. It records the
-> **verified** way to obtain a Bee token today, where that token lives, how to
-> hand it to the relay, and the finding that explains why the laptop-free
-> one-tap flow is not built yet. Validation status is at the bottom — read it
+> This is the connect-flow runbook the consent screen links to. The consent
+> screen itself now offers a relay-native pairing CTA (device-aware: a
+> tap-to-approve deep link on a phone, a QR on desktop, both with a copyable
+> connect URL for manual entry — see the README's "Connecting" section) — no
+> CLI needed for that path. This doc records the **verified** manual/CLI
+> fallback way to obtain a Bee token, where that token lives, how to hand it
+> to the relay by pasting it, and the finding that explains why that fallback
+> was, for a time, the only path. Validation status is at the bottom — read it
 > before treating anything here as "done."
 
 ## The two legs (recap)
@@ -27,10 +31,12 @@ relates_to: "odd/ledger/2026-06-15-bridge-deployed-container-env-fix-validation-
 
 This doc is about the second leg: getting that Bee token in the first place.
 
-## Getting your Bee token (today's verified path)
+## Getting your Bee token (manual/CLI fallback path)
 
-Obtaining a Bee token is **Bee's flow, not ours** — and today it requires the
-Bee CLI, which needs a computer with Node. Steps:
+The consent screen's own pairing CTA (tap-to-approve deep link or QR, per
+device) needs no separate token — approve in the Bee app and the relay
+receives it directly. The steps below are the manual fallback: obtaining a
+Bee token by hand via the Bee CLI, which needs a computer with Node.
 
 1. **Bee iOS app → Developer Mode.** Open the Bee app, go to Settings, and tap
    the app **Version 5 times** to unlock Developer Mode. (Bee's own guide:
@@ -83,12 +89,12 @@ and confirmed against the live endpoint:
 - **Storage:** keychain service `bee-cli`, account `token:prod`; file
   `~/.bee/token-prod` (mode 0600) as fallback.
 
-## The finding: why the laptop-free one-tap flow is not built yet
+## The finding: why the laptop-free one-tap flow wasn't built at first
 
-The dream is for **the relay itself** to be the pairing caller: the consent page
+The dream was for **the relay itself** to be the pairing caller: the consent page
 shows the QR, you approve in the Bee app, the relay polls + decrypts + binds —
 no computer, no CLI. The protocol carries no secret, and the decrypt is pure JS
-(Worker-friendly), so this is genuinely buildable **except for one gate**:
+(Worker-friendly), so this was genuinely buildable **except for one gate**:
 
 - **`app_id` must be a Bee-registered app.** Proven by probe (2026-06-15):
   - made-up `app_id` → `{"ok":false,"error":"app_not_found"}` (HTTP 404)
@@ -111,6 +117,13 @@ So a relay that *reimplements* the pairing cannot invent its own `app_id`. **Sco
   data-plane container rejected in D0022 (a transient auth handshake, not an
   always-on MCP).
 
+**Shipped:** the relay-native flow now built on the consent screen took the
+**Demo-only** path above — it reuses the CLI's own `app_id` (`src/pairing.ts`),
+which for a personal self-host is an accepted trade-off; the Bee app names the
+approval "Bee CLI" as a result (called out on the consent screen and in the
+README). The **Clean** (relay-registered `app_id`) path remains the gate for
+any public/multi-tenant deployment.
+
 ## Validation status (honest)
 
 - **Verified (2026-06-16):** the token-acquisition flow above (source-read + live
@@ -122,4 +135,4 @@ So a relay that *reimplements* the pairing cannot invent its own `app_id`. **Sco
   `app-api-developer.ce.bee.amazon.dev` (from `bee status`).
 - **Remaining (formal DoD):** a three-pass re-run, a demonstrated second-login
   denial, and a no-token-in-logs audit.
-- **Not built:** the *laptop-free* acquisition upgrade — relay-native (no-CLI) variant is gated on a Bee `app_id` (public/multi-tenant only, not a Phase-2 dependency); CLI-broker variant unevaluated. The CLI-assisted paste path (above) is the working acquisition path and needs no `app_id`.
+- **Built:** the *laptop-free* relay-native pairing CTA on the consent screen (device-aware: tap-to-approve deep link on mobile, QR on desktop, both with a copyable connect URL) — it reuses the CLI's `app_id` (the Demo-only path above), which is why the Bee app names the approval "Bee CLI". A relay-registered `app_id` (the Clean path) remains unbuilt and is gated for any public/multi-tenant deployment. CLI-broker variant unevaluated. The CLI-assisted paste path (above) remains the manual fallback and needs no `app_id`.
