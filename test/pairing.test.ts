@@ -135,6 +135,20 @@ describe("postPairing", () => {
     ).toEqual({ status: "completed", requestId: "r9", encryptedToken: "ZZ" });
   });
 
+  it("accepts completed with a nested result.encryptedToken", async () => {
+    expect(
+      await postPairing(
+        "P",
+        respond(200, {
+          ok: true,
+          status: "completed",
+          requestId: "req_nested_1",
+          result: { uid: 42, encryptedToken: "NESTED_SYNTHETIC_TOKEN" },
+        })
+      )
+    ).toEqual({ status: "completed", requestId: "req_nested_1", encryptedToken: "NESTED_SYNTHETIC_TOKEN" });
+  });
+
   it("redacts token-bearing keys in unexpected-shape diagnostics", async () => {
     const secret = "S".repeat(52);
     const out = await postPairing(

@@ -156,7 +156,13 @@ export async function postPairing(
   if (!res.ok) return { status: "error", message: `pairing service returned ${res.status}` };
   const requestId = data["requestId"];
   const expiresAt = data["expiresAt"];
-  const encryptedToken = data["encryptedToken"];
+  const result = data["result"];
+  const nestedEncryptedToken =
+    result !== null && typeof result === "object" && !Array.isArray(result)
+      ? (result as Record<string, unknown>)["encryptedToken"]
+      : undefined;
+  const encryptedToken =
+    typeof data["encryptedToken"] === "string" ? data["encryptedToken"] : nestedEncryptedToken;
   switch (data["status"]) {
     case "pending":
       if (typeof requestId === "string" && typeof expiresAt === "string") {
@@ -167,8 +173,9 @@ export async function postPairing(
       // Tolerate completed responses without requestId — the sealed pairing
       // state already carries the authoritative requestId, and the current
       // service may no longer echo it on completion. encryptedToken alone is
-      // what the completed path actually needs.
-      if (typeof encryptedToken === "string") {
+      // what the completed path actually needs. Also accept it nested under
+      // result.encryptedToken — a shape the service has been observed to send.
+      if (typeof encryptedToken === "string" && encryptedToken.length > 0) {
         return {
           status: "completed",
           requestId: typeof requestId === "string" ? requestId : "",
