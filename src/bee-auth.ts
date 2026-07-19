@@ -159,7 +159,14 @@ export function consentForm(login: string, signed: string, isMobile: boolean, er
          return fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
            .then(function (r) { return r.json(); });
        }
+       function clearPairingActions() {
+         boxEl.innerHTML = '';
+         if (linkEl) linkEl.innerHTML = '';
+         if (approveBtn) { approveBtn.removeAttribute('href'); approveBtn.style.display = 'none'; }
+         if (connectUrlText && connectUrlPane) { connectUrlText.value = ''; connectUrlPane.style.display = 'none'; }
+       }
        function retryLink(msg) {
+         clearPairingActions();
          statusEl.innerHTML = msg + ' <a href="#" id="qr-retry">Get a new code</a> — or paste your token below.';
          var r = document.getElementById('qr-retry');
          if (r) r.addEventListener('click', function (e) { e.preventDefault(); start(); });
@@ -170,7 +177,7 @@ export function consentForm(login: string, signed: string, isMobile: boolean, er
         // resolves into a stale run and is ignored — otherwise a slow response
         // could overwrite p/qrSvg/connectUrl for a keypair the page no longer shows.
         var myGen = ++gen;
-        attempt = 0; done = false; polling = false; boxEl.innerHTML = ''; if (linkEl) linkEl.innerHTML = '';
+        attempt = 0; done = false; polling = false; clearPairingActions();
          statusEl.textContent = 'Getting a pairing code…';
          post('/pairing/start', { s: s }).then(function (d) {
            if (myGen !== gen) return;
@@ -189,7 +196,7 @@ export function consentForm(login: string, signed: string, isMobile: boolean, er
        }
        function schedule(myGen) {
          if (done || myGen !== gen) return;
-         if (Date.now() >= expiresAt) { boxEl.innerHTML = ''; retryLink('That code expired.'); return; }
+         if (Date.now() >= expiresAt) { retryLink('That code expired.'); return; }
         attempt++;
         // Steady 3s early, then doubling, capped at the CLI's 30s MAX_BACKOFF.
         var delay = Math.min(3000 * Math.pow(2, Math.max(0, attempt - 4)), 30000);
@@ -219,7 +226,7 @@ export function consentForm(login: string, signed: string, isMobile: boolean, er
              return;
            }
            if (done || myGen !== gen) return;
-           if (d.status === 'expired') { boxEl.innerHTML = ''; retryLink('That code expired.'); return; }
+           if (d.status === 'expired') { retryLink('That code expired.'); return; }
            if (d.status === 'pending') { schedule(myGen); return; }
           retryLink(d.message || 'Pairing failed.');
         }).catch(function () { polling = false; if (myGen !== gen) return; schedule(myGen); }); // transient network blip: keep polling inside the expiry window
