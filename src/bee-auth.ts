@@ -52,7 +52,7 @@ const BEE_TOKEN_HELP = "https://docs.bee.computer/docs/developer-mode";
 
 function html(body: string, status = 200): Response {
   return new Response(
-    `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>bee-ai-auth-mcp</title><style>body{font-family:ui-monospace,monospace;background:#FAFAF6;color:#16201B;max-width:560px;margin:64px auto;padding:0 20px;line-height:1.6}a{color:#0E5A4A}input[type=password]{width:100%;box-sizing:border-box;padding:10px;font:inherit;border:1px solid #16201B;border-radius:6px;margin:8px 0}button{padding:10px 18px;font:inherit;background:#0E5A4A;color:#FAFAF6;border:0;border-radius:6px;cursor:pointer}.err{color:#9B2226}#qr-box{margin:12px 0}#qr-box svg{width:220px;height:auto;display:block;border:1px solid #d8d8d0;border-radius:8px}#or{display:flex;align-items:center;gap:10px;color:#5b6660;margin:20px 0}#or:before,#or:after{content:"";flex:1;border-top:1px solid #d8d8d0}details{font-size:0.9em;margin:12px 0}</style></head><body>${body}</body></html>`,
+    `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>bee-ai-auth-mcp</title><style>body{font-family:ui-monospace,monospace;background:#FAFAF6;color:#16201B;max-width:560px;margin:64px auto;padding:0 20px;line-height:1.6}a{color:#0E5A4A}input[type=password],input[type=text]{width:100%;box-sizing:border-box;padding:10px;font:inherit;border:1px solid #16201B;border-radius:6px;margin:8px 0}button{padding:10px 18px;font:inherit;background:#0E5A4A;color:#FAFAF6;border:0;border-radius:6px;cursor:pointer}.err{color:#9B2226}#qr-box{margin:12px 0}#qr-box svg{width:220px;height:auto;display:block;border:1px solid #d8d8d0;border-radius:8px}#or{display:flex;align-items:center;gap:10px;color:#5b6660;margin:20px 0}#or:before,#or:after{content:"";flex:1;border-top:1px solid #d8d8d0}details{font-size:0.9em;margin:12px 0}.btn-hero{display:block;text-align:center;padding:16px 18px;font:inherit;font-weight:bold;font-size:1.05em;background:#0E5A4A;color:#FAFAF6;border-radius:8px;text-decoration:none;margin:8px 0}#connect-url-pane{margin:16px 0}#connect-url-pane div{display:flex;gap:8px}#connect-url-pane input{margin:4px 0}</style></head><body>${body}</body></html>`,
     { status, headers: { "content-type": "text/html; charset=utf-8" } }
   );
 }
@@ -76,23 +76,49 @@ function str(v: unknown): string {
   return typeof v === "string" ? v : "";
 }
 
+/** Mobile/touch UA heuristic: on-device Bee app deep-link becomes viable, so
+ *  the approve CTA outranks the QR (a phone can't usefully scan its own screen). */
+export function isMobileUA(request: Request): boolean {
+  if (request.headers.get("sec-ch-ua-mobile") === "?1") return true;
+  const ua = request.headers.get("user-agent") ?? "";
+  return /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
+}
+
 /** The Bee-token consent screen: QR pairing headline, paste fallback.
- *  `signed` round-trips the gate-verified identity through both paths. */
-function consentForm(login: string, signed: string, error?: string): Response {
+ *  `signed` round-trips the gate-verified identity through both paths.
+ *  `isMobile` reorders the pairing CTAs: on touch devices the "Open in the
+ *  Bee app" deep-link is the primary action (a phone can't scan its own QR
+ *  code); on desktop the QR stays primary since there's no local Bee app. */
+export function consentForm(login: string, signed: string, isMobile: boolean, error?: string): Response {
+  const connectUrlPane = `<div id="connect-url-pane" style="display:none">
+       <p style="font-size:0.85em;margin:12px 0 4px">Or enter this in the Bee app's <b>Enter Bee ID</b> field:</p>
+       <div><input id="connect-url-text" type="text" readonly><button id="copy-connect-url" type="button">Copy</button></div>
+     </div>`;
+  const ctaPane = isMobile
+    ? `<div id="cta-pane">
+         <a id="approve-btn" class="btn-hero" href="#" style="display:none" target="_blank" rel="noopener">Open in the Bee app</a>
+         <p id="qr-status">Getting a pairing code…</p>
+         <details id="qr-details">
+           <summary>Or scan a QR code</summary>
+           <div id="qr-box"></div>
+         </details>
+       </div>`
+    : `<div id="cta-pane">
+         <p id="qr-status">Getting a pairing code…</p>
+         <div id="qr-box"></div>
+         <p id="qr-link" style="font-size:0.9em"></p>
+       </div>`;
   return html(
     `<h2>Connect your Bee</h2>
      <p>Signed in as <b>${login}</b>. Authorize this relay to read your Bee on your behalf.
         Your Bee token is stored only inside your own encrypted grant —
         never shown to the AI client, never logged.</p>
      ${error ? `<p class="err">${error}</p>` : ""}
-     <div id="qr-pane">
-       <p id="qr-status">Getting a pairing code…</p>
-       <div id="qr-box"></div>
-       <p id="qr-link" style="font-size:0.9em"></p>
-       <p style="font-size:0.8em;color:#5b6660">Heads-up: the Bee app shows this approval as the
-          <b>Bee CLI</b> — the relay borrows the CLI's app registration (fine for self-hosting;
-          details in the <a href="/setup">setup guide</a>).</p>
-     </div>
+     ${ctaPane}
+     ${connectUrlPane}
+     <p style="font-size:0.8em;color:#5b6660">Heads-up: the Bee app shows this approval as the
+        <b>Bee CLI</b> — the relay borrows the CLI's app registration (fine for self-hosting;
+        details in the <a href="/setup">setup guide</a>).</p>
      <div id="or">or paste a token</div>
      <form method="POST" action="/consent" autocomplete="off">
        <input type="hidden" name="s" value="${signed}">
@@ -109,16 +135,38 @@ function consentForm(login: string, signed: string, error?: string): Response {
      <p style="font-size:0.85em">Full walkthrough: <a href="/setup">setup guide</a>. To revoke: disconnect here to delete this copy, then re-pair or rotate in the Bee app.</p>
      <script>
      (function () {
+       var isMobile = ${isMobile ? "true" : "false"};
        var s = document.querySelector('input[name="s"]').value;
        var statusEl = document.getElementById('qr-status');
        var boxEl = document.getElementById('qr-box');
        var linkEl = document.getElementById('qr-link');
+       var approveBtn = document.getElementById('approve-btn');
+       var connectUrlPane = document.getElementById('connect-url-pane');
+       var connectUrlText = document.getElementById('connect-url-text');
+       var copyBtn = document.getElementById('copy-connect-url');
+       if (copyBtn && connectUrlText) copyBtn.addEventListener('click', function () {
+         connectUrlText.focus(); connectUrlText.select();
+         function done() { copyBtn.textContent = 'Copied!'; setTimeout(function () { copyBtn.textContent = 'Copy'; }, 1500); }
+         if (navigator.clipboard && navigator.clipboard.writeText) {
+           navigator.clipboard.writeText(connectUrlText.value).then(done, function () { try { document.execCommand('copy'); } catch (e) {} done(); });
+         } else {
+           try { document.execCommand('copy'); } catch (e) {}
+           done();
+         }
+       });
       var p = null, expiresAt = 0, attempt = 0, done = false, timer = null, polling = false, gen = 0;
       function post(path, body) {
          return fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
            .then(function (r) { return r.json(); });
        }
+       function clearPairingActions() {
+         boxEl.innerHTML = '';
+         if (linkEl) linkEl.innerHTML = '';
+         if (approveBtn) { approveBtn.removeAttribute('href'); approveBtn.style.display = 'none'; }
+         if (connectUrlText && connectUrlPane) { connectUrlText.value = ''; connectUrlPane.style.display = 'none'; }
+       }
        function retryLink(msg) {
+         clearPairingActions();
          statusEl.innerHTML = msg + ' <a href="#" id="qr-retry">Get a new code</a> — or paste your token below.';
          var r = document.getElementById('qr-retry');
          if (r) r.addEventListener('click', function (e) { e.preventDefault(); start(); });
@@ -129,7 +177,7 @@ function consentForm(login: string, signed: string, error?: string): Response {
         // resolves into a stale run and is ignored — otherwise a slow response
         // could overwrite p/qrSvg/connectUrl for a keypair the page no longer shows.
         var myGen = ++gen;
-        attempt = 0; done = false; polling = false; boxEl.innerHTML = ''; linkEl.innerHTML = '';
+        attempt = 0; done = false; polling = false; clearPairingActions();
          statusEl.textContent = 'Getting a pairing code…';
          post('/pairing/start', { s: s }).then(function (d) {
            if (myGen !== gen) return;
@@ -137,14 +185,18 @@ function consentForm(login: string, signed: string, error?: string): Response {
            p = d.p;
            expiresAt = Date.parse(d.expiresAt) || (Date.now() + 5 * 60 * 1000);
            boxEl.innerHTML = d.qrSvg;
-           linkEl.innerHTML = 'On this phone already? <a href="' + d.connectUrl + '" target="_blank" rel="noopener">Open in the Bee app</a>, approve, then come back to this tab.';
-           statusEl.textContent = 'Scan with your phone camera and approve in the Bee app — this page finishes by itself.';
+           if (linkEl) linkEl.innerHTML = 'On this phone already? <a href="' + d.connectUrl + '" target="_blank" rel="noopener">Open in the Bee app</a>, approve, then come back to this tab.';
+           if (approveBtn) { approveBtn.href = d.connectUrl; approveBtn.style.display = ''; }
+           if (connectUrlText && connectUrlPane) { connectUrlText.value = d.connectUrl; connectUrlPane.style.display = ''; }
+           statusEl.textContent = isMobile
+             ? 'Tap "Open in the Bee app" above to approve — this page finishes by itself.'
+             : 'Scan with your phone camera and approve in the Bee app — this page finishes by itself.';
            schedule(myGen);
          }).catch(function () { if (myGen !== gen) return; retryLink('Could not reach the relay.'); });
        }
        function schedule(myGen) {
          if (done || myGen !== gen) return;
-         if (Date.now() >= expiresAt) { boxEl.innerHTML = ''; retryLink('That code expired.'); return; }
+         if (Date.now() >= expiresAt) { retryLink('That code expired.'); return; }
         attempt++;
         // Steady 3s early, then doubling, capped at the CLI's 30s MAX_BACKOFF.
         var delay = Math.min(3000 * Math.pow(2, Math.max(0, attempt - 4)), 30000);
@@ -174,7 +226,7 @@ function consentForm(login: string, signed: string, error?: string): Response {
              return;
            }
            if (done || myGen !== gen) return;
-           if (d.status === 'expired') { boxEl.innerHTML = ''; retryLink('That code expired.'); return; }
+           if (d.status === 'expired') { retryLink('That code expired.'); return; }
            if (d.status === 'pending') { schedule(myGen); return; }
           retryLink(d.message || 'Pairing failed.');
         }).catch(function () { polling = false; if (myGen !== gen) return; schedule(myGen); }); // transient network blip: keep polling inside the expiry window
@@ -289,7 +341,7 @@ export const BeeAuthHandler = {
         { req: oauthReqInfo, login: user.login } satisfies ConsentState,
         env.GITHUB_CLIENT_SECRET
       );
-      return consentForm(user.login, signed);
+      return consentForm(user.login, signed, isMobileUA(request));
     }
 
     // ---- Bee-token consent (capture into encrypted props) ----
@@ -309,7 +361,7 @@ export const BeeAuthHandler = {
       }
 
       if (!beeToken) {
-        return consentForm(cs.login, signed, "Please paste your Bee API token.");
+        return consentForm(cs.login, signed, isMobileUA(request), "Please paste your Bee API token.");
       }
 
       // Validate the token before binding it — a bad token must not become a
@@ -318,7 +370,7 @@ export const BeeAuthHandler = {
       const stub = getContainer(env.BEE_BRIDGE); // shared singleton; never per-user (E0014)
       const check = await beeGetMe(beeToken, stub);
       if (!check.ok) {
-        return consentForm(cs.login, signed, `Bee did not accept that: ${check.message}`);
+        return consentForm(cs.login, signed, isMobileUA(request), `Bee did not accept that: ${check.message}`);
       }
 
       // Bind identity + Bee token into the user's encrypted grant props.
