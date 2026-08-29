@@ -67,7 +67,8 @@ cd bee-ai-auth-mcp &amp;&amp; npm install</pre>
         </dl>
         <p>Register, copy the <strong>Client ID</strong>, and generate a <strong>Client secret</strong>. Store both as Worker secrets:</p>
         <pre>wrangler secret put GITHUB_CLIENT_ID
-wrangler secret put GITHUB_CLIENT_SECRET</pre>
+wrangler secret put GITHUB_CLIENT_SECRET
+wrangler secret put CONSENT_SIGNING_SECRET   <span class="c"># any long random string — signs the consent round-trip</span></pre>
         <div class="callout info"><p class="h">OAuth App, not GitHub App</p><p>GitHub offers two things under Developer settings. Pick <em>OAuth Apps</em> — bee only reads your login, so it doesn't need a GitHub App's installations, permissions, or webhooks.</p></div>
       </li>
       <li>
@@ -80,7 +81,7 @@ security find-generic-password -s bee-cli -a token:prod -w   <span class="c"># p
       </li>
       <li>
         <h3>Set your allow-list</h3>
-        <p>In <code>wrangler.jsonc</code> set <code>ALLOWED_GITHUB_LOGIN</code> to your GitHub username — the instance denies every login until you do. Bee's API host (<code>BEE_UPSTREAM</code>/<code>BEE_SNI</code>), the <code>BEE_BRIDGE</code> Container, and Bee's CA roots (<code>bridge/bee-ca.pem</code>) are already committed, so there's nothing else to fill in.</p>
+        <p>In <code>wrangler.jsonc</code> set <code>ALLOWED_GITHUB_LOGIN</code> to your GitHub username — the instance denies every login until you do. (Email sign-in for people without GitHub is the optional Access door below: <code>ALLOWED_EMAILS</code> lives beside this list, never replacing it.) Bee's API host (<code>BEE_UPSTREAM</code>/<code>BEE_SNI</code>), the <code>BEE_BRIDGE</code> Container, and Bee's CA roots (<code>bridge/bee-ca.pem</code>) are already committed, so there's nothing else to fill in.</p>
         <div class="callout"><p class="h">Keep config in the file, not the dashboard</p><p>These are config <em>vars</em>, not secrets — a dashboard value gets reset to the file's value on every deploy. Set them in <code>wrangler.jsonc</code> so they stick. (Secrets, by contrast, persist across deploys.)</p></div>
       </li>
       <li>
@@ -91,6 +92,34 @@ security find-generic-password -s bee-cli -a token:prod -w   <span class="c"># p
       <li>
         <h3>Connect, paste, and check</h3>
         <p>Add your worker URL as a custom connector in Claude, approve the GitHub login, then <strong>paste your Bee token at the consent screen</strong>. Run <code>whoami</code> — it returns your Bee identity through the bridge. The Phase-2 read surface (<code>bee_docs</code> + <code>bee_read</code>, read-only) is also available.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="prose">
+    <h2>Optional: the email door (Cloudflare Access)</h2>
+    <p>Family without GitHub can sign in with an <b>email one-time PIN</b> — Cloudflare Access sits in front of the browser pages, proves the email, and the relay validates the Access JWT server-side (never a bare header). GitHub login keeps working beside it; leave all three vars empty and this door simply stays off.</p>
+    <ol class="steps">
+      <li>
+        <h3>Create the Access application</h3>
+        <p>Zero Trust dashboard → <strong>Access → Applications → Add an application → Self-hosted</strong>, on your worker's hostname. Scope it to the <em>browser paths only</em> — add path rules for:</p>
+        <pre>/authorize
+/consent
+/pairing/*
+/setup</pre>
+        <div class="callout warn"><p class="h">Never put the MCP endpoints behind Access</p><p><code>/register</code>, <code>/token</code>, and <code>/mcp</code> are non-browser endpoints your MCP client calls directly. An Access interstitial on any of them breaks every client connection — for everyone, both doors.</p></div>
+      </li>
+      <li>
+        <h3>Add the login methods</h3>
+        <p>Zero Trust → <strong>Settings → Authentication → Login methods</strong>: add <strong>One-time PIN</strong> (the email door), and optionally <strong>GitHub</strong> as a federated IdP so devs see a familiar "Continue with GitHub" button on the same Access page.</p>
+      </li>
+      <li>
+        <h3>Write the Access policy</h3>
+        <p>On the application, add an <strong>Allow</strong> policy with an <em>Emails</em> include rule listing exactly the addresses you'll allow. (The relay re-checks its own list too — the policy and <code>ALLOWED_EMAILS</code> should match.)</p>
+      </li>
+      <li>
+        <h3>Point the relay at your team</h3>
+        <p>In <code>wrangler.jsonc</code>, set <code>ACCESS_TEAM_DOMAIN</code> (e.g. <code>myteam.cloudflareaccess.com</code>), <code>ACCESS_AUD</code> (the application's <strong>AUD tag</strong>, on the app's overview page), and <code>ALLOWED_EMAILS</code> (comma-separated). Push to deploy. The relay verifies each <code>Cf-Access-Jwt-Assertion</code> against <code>https://&lt;team&gt;/cdn-cgi/access/certs</code> with issuer and AUD pinned; a request with no valid assertion falls through to the GitHub login unchanged.</p>
       </li>
     </ol>
   </section>

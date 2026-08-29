@@ -24,6 +24,16 @@
     // Comma-separated GitHub login(s) allowed to use this self-host instance.
     // REQUIRED — the instance denies all logins until this is set.
     "ALLOWED_GITHUB_LOGIN": "klappy,tatacurly",
+    // ---- Cloudflare Access door (email identity BESIDE GitHub OAuth) ----
+    // All three empty = door OFF; /authorize behaves exactly as before.
+    // To enable: set the Zero Trust team domain (e.g. myteam.cloudflareaccess.com),
+    // the Access application's AUD tag, and the email allow-list — then scope the
+    // Access app to the BROWSER paths only (/authorize, /consent, /pairing/*,
+    // /setup). /register, /token, /mcp must NEVER sit behind Access: they are
+    // non-browser MCP-client endpoints. Full steps: /setup (public/setup.html).
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": "",
+    "ALLOWED_EMAILS": "",
     // Bee's direct-API endpoint, read by BeeBridge (src/bridge.ts) and passed to
     // the container as caddy's {$BEE_UPSTREAM}/{$BEE_SNI}. Not a credential — the
     // Bee API still requires a per-user bearer — and the same for every self-host
@@ -64,7 +74,9 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BeeBridge"] }]
   // Secrets (set via `wrangler secret put`, never committed, never in chat):
   //   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET  (a GitHub *OAuth App* — identity only, not a GitHub App;
-  //                                            CLIENT_SECRET also HMAC-signs the consent round-trip)
+  //                                            CLIENT_SECRET is single-use again: OAuth code exchange only)
+  //   CONSENT_SIGNING_SECRET                  (REQUIRED — dedicated key for the consent-state HMAC and the
+  //                                            sealed pairing state; hard switch, in-flight consents restart)
   // NOTE: there is NO BEE_API_TOKEN secret (v0.3+). Each user's Bee bearer is
   // captured at the consent step and held only in their encrypted grant props
   // (per-grant custody; ledger E0012). The relay reaches Bee only through the

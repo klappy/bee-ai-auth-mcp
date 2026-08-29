@@ -29,6 +29,7 @@
 import type { AuthRequest } from "@cloudflare/workers-oauth-provider";
 import { getContainer } from "@cloudflare/containers";
 import { renderSVG } from "uqr";
+import { verifyAccessJwt } from "./access";
 import { encodeState, decodeState, signConsent, verifyConsent } from "./state";
 import { beeGetMe } from "./bee";
 import {
@@ -256,6 +257,23 @@ function isAllowed(login: string, env: Env): boolean {
   return list.includes(login.toLowerCase());
 }
 
+/** Comma-separated email allow-list for the Cloudflare Access door; lives
+ *  beside isAllowed, never replacing it. Denies by default until configured. */
+export function isAllowedEmail(email: string, env: Env): boolean {
+  const list = (env.ALLOWED_EMAILS ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return list.includes(email.toLowerCase());
+}
+
+/** Defense-in-depth re-check covering BOTH identity namespaces: emails contain
+ *  `@` (Access door), GitHub logins cannot (GitHub door) — disjoint by
+ *  construction, so one signed `login` field routes to exactly one list. */
+function isAllowedIdentity(login: string, env: Env): boolean {
+  return login.includes("@") ? isAllowedEmail(login, env) : isAllowed(login, env);
+}
+
 interface ConsentState {
   req: AuthRequest;
   login: string;
@@ -288,6 +306,27 @@ export const BeeAuthHandler = {
       if (!(await env.OAUTH_PROVIDER.lookupClient(oauthReqInfo.clientId))) {
         return html(`<h2>Unknown client</h2><p>Register via <code>/register</code> first.</p>`, 400);
       }
+      // ---- Cloudflare Access fast path (email door; ticket bee-relay-cf-access) ----
+      // A validated Access JWT skips the GitHub leg entirely: email becomes the
+      // identity, straight to the consent form. A VALID identity that is
+      // off-list is denied loudly here — before any consent screen renders.
+      // An absent/invalid assertion (door unconfigured, bad signature, wrong
+      // AUD, expiry) falls through to the GitHub redirect unchanged.
+      const access = await verifyAccessJwt(request, env);
+      if (access) {
+        if (!isAllowedEmail(access.email, env)) {
+          return html(
+            `<h2>Not authorized</h2><p>Signed in as <b>${access.email}</b>, but this self-host instance only allows its configured operator(s). Set <code>ALLOWED_EMAILS</code> and retry.</p>`,
+            403
+          );
+        }
+        const signed = await signConsent(
+          { req: oauthReqInfo, login: access.email } satisfies ConsentState,
+          env.CONSENT_SIGNING_SECRET
+        );
+        return consentForm(access.email, signed, isMobileUA(request));
+      }
+
       const gh = new URL("https://github.com/login/oauth/authorize");
       gh.searchParams.set("client_id", env.GITHUB_CLIENT_ID);
       gh.searchParams.set("redirect_uri", `${url.origin}/callback`);
@@ -339,7 +378,7 @@ export const BeeAuthHandler = {
       // the GitHub token is now discarded. No Bee token exists yet.
       const signed = await signConsent(
         { req: oauthReqInfo, login: user.login } satisfies ConsentState,
-        env.GITHUB_CLIENT_SECRET
+        env.CONSENT_SIGNING_SECRET
       );
       return consentForm(user.login, signed, isMobileUA(request));
     }
@@ -350,13 +389,14 @@ export const BeeAuthHandler = {
       const signed = String(form.get("s") ?? "");
       const beeToken = String(form.get("bee_token") ?? "").trim();
 
-      const cs = await verifyConsent<ConsentState>(signed, env.GITHUB_CLIENT_SECRET);
+      const cs = await verifyConsent<ConsentState>(signed, env.CONSENT_SIGNING_SECRET);
       if (!cs || !cs.login || !cs.req) {
         return html(`<h2>Consent state invalid or tampered.</h2><p>Restart the connection from your client.</p>`, 400);
       }
 
-      // Defense in depth: re-check the allow-list against the signed login.
-      if (!isAllowed(cs.login, env)) {
+      // Defense in depth: re-check the allow-list against the signed login —
+      // both namespaces (GitHub login or Access email; disjoint by `@`).
+      if (!isAllowedIdentity(cs.login, env)) {
         return html(`<h2>Not authorized</h2><p><b>${cs.login}</b> is not on this instance's allow-list.</p>`, 403);
       }
 
@@ -391,11 +431,11 @@ export const BeeAuthHandler = {
     // holds no pairing state and the browser holds only ciphertext.
     if (url.pathname === "/pairing/start" && request.method === "POST") {
       const body = await readJson(request);
-      const cs = await verifyConsent<ConsentState>(str(body?.["s"]), env.GITHUB_CLIENT_SECRET);
+      const cs = await verifyConsent<ConsentState>(str(body?.["s"]), env.CONSENT_SIGNING_SECRET);
       if (!cs || !cs.login || !cs.req) {
         return json({ status: "error", message: "Consent state invalid — restart the connection from your client." }, 400);
       }
-      if (!isAllowed(cs.login, env)) {
+      if (!isAllowedIdentity(cs.login, env)) {
         return json({ status: "error", message: "Not authorized." }, 403);
       }
 
@@ -417,7 +457,7 @@ export const BeeAuthHandler = {
           clientId: cs.req.clientId,
           iat: Date.now(),
         },
-        env.GITHUB_CLIENT_SECRET
+        env.CONSENT_SIGNING_SECRET
       );
       const connectUrl = buildConnectUrl(outcome.requestId);
       return json({
@@ -433,14 +473,14 @@ export const BeeAuthHandler = {
     // ---- QR pairing: poll (idempotent re-POST of the same publicKey) ----
     if (url.pathname === "/pairing/status" && request.method === "POST") {
       const body = await readJson(request);
-      const cs = await verifyConsent<ConsentState>(str(body?.["s"]), env.GITHUB_CLIENT_SECRET);
+      const cs = await verifyConsent<ConsentState>(str(body?.["s"]), env.CONSENT_SIGNING_SECRET);
       if (!cs || !cs.login || !cs.req) {
         return json({ status: "error", message: "Consent state invalid — restart the connection from your client." }, 400);
       }
-      if (!isAllowed(cs.login, env)) {
+      if (!isAllowedIdentity(cs.login, env)) {
         return json({ status: "error", message: "Not authorized." }, 403);
       }
-      const st = await unsealPairingState(str(body?.["p"]), env.GITHUB_CLIENT_SECRET);
+      const st = await unsealPairingState(str(body?.["p"]), env.CONSENT_SIGNING_SECRET);
       if (!st || st.login !== cs.login || st.clientId !== cs.req.clientId) {
         return json({ status: "error", message: "Pairing state invalid or stale — get a new code." }, 400);
       }

@@ -5,15 +5,36 @@ export interface Env {
   // ---- user<->relay leg: GitHub OAuth as the identity gate ----
   /** GitHub OAuth App client credentials (identity only — NOT a GitHub App, no minting). */
   GITHUB_CLIENT_ID: string;
-  /** Also doubles as the HMAC key that signs the consent round-trip state
-   *  (see src/state.ts signConsent/verifyConsent). It is already a server-only
-   *  secret; reusing it avoids introducing a second secret to steward. */
+  /** Used ONLY for the GitHub OAuth code exchange (single-use again as of the
+   *  dual-door change — consent-state signing and pairing-state sealing moved
+   *  to CONSENT_SIGNING_SECRET; see ticket bee-relay-cf-access). */
   GITHUB_CLIENT_SECRET: string;
+  /** Dedicated secret that HMAC-signs the consent round-trip state
+   *  (src/state.ts signConsent/verifyConsent) and keys the sealed pairing
+   *  state (src/pairing.ts, AES-GCM under HKDF). Introduced by the dual-door
+   *  change to end GITHUB_CLIENT_SECRET's dual use. Hard switch: consent and
+   *  pairing states live minutes; any in-flight round-trip at deploy moment
+   *  restarts. Set via `wrangler secret put CONSENT_SIGNING_SECRET`. */
+  CONSENT_SIGNING_SECRET: string;
   /** Comma-separated GitHub login(s) allowed to use this self-host instance.
-   *  Tenancy is governed SOLELY by this allow-list. Phase 1 keeps it at exactly
-   *  one login; the instance denies all others. Widening it is the deferred,
-   *  operator-owned one-way door (PRD v0.3 / ledger E0012). */
+   *  Tenancy is governed by this allow-list together with ALLOWED_EMAILS —
+   *  two doors, two namespaces (PRD v0.3 / ledger E0012; ticket
+   *  bee-relay-cf-access 2026-08-28 BOTH-doors ruling). */
   ALLOWED_GITHUB_LOGIN?: string;
+
+  // ---- Cloudflare Access door (email identity beside GitHub OAuth) ----
+  /** Zero Trust team domain, e.g. `myteam.cloudflareaccess.com`. Together with
+   *  ACCESS_AUD this turns the Access door ON; unset/empty = door off, GitHub
+   *  path unchanged. Certs are fetched from
+   *  `https://<team>/cdn-cgi/access/certs`; issuer is pinned to `https://<team>`. */
+  ACCESS_TEAM_DOMAIN?: string;
+  /** The Access application's AUD tag (Zero Trust → Access → Applications).
+   *  Pinned as the JWT audience — a token minted for another app is refused. */
+  ACCESS_AUD?: string;
+  /** Comma-separated email(s) allowed through the Access door. Lives BESIDE
+   *  ALLOWED_GITHUB_LOGIN, never replacing it. Emails contain `@` and GitHub
+   *  logins cannot, so the two namespaces are disjoint by construction. */
+  ALLOWED_EMAILS?: string;
 
   // ---- relay<->Bee leg: per-grant encrypted custody (v0.3 amendment) ----
   // There is NO BEE_API_TOKEN Worker secret. Each user's Bee bearer is captured
@@ -60,6 +81,11 @@ export interface Env {
  *  plaintext only transiently in-Worker per request; it is NEVER logged, NEVER
  *  returned to the client, NEVER serialized into an error. */
 export interface GrantProps extends Record<string, unknown> {
+  /** The operator's identity: a GitHub login (GitHub door) OR an email
+   *  (Cloudflare Access door). Emails contain `@` and GitHub logins cannot —
+   *  disjoint by construction, so existing GitHub-login grants keep working
+   *  untouched and no rekey/reconnect is forced (ticket bee-relay-cf-access,
+   *  2026-08-28 amendment done-means). */
   login: string;
   /** The user's Bee bearer, captured at consent. Treated as a secret throughout. */
   beeToken: string;
