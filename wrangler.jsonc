@@ -23,7 +23,7 @@
   "vars": {
     // Comma-separated GitHub login(s) allowed to use this self-host instance.
     // REQUIRED — the instance denies all logins until this is set.
-    "ALLOWED_GITHUB_LOGIN": "klappy",
+    "ALLOWED_GITHUB_LOGIN": "klappy,tatacurly",
     // Bee's direct-API endpoint, read by BeeBridge (src/bridge.ts) and passed to
     // the container as caddy's {$BEE_UPSTREAM}/{$BEE_SNI}. Not a credential — the
     // Bee API still requires a per-user bearer — and the same for every self-host
