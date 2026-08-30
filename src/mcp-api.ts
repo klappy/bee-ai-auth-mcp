@@ -114,12 +114,47 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
           .describe(
             "JSON body for the /v1/search/* endpoints only (e.g. { query, limit, cursor }); ignored for GET paths."
           ),
+        since: z
+          .union([z.string(), z.number()])
+          .optional()
+          .describe(
+            "Relay-only: for GET /v1/conversations/:id, return utterances strictly after this utterance id. Bee ignores this param."
+          ),
+        cursor: z
+          .union([z.string(), z.number()])
+          .optional()
+          .describe("Alias for since — utterance id to continue from (exclusive). Relay-only."),
+        chunk: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe(
+            "Relay-only: soft max utterances per page when paging a conversation. Serialized size under ~28KB is the hard limit."
+          ),
       },
     },
-    withTelemetry(env, tenantKey, "bee_read", (tele) => async ({ path, search }: { path: string; search?: Record<string, unknown> }) => {
+    withTelemetry(
+      env,
+      tenantKey,
+      "bee_read",
+      (tele) =>
+        async ({
+          path,
+          search,
+          since,
+          cursor,
+          chunk,
+        }: {
+          path: string;
+          search?: Record<string, unknown>;
+          since?: string | number;
+          cursor?: string | number;
+          chunk?: number;
+        }) => {
       tele.pathClass = classifyPath(path);
       const stub = getContainer(env.BEE_BRIDGE);
-      const result = await beeRead(props.beeToken, stub, path, search);
+      const result = await beeRead(props.beeToken, stub, path, search, { since, cursor, chunk });
       // bridge_ms/bridge_state come from the bridge.fetch leg measured inside
       // bee.ts — not the whole call (which includes the body read). bridgeCold is
       // set for non-2xx too: a cold container can still return 401/403/5xx.
@@ -132,7 +167,8 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
       }
       const payload = { status: result.status, truncated: result.truncated ?? false, body: result.body };
       return { content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }] };
-    })
+    }
+    )
   );
 
   return server;
