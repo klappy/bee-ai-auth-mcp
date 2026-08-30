@@ -130,6 +130,7 @@ export interface BeeReadResult {
  *  no-secret-in-errors rules as beeGetMe. */
 import {
   type UtterancePagerOpts,
+  isConversationDetailPath,
   pageConversationUtterances,
 } from "./bee-utterance-pager";
 
@@ -206,7 +207,7 @@ export async function beeRead(
 
   const text = await res.text().catch(() => "");
   const CAP = 512 * 1024; // guard so a huge list can't blow the client's context
-  if (text.length > CAP) {
+  if (text.length > CAP && !isConversationDetailPath(pathname)) {
     return {
       ok: true,
       status: res.status,
