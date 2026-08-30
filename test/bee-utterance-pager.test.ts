@@ -26,6 +26,25 @@ function makeConversation(utteranceCount: number) {
   };
 }
 
+/** Live Bee shape — transcriptions nested under conversation (issue #40). */
+function makeNestedConversation(utteranceCount: number) {
+  const utterances = Array.from({ length: utteranceCount }, (_, i) =>
+    makeUtterance(3_260_382_100 + i, `Utterance ${i + 1}: ${"word ".repeat(40)}`)
+  );
+  if (utterances.length > 0) {
+    utterances[0] = { id: 3_260_382_094, text: "All right.", speaker: "user", start_ms: 0 };
+  }
+  return {
+    conversation: {
+      id: 10189141,
+      state: "COMPLETED",
+      utterances_count: utteranceCount,
+      summary: "x".repeat(20_000),
+      transcriptions: [{ id: 15_125_552, utterances }],
+    },
+  };
+}
+
 describe("isConversationDetailPath", () => {
   it("matches single conversation GET only", () => {
     expect(isConversationDetailPath("/v1/conversations/10189141")).toBe(true);
@@ -86,5 +105,34 @@ describe("pageConversationUtterances", () => {
     const body = makeConversation(80);
     const result = pageConversationUtterances("/v1/conversations", body);
     expect(result).toBe(body);
+  });
+
+  it("pages nested conversation.transcriptions (live Bee shape)", () => {
+    const original = makeNestedConversation(120);
+    const nested = original.conversation;
+    const originalIds = (nested.transcriptions[0].utterances as { id: number }[]).map((u) =>
+      String(u.id)
+    );
+
+    const page = pageConversationUtterances(PATH, original) as Record<string, unknown>;
+    expect(page.utterance_paging).toBeDefined();
+    expect(page.conversation).toBeDefined();
+    expect(mcpPayloadSize(page)).toBeLessThanOrEqual(MCP_VIEW_TARGET_BYTES);
+
+    const paging = page.utterance_paging as {
+      paged: boolean;
+      next_cursor: string | null;
+      utterances_in_page: number;
+    };
+    expect(paging.paged).toBe(true);
+    expect(paging.next_cursor).not.toBeNull();
+    expect(paging.utterances_in_page).toBeGreaterThan(0);
+
+    const pagedConversation = page.conversation as typeof nested;
+    expect(pagedConversation.transcriptions).toBeDefined();
+    expect((pagedConversation.summary as { omitted?: boolean }).omitted).toBe(true);
+
+    const reassembled = reassembleUtteranceIds(PATH, original);
+    expect(reassembled).toEqual(originalIds);
   });
 });
