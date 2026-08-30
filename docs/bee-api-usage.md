@@ -64,6 +64,64 @@ Bee's search endpoints use **POST with a JSON body**, even though they are read 
 - `/v1/changes` is cursor-based; omit the cursor for a default window, then page
   forward with the returned cursor. This is the sync primitive.
 
+### Conversation utterance paging (relay-only)
+
+Bee's `GET /v1/conversations/:id` returns the **entire** conversation in one
+response. Bee has **no utterance pager** on this surface — query params such as
+`omit`, `since`, `limit`, `exclude`, and `include_summary` are ignored, and
+utterance subpaths (`/transcriptions/:id`, `/transcript`, `/utterances`, etc.)
+return 404. The MCP harness, however, truncates tool results around **~40k
+characters**, which can cut off mid-utterance on long conversations.
+
+`bee_read` therefore pages **in the relay** after Bee returns:
+
+1. Fetch the conversation from Bee as today (unchanged upstream API).
+2. If the serialized tool result would exceed a safe cap (~28KB, headroom under
+   the ~40k view limit), return one **page of utterances** plus paging metadata.
+3. Walk the full utterance list by passing `since` (or `cursor`, same meaning)
+   with the previous page's `next_cursor` (utterance id, exclusive).
+4. Optionally pass `chunk` as a soft max utterances per page; serialized size
+   is the hard limit.
+
+**Relay-only `bee_read` parameters** (Bee ignores these):
+
+| Param | Meaning |
+|-------|---------|
+| `since` | Utterance id — return utterances **strictly after** this id |
+| `cursor` | Alias for `since` |
+| `chunk` | Soft max utterances per page |
+
+**Paging metadata** (on the conversation `body` when paging applies):
+
+```json
+"utterance_paging": {
+  "paged": true,
+  "since": null,
+  "next_cursor": "3260382100",
+  "utterances_in_page": 45,
+  "utterances_total": 182,
+  "summary_omitted": true
+}
+```
+
+- `next_cursor` — pass as `since` on the next `bee_read` call with the same
+  `path` to continue. `null` when no more utterances remain.
+- On paged calls the giant `summary` is omitted (stubbed) so utterances fit.
+- The 512KB absolute read cap remains as a backstop for non-conversation reads.
+
+**Example** — conversation `10189141` with 182 utterances:
+
+```
+bee_read({ path: "/v1/conversations/10189141" })
+→ first page + utterance_paging.next_cursor
+
+bee_read({ path: "/v1/conversations/10189141", since: "<next_cursor>" })
+→ next page; repeat until next_cursor is null
+```
+
+Reassemble by concatenating `transcriptions[].utterances` across pages in order.
+Do **not** invent utterances beyond what Bee returned.
+
 ## Excluded from bee_read
 
 - **`GET /v1/stream`** — Server-Sent Events. It is a GET, but it is a long-lived

@@ -4,7 +4,7 @@ export const BEE_API_USAGE_DOC = `---
 title: "Bee API Usage — the read surface bee_docs serves and bee_read calls"
 kind: docs
 audience: "AI client (via bee_docs) + maintainer"
-status: draft
+status: current
 date: 2026-06-16
 observed_server_time: "2026-06-16T20:33Z"
 source: "https://docs.bee.computer/docs/proxy (Bee, last updated 2026-06-07) + repo connect-flow findings (docs/connecting-and-getting-your-bee-token.md)"
@@ -31,8 +31,7 @@ forwards it to Bee through the private-CA bridge using the user's own bound bear
 - **\`bee_docs\`** — returns this document, so you know what paths exist and how to
   shape them.
 
-Method rule for \`bee_read\` (**PROPOSED — pending operator ruling, see Design
-Decision below**): **GET** to any \`/v1/*\` path, **plus POST allow-listed to
+Method rule for \`bee_read\` (**settled — D0034, option 1; implemented E0020**): **GET** to any \`/v1/*\` path, **plus POST allow-listed to
 \`/v1/search/*\` only**. No other method, no body except on the two search paths.
 The read-only guarantee is structural — the tool cannot mutate.
 
@@ -57,26 +56,73 @@ not exhaustive): \`insights\`, \`locations\`, \`photos\`, \`todoSuggestions\`, \
 Because the passthrough forwards **any** \`/v1/*\` path, these work without being
 enumerated here — there is no tool surface to freeze.
 
-## Design decision needed: search is POST
+## Why search is POST (settled — D0034, option 1)
 
-Bee's search endpoints use **POST with a JSON body**, even though they are read
-operations. A strictly GET-only \`bee_read\` therefore **cannot search** — which
-would drop the most valuable retrieval capability. Options:
-
-1. **\`bee_read\` = GET any \`/v1/*\` + POST allow-listed to \`/v1/search/*\` only.**
-   One tool; guarantee becomes "GET anything, or POST only to the search paths
-   (which do not mutate)." *(Doc currently written to this option.)*
-2. **A separate \`bee_search\` tool** (POST, restricted to \`/v1/search/*\`), leaving
-   \`bee_read\` strictly GET.
-3. **\`bee_read\` GET-only, no search** until the write phase.
-
-This is the one open call before \`bee_read\` is implemented.
+Bee's search endpoints use **POST with a JSON body**, even though they are read operations. A strictly GET-only \`bee_read\` could not search — the most valuable retrieval capability — so the rule allows it: \`bee_read\` issues **GET** to any \`/v1/*\`, and **POST only** to the allow-listed \`/v1/search/*\`. The read-only guarantee stays structural: POST is permitted to the search paths alone, which do not mutate. **Implemented and merged (E0020).** A separate \`bee_search\` tool was considered and rejected — search is still a read, so it stays in \`bee_read\`: fewer tools, good docs.
 
 ## Pagination & cursors
 
 - Search takes \`limit\` and a \`cursor\` (BM25); pass the returned cursor back to page.
 - \`/v1/changes\` is cursor-based; omit the cursor for a default window, then page
   forward with the returned cursor. This is the sync primitive.
+
+### Conversation utterance paging (relay-only)
+
+Bee's \`GET /v1/conversations/:id\` returns the **entire** conversation in one
+response. Bee has **no utterance pager** on this surface — query params such as
+\`omit\`, \`since\`, \`limit\`, \`exclude\`, and \`include_summary\` are ignored, and
+utterance subpaths (\`/transcriptions/:id\`, \`/transcript\`, \`/utterances\`, etc.)
+return 404. The MCP harness, however, truncates tool results around **~40k
+characters**, which can cut off mid-utterance on long conversations.
+
+\`bee_read\` therefore pages **in the relay** after Bee returns:
+
+1. Fetch the conversation from Bee as today (unchanged upstream API).
+2. If the serialized tool result would exceed a safe cap (~28KB, headroom under
+   the ~40k view limit), return one **page of utterances** plus paging metadata.
+3. Walk the full utterance list by passing \`since\` (or \`cursor\`, same meaning)
+   with the previous page's \`next_cursor\` (utterance id, exclusive).
+4. Optionally pass \`chunk\` as a soft max utterances per page; serialized size
+   is the hard limit.
+
+**Relay-only \`bee_read\` parameters** (Bee ignores these):
+
+| Param | Meaning |
+|-------|---------|
+| \`since\` | Utterance id — return utterances **strictly after** this id |
+| \`cursor\` | Alias for \`since\` |
+| \`chunk\` | Soft max utterances per page |
+
+**Paging metadata** (on the conversation \`body\` when paging applies):
+
+\`\`\`json
+"utterance_paging": {
+  "paged": true,
+  "since": null,
+  "next_cursor": "3260382100",
+  "utterances_in_page": 45,
+  "utterances_total": 182,
+  "summary_omitted": true
+}
+\`\`\`
+
+- \`next_cursor\` — pass as \`since\` on the next \`bee_read\` call with the same
+  \`path\` to continue. \`null\` when no more utterances remain.
+- On paged calls the giant \`summary\` is omitted (stubbed) so utterances fit.
+- The 512KB absolute read cap remains as a backstop for non-conversation reads.
+
+**Example** — conversation \`10189141\` with 182 utterances:
+
+\`\`\`
+bee_read({ path: "/v1/conversations/10189141" })
+→ first page + utterance_paging.next_cursor
+
+bee_read({ path: "/v1/conversations/10189141", since: "<next_cursor>" })
+→ next page; repeat until next_cursor is null
+\`\`\`
+
+Reassemble by concatenating \`transcriptions[].utterances\` across pages in order.
+Do **not** invent utterances beyond what Bee returned.
 
 ## Excluded from bee_read
 
