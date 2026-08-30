@@ -100,6 +100,43 @@ function withPagingMeta(
   return { ...body, utterance_paging: meta };
 }
 
+type TranscriptionSite = {
+  /** Object holding transcriptions and summary (top-level body or nested conversation). */
+  content: Record<string, unknown>;
+  /** Client-visible envelope; utterance_paging attaches here. */
+  envelope: Record<string, unknown>;
+};
+
+function resolveTranscriptionSite(body: Record<string, unknown>): TranscriptionSite | null {
+  const nested = body.conversation;
+  if (nested && typeof nested === "object") {
+    const content = nested as Record<string, unknown>;
+    if (Array.isArray(content.transcriptions)) {
+      return { content, envelope: body };
+    }
+  }
+  if (Array.isArray(body.transcriptions)) {
+    return { content: body, envelope: body };
+  }
+  return null;
+}
+
+function buildPagedEnvelope(
+  site: TranscriptionSite,
+  transcriptions: unknown[],
+  summaryOmitted: boolean
+): Record<string, unknown> {
+  const content = {
+    ...site.content,
+    summary: summaryOmitted ? stubSummary(site.content.summary) : site.content.summary,
+    transcriptions,
+  };
+  if (site.content === site.envelope) {
+    return content;
+  }
+  return { ...site.envelope, conversation: content };
+}
+
 /**
  * Page utterances inside a conversation body when the full MCP payload would
  * exceed MCP_VIEW_TARGET_BYTES, or when the client passes since/cursor.
@@ -112,10 +149,10 @@ export function pageConversationUtterances(
   if (!isConversationDetailPath(pathname) || !body || typeof body !== "object") {
     return body;
   }
-  const conv = body as Record<string, unknown>;
-  const transcriptions = conv.transcriptions;
-  if (!Array.isArray(transcriptions)) return body;
+  const site = resolveTranscriptionSite(body as Record<string, unknown>);
+  if (!site) return body;
 
+  const transcriptions = site.content.transcriptions as unknown[];
   const refs = collectUtterances(transcriptions);
   if (refs.length === 0) return body;
 
@@ -127,18 +164,19 @@ export function pageConversationUtterances(
 
   const start = startIndexAfter(refs, since);
   const chunkLimit = opts.chunk && opts.chunk > 0 ? Math.floor(opts.chunk) : undefined;
-  const summaryOmitted = conv.summary !== undefined && conv.summary !== null;
+  const summaryOmitted =
+    site.content.summary !== undefined && site.content.summary !== null;
 
   const selected: UtteranceRef[] = [];
   for (let i = start; i < refs.length; i++) {
     const candidate = [...selected, refs[i]];
     if (chunkLimit !== undefined && candidate.length > chunkLimit) break;
 
-    const trialBody: Record<string, unknown> = {
-      ...conv,
-      summary: summaryOmitted ? stubSummary(conv.summary) : conv.summary,
-      transcriptions: rebuildTranscriptions(transcriptions, candidate),
-    };
+    const trialBody = buildPagedEnvelope(
+      site,
+      rebuildTranscriptions(transcriptions, candidate),
+      summaryOmitted
+    );
     const trialWithMeta = withPagingMeta(trialBody, {
       paged: true,
       since: since != null && since !== "" ? String(since) : null,
@@ -162,11 +200,11 @@ export function pageConversationUtterances(
   const next_cursor =
     lastId !== null && start + selected.length < refs.length ? lastId : null;
 
-  const pagedBody: Record<string, unknown> = {
-    ...conv,
-    summary: summaryOmitted ? stubSummary(conv.summary) : conv.summary,
-    transcriptions: rebuildTranscriptions(transcriptions, selected),
-  };
+  const pagedBody = buildPagedEnvelope(
+    site,
+    rebuildTranscriptions(transcriptions, selected),
+    summaryOmitted
+  );
 
   return withPagingMeta(pagedBody, {
     paged: true,
@@ -192,7 +230,8 @@ export function reassembleUtteranceIds(
   while (current && typeof current === "object") {
     const conv = current as Record<string, unknown>;
     const paging = conv.utterance_paging as UtterancePagingMeta | undefined;
-    const refs = collectUtterances(conv.transcriptions);
+    const site = resolveTranscriptionSite(conv);
+    const refs = collectUtterances(site?.content.transcriptions);
     for (const { utterance } of refs) {
       const id = utteranceId(utterance);
       if (!seen.has(id)) {
