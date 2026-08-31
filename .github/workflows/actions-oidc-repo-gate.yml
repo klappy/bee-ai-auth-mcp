@@ -1,0 +1,57 @@
+# OIDC repo-gate live check — proves GitHub Actions OIDC is verified and
+# klappy/refinery is enforced (this repo's token should get 403, not 401).
+
+name: Actions OIDC repo gate
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  oidc-repo-gate:
+    name: OIDC repo gate vs preview
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Compute preview URL
+        id: url
+        run: |
+          REF="${{ github.head_ref || github.ref_name }}"
+          SLUG=$(echo "$REF" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9-]/-/g; s/-+/-/g; s/^-+|-+$//g')
+          echo "base_url=https://${SLUG}-bee-ai-auth-mcp.klappy.workers.dev" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for preview /version
+        run: |
+          EXPECTED_SHA="${{ github.event.pull_request.head.sha }}"
+          URL="${{ steps.url.outputs.base_url }}/version"
+          DEADLINE=$(( $(date +%s) + 540 ))
+          while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+            DEPLOYED=$(curl -fs --max-time 10 "$URL" 2>/dev/null || true)
+            case "$EXPECTED_SHA" in
+              "$DEPLOYED"*) echo "Preview live: ${DEPLOYED}"; exit 0 ;;
+            esac
+            sleep 5
+          done
+          echo "Preview not serving commit ${EXPECTED_SHA}"
+          exit 1
+
+      - run: npm ci
+
+      - name: Run OIDC repo-gate live test
+        env:
+          SMOKE_BASE_URL: ${{ steps.url.outputs.base_url }}
+          GITHUB_ACTIONS_OIDC_AUDIENCE: https://bee.klappy.dev
+        run: npx vitest run test/actions-oidc.live.test.ts

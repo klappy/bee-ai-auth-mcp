@@ -21,6 +21,7 @@
  */
 
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
+import { handleActionsRead, isActionsReadPath } from "./actions-read";
 import { BeeAuthHandler } from "./bee-auth";
 import { McpApiHandler } from "./mcp-api";
 import { isOriginAllowed } from "./origin";
@@ -43,6 +44,14 @@ const provider = new OAuthProvider({
 
 export default {
   fetch(request: Request, env: Env, ctx: ExecutionContext): Response | Promise<Response> {
+    const pathname = new URL(request.url).pathname;
+    // GitHub Actions OIDC seat: GET /v1/changes and GET /v1/conversations/:id only.
+    // OIDC JWT in Authorization — never a Bee bearer in the Action. Unconfigured or
+    // unauthenticated stays closed (403/401).
+    if (isActionsReadPath(pathname)) {
+      return handleActionsRead(request, env);
+    }
+
     // Origin-header validation, scoped to the gated /mcp API (see src/origin.ts).
     // Configurable per deployment via ALLOWED_ORIGINS — non-browser MCP clients
     // (Claude infra, Cursor, curl) send no Origin and pass. OPTIONS preflights

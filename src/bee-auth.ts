@@ -27,6 +27,7 @@
  */
 
 import type { AuthRequest } from "@cloudflare/workers-oauth-provider";
+import { bindActionsGrant } from "./actions-grant";
 import { getContainer } from "@cloudflare/containers";
 import { renderSVG } from "uqr";
 import { encodeState, decodeState, signConsent, verifyConsent } from "./state";
@@ -381,6 +382,7 @@ export const BeeAuthHandler = {
         scope: ["bee_read"],
         props: { login: cs.login, beeToken },
       });
+      await bindActionsGrant(env.OAUTH_KV, cs.login, beeToken, env.GITHUB_CLIENT_SECRET);
       return Response.redirect(redirectTo, 302);
     }
 
@@ -471,6 +473,7 @@ export const BeeAuthHandler = {
         scope: ["bee_read"],
         props: { login: cs.login, beeToken },
       });
+      await bindActionsGrant(env.OAUTH_KV, cs.login, beeToken, env.GITHUB_CLIENT_SECRET);
       return json({ status: "completed", redirectTo });
     }
 
