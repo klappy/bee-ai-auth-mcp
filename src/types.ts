@@ -14,6 +14,10 @@ export interface Env {
    *  one login; the instance denies all others. Widening it is the deferred,
    *  operator-owned one-way door (PRD v0.3 / ledger E0012). */
   ALLOWED_GITHUB_LOGIN?: string;
+  /** Comma-separated GitHub repos allowed to present Actions OIDC (e.g. klappy/refinery). */
+  ALLOWED_ACTIONS_REPOS?: string;
+  /** Expected `aud` on GitHub Actions OIDC JWTs. Defaults to the request origin. */
+  GITHUB_ACTIONS_OIDC_AUDIENCE?: string;
 
   // ---- relay<->Bee leg: per-grant encrypted custody (v0.3 amendment) ----
   // There is NO BEE_API_TOKEN Worker secret. Each user's Bee bearer is captured
