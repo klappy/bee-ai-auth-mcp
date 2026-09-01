@@ -11,8 +11,10 @@ Mirrors `klappy/git-repo-auth-mcp`, adapted for bee-ai-auth-mcp (no GitHub-App k
 build then a deploy command — **automatically, in Cloudflare's CI, with no human running
 `wrangler` and no Cloudflare API token anywhere**:
 
-- **Branch push → preview deploy** via `npx wrangler versions upload` (a versioned preview, not promoted).
-- **Push/merge to `main` → production deploy.**
+- **Branch push → preview deploy** via `npx wrangler versions upload` to `https://<slug>-bee-ai-auth-mcp.klappy.workers.dev` (a versioned preview, not promoted).
+- **Push/merge to `production` → production deploy** at `bee.klappy.dev`. `main` is the integration branch; merging to `main` does not move prod.
+
+Live evidence (2026-08-30): `https://bee.klappy.dev/version` reported commit `03e9b97` (`production` branch HEAD); `main` at `179dc16` did not move prod. Promotion ritual: operator merge/commit to `production` titled "Promote main to production" (historical PR #22 was main→production). `wrangler.jsonc` has no `env.production` block and no routes — prod domain routing is not declared in git.
 
 Proven, not asserted: the `ca27a8b` push to `docs/phase-1-build-ledger-and-resume`
 auto-deployed a preview by itself — the build log shows Workers Builds running `npx wrangler
@@ -20,8 +22,8 @@ versions upload`. (That build predated the Worker rename; the Worker is now `bee
 so current previews use that name.)
 
 > **Do not describe deployment as a manual `wrangler deploy`, a laptop step, or anything
-> needing a CF API token.** Crew triggers a deploy by pushing a branch; the operator promotes
-> to prod by merging. `wrangler` runs *inside* the CI — it is never a manual step here.
+> needing a CF API token.** Crew triggers a preview deploy by pushing a branch; the operator
+> promotes to prod by merging to `production`. `wrangler` runs *inside* the CI — it is never a manual step here.
 
 ## `ci.yml` — on every push/PR to `main`
 
