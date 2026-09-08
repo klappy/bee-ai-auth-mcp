@@ -13,3 +13,5 @@ Product scope: existing static homepage and consequential supporting copy; prese
 2026-09-08 commercial-framing amendment: captain approved the current invitee text direction and asked for a plans ladder on this same draft — Free trial; Standard — Auth Relay (cost-recovery, no price); future value-added services kept separate and unpromised. Do not invent a price or promise later tools. Still held for PR34 E2E and exact-text approval.
 
 2026-09-08 Standard price bound: $24 for 2 years ($1/month equivalent). Do not invent trial duration, renewal, processor, refunds, taxes, auto-renewal, or future-service prices. Still a review draft.
+
+2026-09-08 Standard purchase-option correction: same Auth Relay, three prices — Monthly $5/month; 2-Year $24 for 2 years ($1/month equivalent); Lifetime $100 one time. Not feature tiers. Do not invent auto-renewal, lifetime-transfer, taxes, refunds, or processor. Still a review draft.

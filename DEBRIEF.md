@@ -38,3 +38,9 @@ Checks observed this amendment: homepage unique IDs (including `#plans`) and int
 Captain bound Standard — Auth Relay at $24 for 2 years ($1/month equivalent). Homepage and review copy now state that amount. Free trial and future value-added services stay separate; trial length, renewal, processor, refunds, taxes, auto-renewal, and later-service prices remain unspecified. Release hold unchanged.
 
 Checks: unique IDs/internal anchors passed; bound price present; invented commercial terms absent; clipboard mocks passed; `npm run typecheck` passed; `npm test` 49 passed, 2 skipped. No browser/E2E/live-readiness claimed.
+
+## Standard purchase options — 2026-09-08
+
+Captain corrected Standard to three purchase options for the same Auth Relay: Monthly $5/month; 2-Year $24 for 2 years ($1/month equivalent); Lifetime $100 one time. Not feature tiers. Free trial remains above; future value-added services remain separate and unpriced. Auto-renewal, lifetime-transfer, taxes, refunds, and processor remain unspecified. Release hold unchanged.
+
+Checks: unique IDs/internal anchors passed; three bound prices present; invented commercial terms absent; clipboard mocks passed; `npm run typecheck` passed; `npm test` 49 passed, 2 skipped. No browser/E2E/live-readiness claimed.
