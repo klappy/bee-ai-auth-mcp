@@ -44,3 +44,9 @@ Checks: unique IDs/internal anchors passed; current three prices present; supers
 Captain refined Standard: it is not frozen as a bare relay forever. Initial promise stays the hosted authentication relay. Copy now says Standard can take on useful Bee-API improvements as they are built, and does not claim those extras exist yet. A higher paid plan may be added later if value or operating cost rises materially; no extra tier name, feature list, or price was invented. Current prices unchanged. Release hold unchanged.
 
 Checks: unique IDs/internal anchors passed; current prices unchanged; no unbuilt-feature claim; clipboard mocks passed; `npm run typecheck` passed; `npm test` 49 passed, 2 skipped. No browser/E2E/live-readiness claimed.
+
+## Coming exploration — Talk → knowledge base — 2026-09-08
+
+Captain recorded a future-value example: with permission, later work could distill Bee transcripts into a user-owned GitHub knowledge base / second brain. Desired feel: you talk; conversation becomes durable, structured, AI-readable knowledge. Homepage copy labels this Coming exploration and states it is not built. Current relay is not claimed to ingest transcripts in the background, write to GitHub, graph knowledge, or persist a second brain. The example may later land on Standard or on a higher paid plan if processing, storage, or automation is much larger; no extra plan was named or priced. Prices and release hold unchanged.
+
+Checks: unique IDs/internal anchors passed (including `#talk-kb`); current prices unchanged; coming-exploration label present; current-relay implementation claims absent; clipboard mocks passed; `npm run typecheck` passed; `npm test` 49 passed, 2 skipped. No browser/E2E/live-readiness claimed.
