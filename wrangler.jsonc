@@ -33,7 +33,6 @@
     // non-browser MCP-client endpoints. Full steps: /setup (public/setup.html).
     "ACCESS_TEAM_DOMAIN": "",
     "ACCESS_AUD": "",
-    "ALLOWED_EMAILS": "",
     // Bee's direct-API endpoint, read by BeeBridge (src/bridge.ts) and passed to
     // the container as caddy's {$BEE_UPSTREAM}/{$BEE_SNI}. Not a credential — the
     // Bee API still requires a per-user bearer — and the same for every self-host
@@ -73,6 +72,7 @@
   // is correct as the initial tag (ledger E0014).
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BeeBridge"] }]
   // Secrets (set via `wrangler secret put`, never committed, never in chat):
+  //   ALLOWED_EMAILS                          (private comma-separated approved emails; unset/empty denies all)
   //   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET  (a GitHub *OAuth App* — identity only, not a GitHub App;
   //                                            CLIENT_SECRET is single-use again: OAuth code exchange only)
   //   CONSENT_SIGNING_SECRET                  (REQUIRED — dedicated key for the consent-state HMAC and the
