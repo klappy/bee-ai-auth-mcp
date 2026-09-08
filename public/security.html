@@ -47,7 +47,7 @@
 
   <section class="prose">
     <h2>Two legs, kept separate</h2>
-    <p>The login leg (you ↔ relay) and the data leg (relay ↔ Bee) never mix. GitHub authenticates <em>who you are</em> and grants nothing else — no repository access, the service reads your login for the access check and discards the GitHub token. Your Bee token rides the other leg only — captured at consent and held in your own encrypted grant, never a shared secret.</p>
+    <p>The login leg (you ↔ relay) and the data leg (relay ↔ Bee) never mix. Email sign-in verifies access to your approved inbox. GitHub remains an optional identity check for existing users — no repository access; the service reads your login for the access check and discards the GitHub token. Your Bee token rides the other leg only — captured at consent and held in your own encrypted grant, never a shared secret.</p>
 
     <h2>What gets stored</h2>
     <p>Bee credentials are held in the OAuth provider's grants, in the deployment's <code>OAUTH_KV</code> namespace. Grant props are encrypted per-grant with key material derived from the token, not a shared KMS key. Encryption at rest is not a guarantee against compromise of the running service.</p>
@@ -59,7 +59,7 @@
     <p>Disconnect Bee in your AI app to stop using it there. This does not erase material already included in chats or guarantee revocation of the credential at Bee. For help removing hosted access or revoking Bee authorization, ask Klappy.</p>
 
     <h2>Who can use the hosted service</h2>
-    <p>Every login is checked against <code>ALLOWED_GITHUB_LOGIN</code>. Klappy manages the list of invited GitHub usernames. Each allowed user connects their own Bee account.</p>
+    <p>Klappy approves the email addresses allowed to connect. Email sign-in uses a code sent to your inbox; you do not need a GitHub or Cloudflare account. Existing GitHub users can still use the separately approved GitHub sign-in path. Each allowed user connects their own Bee account.</p>
 
     <h2>Hosted access and self-hosting</h2>
     <p>The hosted service is for invited friends and family. Encryption at rest does not remove trust in the operator: the service handles your credential and retrieved data while making requests. Self-hosting puts deployment control in your hands, along with responsibility for running and securing it.</p>
