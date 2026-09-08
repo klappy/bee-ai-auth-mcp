@@ -37,8 +37,10 @@ docker build -t bee-bridge:local .
 
 ## Run hardening (the rest of the empty-toolbox spec)
 
-The Dockerfile gives you scratch-class image + static binary + non-root. The remaining
-hardening is **run-time** flags — apply them in whatever runs the image:
+The Dockerfile final stage is `gcr.io/distroless/base-debian12:nonroot` plus
+static caddy and two compiled binaries (`bee`, `broker`), running as uid 65532.
+Debian and bun exist only in builder stages. The remaining hardening is
+**run-time** flags — apply them in whatever runs the image:
 
 ```
 --read-only \

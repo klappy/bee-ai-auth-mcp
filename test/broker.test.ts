@@ -107,9 +107,9 @@ describe("sealed broker state", () => {
 describe("bee proxy is not a hosted multi-user path", () => {
   it("brokerExecArgv only allows start/resume/clear under the helper", () => {
     const id = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-    expect(brokerExecArgv("start", id)).toEqual(["bun", "/opt/bee-broker/broker.mjs", "start", id]);
-    expect(brokerExecArgv("resume", id)).toEqual(["bun", "/opt/bee-broker/broker.mjs", "resume", id]);
-    expect(brokerExecArgv("clear", id)).toEqual(["bun", "/opt/bee-broker/broker.mjs", "clear", id]);
+    expect(brokerExecArgv("start", id)).toEqual(["/opt/bee-broker/broker", "start", id]);
+    expect(brokerExecArgv("resume", id)).toEqual(["/opt/bee-broker/broker", "resume", id]);
+    expect(brokerExecArgv("clear", id)).toEqual(["/opt/bee-broker/broker", "clear", id]);
     expect(brokerExecArgv("proxy", id)).toBeNull();
     expect(brokerExecArgv("login", id)).toBeNull();
     expect(JSON.stringify(brokerExecArgv("start", id))).not.toContain("proxy");
@@ -122,6 +122,27 @@ describe("bee proxy is not a hosted multi-user path", () => {
     expect(docker).toContain('ENTRYPOINT ["/usr/bin/caddy"');
     expect(docker).not.toMatch(/ENTRYPOINT.*bee proxy/);
     expect(docker).not.toMatch(/CMD.*bee proxy/);
+  });
+
+  it("final image is bun-distroless non-root, not a Debian/root toolbox", () => {
+    const docker = readFileSync(new URL("../bridge/Dockerfile", import.meta.url), "utf8");
+    const froms = [...docker.matchAll(/^FROM\s+(\S+)(.*)$/gm)].map((m) => ({
+      image: m[1],
+      rest: m[2],
+    }));
+    expect(froms.length).toBeGreaterThanOrEqual(3);
+    const finalFrom = froms[froms.length - 1];
+    expect(finalFrom.image).toBe("gcr.io/distroless/base-debian12:nonroot");
+    expect(finalFrom.rest).not.toMatch(/\bAS\b/i);
+    expect(froms.some((f) => f.image === "oven/bun:1.2-debian" && /\bAS\s+cli\b/i.test(f.rest))).toBe(
+      true
+    );
+    expect(docker).toContain("bun build ./sources/main.ts --compile --outfile /out/bee");
+    expect(docker).toContain("bun build /tmp/broker.mjs --compile --outfile /out/broker");
+    expect(docker).toMatch(/^USER 65532:65532$/m);
+    expect(docker).toMatch(/BEE_CONFIG_DIR|\/tmp\/bee-broker/);
+    expect(docker).not.toMatch(/^USER root$/m);
+    expect(docker).not.toMatch(/^FROM oven\/bun:1\.2-debian$/m);
   });
 });
 

@@ -39,4 +39,51 @@ Observed against `bee-computer/bee-cli` `e67032d59bdfdc7f3bc73dd67683328c3e0d58b
 - One CLI process/state cannot isolate users. Isolation is one opaque `BEE_CONFIG_DIR` per pairing attempt, then the durable artifact is that invitee's `GrantProps.beeToken`. Topology stays one shared Container (no new paid Worker, no per-user container).
 - f615e434 step 5 "retains the Bee-side authenticated session/artifact" is satisfied by the encrypted grant, not a leftover CLI directory or a live `bee proxy`.
 
-Residual: the image is no longer empty-toolbox/distroless — bun + upstream CLI exist so `exec()` can run `bee`. They are not a public proxy and not a long-lived Bee session. Default `@cloudflare/workers-types` on this repo still omit `exec()`; the call is a runtime-shaped wrapper per Cloudflare Containers docs. Live broker E2E remains a human/config gate.
+## Isolation answer (official CLI + proxy docs, 2026-09-08)
+
+Sources: https://docs.bee.computer/docs/cli , https://docs.bee.computer/docs/proxy ,
+and `bee-computer/bee-cli` `sources/secureStore.ts` at
+`e67032d59bdfdc7f3bc73dd67683328c3e0d58b2`.
+
+- **Config home can be namespaced.** `getConfigDir()` is
+  `BEE_CONFIG_DIR ?? join(homedir(), ".bee")`. File tokens live at
+  `token-{env}` / `pairing-{env}.json` under that directory. Distinct
+  `BEE_CONFIG_DIR=/tmp/bee-broker/<opaque-id>` values are distinct Bee
+  logins. One shared `~/.bee` (or one shared `HOME`) is the
+  release-blocking failure. This PR never derives a path from email/login.
+- **A second container/DO per identity is not required** for pairing, and
+  D0022 already forbids per-user containers. Durable isolation after
+  handshake is the encrypted grant `beeToken`.
+- **`bee proxy` / `bee mcp serve-http` cannot be the multi-user data plane.**
+  Official proxy docs: intended for local development; "Do not expose it to
+  the public internet as it provides unauthenticated access to your Bee
+  data"; binds `127.0.0.1` or a Unix socket; uses the existing single
+  `bee login`. `serve-http` likewise binds `127.0.0.1` and uses that login.
+  One proxy process = one credential. A shared internal proxy would still
+  inject Klappy's (or the last login's) bearer into every invitee `/v1`
+  read. One always-on proxy per grant is a process-per-user farm inside
+  the shared singleton — not authorized and not needed.
+- **Worker data plane stays Bee's documented Direct API path:** caddy
+  trusts the private CA and forwards `/v1/*` with the **per-request**
+  grant bearer. Login uses official `bee login --no-wait` (print link,
+  exit) then re-run `bee login` to finish the unexpired session.
+
+## Image residual (blocker 1)
+
+Bee CLI cannot run on `distroless/static` (no JS runtime). The exact
+dependency is the Bun runtime (`Bun.env` / `Bun.secrets` in
+`secureStore.ts`; official build is `bun build --compile`). The builder
+compiles `bee` and `broker` so the final image is
+`gcr.io/distroless/base-debian12:nonroot` (glibc + CA certs, no shell,
+no apt) + static caddy + those two binaries, `USER 65532:65532`. Debian
+and bun exist only in builder stages.
+
+Local `docker build -t bee-bridge:local bridge/` on this seat
+(2026-09-08): image `26b1de329f5c`, `User=65532:65532`,
+`bee version` → `@beeai/cli 0.7.3`, broker `proxy` → forbidden,
+`/bin/sh` and `/usr/bin/apt-get` and `/usr/local/bin/bun` absent,
+`clear` as uid 65532 writes `/tmp`. Workers Builds image publish
+remains a deploy-time gate.
+
+Default `@cloudflare/workers-types` on this repo still omit `exec()`; the
+call is a runtime-shaped wrapper per Cloudflare Containers docs.

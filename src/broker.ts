@@ -238,8 +238,8 @@ export async function unsealBrokerState(
   return state;
 }
 
-/** Container exec argv prefix. Command + opaque id are appended by BeeBridge. */
-export const BROKER_HELPER_ARGV = ["bun", "/opt/bee-broker/broker.mjs"] as const;
+/** Compiled helper — no bun/shell in the final image. */
+export const BROKER_HELPER_ARGV = ["/opt/bee-broker/broker"] as const;
 
 export const BROKER_COMMANDS = ["start", "resume", "clear"] as const;
 export type BrokerCommand = (typeof BROKER_COMMANDS)[number];

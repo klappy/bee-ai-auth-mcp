@@ -3,9 +3,9 @@
  * Narrow Bee CLI broker helper. Invoked only via Container exec — not a
  * long-lived service, not a public proxy.
  *
- *   bun /opt/bee-broker/broker.mjs start  <32-hex>
- *   bun /opt/bee-broker/broker.mjs resume <32-hex>
- *   bun /opt/bee-broker/broker.mjs clear  <32-hex>
+ *   /opt/bee-broker/broker start  <32-hex>
+ *   /opt/bee-broker/broker resume <32-hex>
+ *   /opt/bee-broker/broker clear  <32-hex>
  *
  * Prints exactly one JSON line on stdout. A token appears only on resume
  * completed. Do not log this process's stdout in the Worker.

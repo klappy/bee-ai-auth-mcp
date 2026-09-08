@@ -143,7 +143,7 @@ export class BeeBridge extends Container<Env> {
         BEE_CONFIG_DIR: dir,
         BEE_FORCE_FILE_STORE: "1",
         HOME: "/tmp",
-        PATH: "/opt/bee-cli/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        PATH: "/usr/local/bin:/usr/bin",
       },
     });
     const output = await process.output();
