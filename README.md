@@ -28,7 +28,7 @@ Either way: approve in the Bee app, and the relay receives your token encrypted 
 
 Two things worth knowing:
 
-- **The approval presents as the Bee CLI.** The relay performs the CLI's own pairing handshake server-side, borrowing the CLI's registered `app_id` — fine for a personal self-host, and the honest label for what's actually happening. A relay-registered app id is the gate for any public/multi-tenant deployment (rationale and protocol facts in `src/pairing.ts`).
+- **The hosted Bee CLI is the Bee application.** The bound container execs the real CLI as a one-shot broker under an isolated config directory, then moves that invitee's bearer into their encrypted grant and deletes the broker state. You approve in the Bee app if asked; you do not install the CLI, and you do not inherit anyone else's Bee account. The long-lived data plane remains the shared token-agnostic caddy bridge.
 - **Nothing secret rides in the QR or connect URL.** Both encode only `https://bee.computer/connect#<requestId>`; the token comes back NaCl-boxed to an ephemeral key that never exists at rest anywhere — the consent page carries it between polls only as AES-GCM ciphertext, and the parser accepts the pairing service's completed response whether it puts that token at the top level or nested under `result.encryptedToken`.
 
 ## License

@@ -52,8 +52,9 @@
   // ---- private-CA bridge as a bound Cloudflare Container (D0028 / ledger E0014) ----
   // The relay reaches Bee via an INTERNAL Worker->container call
   // (getContainer(env.BEE_BRIDGE) in src/bee.ts) — there is NO public bridge
-  // hostname and NO BEE_API_BASE URL. The image is bridge/Dockerfile (caddy; see
-  // bridge/Caddyfile + bridge/README.md). Confirm this block against current
+  // hostname and NO BEE_API_BASE URL. The image is bridge/Dockerfile (caddy
+  // data plane + one-shot Bee CLI broker via exec; see bridge/Caddyfile,
+  // bridge/broker.mjs, src/broker.ts). Confirm this block against current
   // Cloudflare Containers docs before deploy: the image is the stable part, this
   // binding config is version-sensitive. Workers Builds builds the image on push
   // once the build command is set to `wrangler containers build --push` (a

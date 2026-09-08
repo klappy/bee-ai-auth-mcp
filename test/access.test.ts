@@ -15,7 +15,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { SignJWT, exportJWK, generateKeyPair } from "jose";
 
-vi.mock("@cloudflare/containers", () => ({ getContainer: () => ({}) }));
+const { brokerMock } = vi.hoisted(() => ({
+  brokerMock: {
+    startBeeBroker: vi.fn(async () => {
+      throw new Error("broker exec unavailable");
+    }),
+    resumeBeeBroker: vi.fn(async () => {
+      throw new Error("broker exec unavailable");
+    }),
+    clearBeeBroker: vi.fn(async () => ({ status: "cleared" as const })),
+    fetch: vi.fn(async () => new Response(JSON.stringify({ id: 1 }), { status: 200 })),
+  },
+}));
+
+vi.mock("@cloudflare/containers", () => ({ getContainer: () => brokerMock }));
 
 const { verifyAccessJwt, __resetJwksCacheForTests, ACCESS_JWT_HEADER } = await import("../src/access");
 const { BeeAuthHandler, isAllowedEmail } = await import("../src/bee-auth");
@@ -90,6 +103,18 @@ const ctx = {} as ExecutionContext;
 beforeEach(() => {
   __resetJwksCacheForTests();
   stubCerts();
+  brokerMock.startBeeBroker.mockReset();
+  brokerMock.resumeBeeBroker.mockReset();
+  brokerMock.clearBeeBroker.mockReset();
+  brokerMock.fetch.mockReset();
+  brokerMock.startBeeBroker.mockImplementation(async () => {
+    throw new Error("broker exec unavailable");
+  });
+  brokerMock.resumeBeeBroker.mockImplementation(async () => {
+    throw new Error("broker exec unavailable");
+  });
+  brokerMock.clearBeeBroker.mockResolvedValue({ status: "cleared" });
+  brokerMock.fetch.mockResolvedValue(new Response(JSON.stringify({ id: 1 }), { status: 200 }));
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -303,10 +328,9 @@ describe("consent/pairing identity rechecks do not require Access", () => {
       envWith(),
       ctx
     );
-    // Identity passed. The certs-only fetch stub makes the pairing POST throw,
-    // which postPairing reports as unreachable — not an Access or allow-list deny.
+    // Identity passed. Default broker mock throws — not an Access or allow-list deny.
     expect(res.status).toBe(502);
-    expect(await res.json()).toEqual({ status: "error", message: "pairing service unreachable" });
+    expect(await res.json()).toEqual({ status: "error", message: "hosted Bee CLI broker unreachable" });
   });
 
   it("/pairing/start accepts an on-list email identity the same way", async () => {
@@ -324,7 +348,81 @@ describe("consent/pairing identity rechecks do not require Access", () => {
       ctx
     );
     expect(res.status).toBe(502);
-    expect(await res.json()).toEqual({ status: "error", message: "pairing service unreachable" });
+    expect(await res.json()).toEqual({ status: "error", message: "hosted Bee CLI broker unreachable" });
+  });
+
+  it("two approved identities receive distinct hosted-CLI broker attempts", async () => {
+    const seen: string[] = [];
+    brokerMock.startBeeBroker.mockImplementation(async (id: string) => {
+      seen.push(id);
+      return { status: "pending", connectUrl: `https://bee.computer/connect#${id}` };
+    });
+    for (const login of ["klappy", "wife@example.com"] as const) {
+      const signed = await signConsent(
+        { req: { clientId: "client-1", scope: [], state: "s" }, login },
+        CONSENT_SECRET
+      );
+      const res = await BeeAuthHandler.fetch(
+        new Request("https://relay.example/pairing/start", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ s: signed }),
+        }),
+        envWith(),
+        ctx
+      );
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { connectUrl: string; p: string };
+      expect(body.connectUrl.startsWith("https://bee.computer/connect#")).toBe(true);
+      expect(body.p.length).toBeGreaterThan(20);
+    }
+    expect(seen).toHaveLength(2);
+    expect(seen[0]).not.toBe(seen[1]);
+    expect(seen[0]).toMatch(/^[a-f0-9]{32}$/);
+  });
+
+  it("completes pairing with the invitee's broker token, never an env/shared bearer", async () => {
+    const { sealBrokerState } = await import("../src/broker");
+    const brokerId = "cccccccccccccccccccccccccccccccc";
+    const sealed = await sealBrokerState(
+      { kind: "cli-broker-v1", brokerId, login: "wife@example.com", clientId: "client-1", iat: Date.now() },
+      CONSENT_SECRET
+    );
+    brokerMock.resumeBeeBroker.mockResolvedValue({ status: "completed", token: "invitee-bee-token" });
+    brokerMock.fetch.mockImplementation(async (_url: string, init?: RequestInit) => {
+      const auth = new Headers(init?.headers).get("authorization");
+      expect(auth).toBe("Bearer invitee-bee-token");
+      expect(auth).not.toContain("klappy");
+      return new Response(JSON.stringify({ id: 99, first_name: "Ada" }), { status: 200 });
+    });
+    const signed = await signConsent(
+      { req: { clientId: "client-1", scope: [], state: "s" }, login: "wife@example.com" },
+      CONSENT_SECRET
+    );
+    const captured: { props?: { login: string; beeToken: string } } = {};
+    const env = envWith({
+      OAUTH_PROVIDER: {
+        parseAuthRequest: async () => ({ clientId: "client-1", scope: [], state: "s" }),
+        lookupClient: async () => ({ clientId: "client-1" }),
+        completeAuthorization: async (args: { props: { login: string; beeToken: string } }) => {
+          captured.props = args.props;
+          return { redirectTo: "https://client.example/done" };
+        },
+      },
+    });
+    const res = await BeeAuthHandler.fetch(
+      new Request("https://relay.example/pairing/status", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ s: signed, p: sealed }),
+      }),
+      env,
+      ctx
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ status: "completed", redirectTo: "https://client.example/done" });
+    expect(captured.props).toEqual({ login: "wife@example.com", beeToken: "invitee-bee-token" });
+    expect(brokerMock.clearBeeBroker).toHaveBeenCalledWith(brokerId);
   });
 });
 

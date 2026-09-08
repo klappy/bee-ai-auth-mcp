@@ -7,15 +7,14 @@
  * stock Worker `fetch` cannot do because Bee's direct API uses a private CA
  * (ledger E0012).
  *
- * This class holds no application logic: it is a typed handle for the Cloudflare
- * Containers runtime whose only job is to pass the bridge's upstream config
- * (BEE_UPSTREAM/BEE_SNI) into the container, since a CF container does not inherit
- * the Worker's env. The bridge is still token-AGNOSTIC shared
- * infrastructure (multitenancy rule, E0014): every request carries its own user's
- * bearer in `Authorization`, passed straight through to Bee — never injected here,
- * never stored, never logged. There is one shared instance (the `getContainer`
- * default `cf-singleton-container`), so do NOT add per-user instance names — that
- * would shard a deliberately single, shared bridge.
+ * Data-plane job: pass BEE_UPSTREAM/BEE_SNI into caddy. Token-AGNOSTIC shared
+ * infrastructure (E0014): every /v1 request carries its own user's bearer in
+ * Authorization — never injected here, never stored, never logged. One shared
+ * instance (`getContainer` default); do NOT add per-user instance names.
+ *
+ * Auth-broker job (kitchen CLI-BROKER-AMENDMENT-2026-09-08): RPC methods run
+ * Bee CLI via Container exec under an opaque per-attempt BEE_CONFIG_DIR, then
+ * delete that directory. This is a one-shot handshake, not a shared Bee login.
  *
  * The runtime must SEE this class for the `migrations` entry (wrangler.jsonc
  * `new_sqlite_classes: ["BeeBridge"]`) to register the Durable Object, so it is
@@ -23,7 +22,33 @@
  */
 
 import { Container } from "@cloudflare/containers";
+import {
+  BROKER_HELPER_ARGV,
+  assertBrokerId,
+  brokerConfigDir,
+  parseBrokerResume,
+  parseBrokerStart,
+  type BrokerClearResult,
+  type BrokerResumeResult,
+  type BrokerStartResult,
+} from "./broker";
 import type { Env } from "./types";
+
+/** Only host + SNI are passed into the container process environment. */
+export function bridgeContainerEnv(env: Pick<Env, "BEE_UPSTREAM" | "BEE_SNI">): {
+  BEE_UPSTREAM: string;
+  BEE_SNI: string;
+} {
+  return { BEE_UPSTREAM: env.BEE_UPSTREAM, BEE_SNI: env.BEE_SNI };
+}
+
+type ContainerExec = {
+  running: boolean;
+  exec(
+    cmd: string[],
+    options?: { env?: Record<string, string> }
+  ): Promise<{ output(): Promise<{ stdout: ArrayBuffer; stderr: ArrayBuffer; exitCode: number }> }>;
+};
 
 export class BeeBridge extends Container<Env> {
   /** caddy's internal listener (bridge/Caddyfile `:8080` site). The Worker's
@@ -38,10 +63,7 @@ export class BeeBridge extends Container<Env> {
    *  reverse_proxy to Bee would fail. Pass the operator-set secrets through as the
    *  container's environment. Token-AGNOSTIC still holds: no per-user bearer is set
    *  here — that rides the Authorization header per request, straight to Bee. */
-  envVars = {
-    BEE_UPSTREAM: this.env.BEE_UPSTREAM,
-    BEE_SNI: this.env.BEE_SNI,
-  };
+  envVars = bridgeContainerEnv(this.env);
 
   /** Cold-start signal (telemetry only — shape, not application logic). `onStart`
    *  fires when the container starts; the first request after a start is served
@@ -68,5 +90,62 @@ export class BeeBridge extends Container<Env> {
       // the flag set and mark later warm requests as cold in telemetry.
       this.coldPending = false;
     }
+  }
+
+  /** One-shot CLI start: print connect URL only. Never a shared login. */
+  async startBeeBroker(brokerId: string): Promise<BrokerStartResult> {
+    if (!assertBrokerId(brokerId)) return { status: "error", message: "invalid broker id" };
+    try {
+      return parseBrokerStart(await this.execBroker(brokerId, "start"));
+    } catch {
+      return { status: "error", message: "hosted Bee CLI broker unreachable" };
+    }
+  }
+
+  /** Bounded resume under the same opaque directory. Token is returned only
+   *  to the Worker invocation that asked — never logged. */
+  async resumeBeeBroker(brokerId: string): Promise<BrokerResumeResult> {
+    if (!assertBrokerId(brokerId)) return { status: "error", message: "invalid broker id" };
+    try {
+      return parseBrokerResume(await this.execBroker(brokerId, "resume"));
+    } catch {
+      return { status: "error", message: "hosted Bee CLI broker unreachable" };
+    }
+  }
+
+  async clearBeeBroker(brokerId: string): Promise<BrokerClearResult> {
+    if (!assertBrokerId(brokerId)) return { status: "error", message: "invalid broker id" };
+    try {
+      await this.execBroker(brokerId, "clear");
+      return { status: "cleared" };
+    } catch {
+      return { status: "error", message: "hosted Bee CLI broker unreachable" };
+    }
+  }
+
+  private containerExec(): ContainerExec | null {
+    const container = (this.ctx as DurableObjectState & { container?: ContainerExec }).container;
+    return container ?? null;
+  }
+
+  private async execBroker(brokerId: string, command: "start" | "resume" | "clear"): Promise<string> {
+    const dir = brokerConfigDir(brokerId);
+    if (!dir) throw new Error("invalid broker id");
+    const container = this.containerExec();
+    if (!container) throw new Error("container exec unavailable");
+    if (!container.running) {
+      await this.startAndWaitForPorts(this.defaultPort);
+    }
+    const process = await container.exec([...BROKER_HELPER_ARGV, command, brokerId], {
+      env: {
+        BEE_CONFIG_DIR: dir,
+        BEE_FORCE_FILE_STORE: "1",
+        HOME: "/tmp",
+        PATH: "/opt/bee-cli/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      },
+    });
+    const output = await process.output();
+    // Decode stdout for the parser only. Do not log it — resume may carry a token.
+    return new TextDecoder().decode(output.stdout);
   }
 }

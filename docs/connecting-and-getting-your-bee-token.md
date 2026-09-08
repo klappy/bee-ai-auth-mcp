@@ -33,10 +33,10 @@ This doc is about the second leg: getting that Bee token in the first place.
 
 ## Getting your Bee token (manual/CLI fallback path)
 
-The consent screen's own pairing CTA (tap-to-approve deep link or QR, per
-device) needs no separate token — approve in the Bee app and the relay
-receives it directly. The steps below are the manual fallback: obtaining a
-Bee token by hand via the Bee CLI, which needs a computer with Node.
+The consent screen's pairing CTA starts the **hosted** Bee CLI (`bee login
+--no-wait` in an isolated container directory). Approve in the Bee app if
+asked; you do not install or run the CLI yourself. The steps below are the
+manual paste fallback for operators who already have a token on a computer.
 
 1. **Bee iOS app → Developer Mode.** Open the Bee app, go to Settings, and tap
    the app **Version 5 times** to unlock Developer Mode. (Bee's own guide:

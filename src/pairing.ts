@@ -1,5 +1,9 @@
 /**
- * Server-side Bee QR pairing (the consent screen's scan-and-approve path).
+ * Legacy Worker-side Bee QR pairing protocol helpers.
+ *
+ * Consent `/pairing/*` now uses the hosted Bee CLI broker (`src/broker.ts`).
+ * This module remains for protocol facts and unit coverage of the CLI wire
+ * format. Do not add a new Bee app_id here.
  *
  * Replicates the @beeai/cli pairing handshake from inside the Worker so the
  * consent screen can offer a QR instead of token-hunting. Protocol facts were

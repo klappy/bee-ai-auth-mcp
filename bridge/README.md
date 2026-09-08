@@ -1,10 +1,14 @@
 # Private-CA bridge
 
 A single, shared, stateless [caddy](https://caddyserver.com) reverse proxy that lets the
-Worker reach Bee. Bee's direct API uses a **private CA** that a stock Cloudflare Worker
-`fetch` cannot trust ([Bee docs](https://docs.bee.computer/docs/proxy) → *Direct API*; ledger
-E0012). This bridge presents a **public** cert to the Worker and re-originates TLS to Bee
-**trusting `bee-ca.pem`**. The Worker's `BEE_API_BASE` points here; only `/v1/*` is forwarded.
+Worker reach Bee, plus a **one-shot Bee CLI auth broker** invoked only via
+Container `exec()` (kitchen CLI-BROKER-AMENDMENT-2026-09-08). Bee's direct API
+uses a **private CA** that a stock Cloudflare Worker `fetch` cannot trust
+([Bee docs](https://docs.bee.computer/docs/proxy) → *Direct API*; ledger E0012).
+Caddy re-originates TLS to Bee **trusting `bee-ca.pem`**. Only `/v1/*` is
+forwarded on the data plane. The CLI is not a shared Bee login and is not a
+public proxy — each pairing attempt gets its own `/tmp/bee-broker/<opaque-id>`
+directory, then that directory is deleted.
 
 This is the deliberate decision from E0012 (D0021/D0022/D0025): one shared, stateless,
 hardened bridge — **not** per-user containers. Isolation is cryptographic (per-grant

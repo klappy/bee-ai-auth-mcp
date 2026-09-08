@@ -85,4 +85,11 @@ describe("consentForm render", () => {
     expect(body).toContain("signed-blob");
     expect(body).toContain("Please paste your Bee API token.");
   });
+
+  it("tells an email invitee they are connecting their own Bee, not a shared account", async () => {
+    const body = await bodyOf(consentForm("wife@example.com", "signed-blob", false));
+    expect(body).toContain("wife@example.com");
+    expect(body).toContain("does not share another person's Bee account");
+    expect(body).toContain("you do not install or run");
+  });
 });
