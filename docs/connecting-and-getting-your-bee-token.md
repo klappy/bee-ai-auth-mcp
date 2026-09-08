@@ -14,11 +14,11 @@ relates_to: "odd/ledger/2026-06-15-bridge-deployed-container-env-fix-validation-
 ## Invited users: start with the hosted guide
 
 Use [the hosted connection guide](https://bee.klappy.dev/#connect), with
-`https://bee.klappy.dev/mcp`, in Claude, ChatGPT or Grok. Chris approves your
+`https://bee.klappy.dev/mcp`, in Claude, ChatGPT or Grok. Klappy approves your
 GitHub username; you connect your own Bee account. On a phone, use the
 consent screen's Bee-app link; on a computer, scan its QR. No CLI or manual
 token extraction is needed for that flow. The Bee approval says **Bee CLI**.
-Chris's service handles your credential and retrieved data; read
+Klappy's service handles your credential and retrieved data; read
 [privacy and access](https://bee.klappy.dev/security).
 
 The developer notes below preserve the prior pairing-registration findings
@@ -80,7 +80,7 @@ Bee token by hand via the Bee CLI, which needs a computer with Node.
 
 ### Token hygiene
 The token is a long-lived Bee bearer. Treat it like a password: do not paste it
-into chats, issues, or logs. If it is ever exposed, **rotate it**: ask Chris for help removing hosted access and revoking Bee authorization.
+into chats, issues, or logs. If it is ever exposed, **rotate it**: ask Klappy for help removing hosted access and revoking Bee authorization.
 Client disconnection alone does not prove relay-grant deletion or Bee-side revocation.
 Inside the relay it is held only in your encrypted grant props — never shown to
 the AI client, never logged, never serialized into an error.

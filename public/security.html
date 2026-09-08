@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Security &amp; custody — bee-ai-auth-mcp</title>
-<meta name="description" content="The honest security model: two separated auth legs, what's stored and how it's encrypted, how revocation actually works, and the tradeoff when Chris hosts the connector for invited users." />
+<meta name="description" content="The honest security model: two separated auth legs, what's stored and how it's encrypted, how revocation actually works, and the tradeoff when Klappy hosts the connector for invited users." />
 <meta property="og:type" content="article" />
 <meta property="og:title" content="Security &amp; custody — bee-ai-auth-mcp" />
 <meta property="og:description" content="Understand hosted credential custody, access and disconnection." />
@@ -36,13 +36,13 @@
 </header>
 
 <main class="wrap">
-  <div class="callout info"><p class="h">Invited by Chris?</p><p>Use the <a href="/#connect">hosted connection guide</a> to connect your own Bee. Chris manages this service; you do not need to deploy software or change server settings.</p></div>
+  <div class="callout info"><p class="h">Invited by Klappy?</p><p>Use the <a href="/#connect">hosted connection guide</a> to connect your own Bee. Klappy manages this service; you do not need to deploy software or change server settings.</p></div>
 
   <section class="page-hero flush">
     <p class="breadcrumb"><a href="/">Home</a> / Security</p>
     <p class="eyebrow">Access &amp; privacy</p>
     <h1>What's held, what isn't, and how to revoke.</h1>
-    <p class="lede">Custody is the whole question with a credential relay. On Chris's hosted service, your Bee credential is held in an encrypted grant on infrastructure Chris operates. You trust the operator and hosting infrastructure to handle that access; retrieved material also reaches your AI provider.</p>
+    <p class="lede">Custody is the whole question with a credential relay. On Klappy's hosted service, your Bee credential is held in an encrypted grant on infrastructure Klappy operates. You trust the operator and hosting infrastructure to handle that access; retrieved material also reaches your AI provider.</p>
   </section>
 
   <section class="prose">
@@ -56,10 +56,10 @@
     <p>It lives only in your own encrypted grant props — never a shared Worker secret. The service is designed to keep credentials out of logs, URLs, errors and tool output. The exposed Bee tools perform read-only retrieval. Retrieved conversation data passes through the service to your AI provider.</p>
 
     <h2>Revocation — said plainly</h2>
-    <p>Disconnect Bee in your AI app to stop using it there. This does not erase material already included in chats or guarantee revocation of the credential at Bee. For help removing hosted access or revoking Bee authorization, ask Chris.</p>
+    <p>Disconnect Bee in your AI app to stop using it there. This does not erase material already included in chats or guarantee revocation of the credential at Bee. For help removing hosted access or revoking Bee authorization, ask Klappy.</p>
 
     <h2>Who can use the hosted service</h2>
-    <p>Every login is checked against <code>ALLOWED_GITHUB_LOGIN</code>. Chris manages the list of invited GitHub usernames. Each allowed user connects their own Bee account.</p>
+    <p>Every login is checked against <code>ALLOWED_GITHUB_LOGIN</code>. Klappy manages the list of invited GitHub usernames. Each allowed user connects their own Bee account.</p>
 
     <h2>Hosted access and self-hosting</h2>
     <p>The hosted service is for invited friends and family. Encryption at rest does not remove trust in the operator: the service handles your credential and retrieved data while making requests. Self-hosting puts deployment control in your hands, along with responsibility for running and securing it.</p>

@@ -2,11 +2,11 @@
 
 > OAuth-secured MCP server that brings your Bee AI pendant's conversations to any MCP client — Claude, Cursor, and other agents, on every surface. Your Bee token is captured when you connect and held only in your own encrypted grant. Read-only by default. MIT.
 
-**Status: PHASE 2 — read surface merged + fresh-context validated (E0021), accept-with-named-residuals (self-host). Phase 1 live & mobile-validated.** The full path runs end-to-end on Cloudflare Workers and is validated on mobile: GitHub identity gate -> your Bee token captured at a consent step into encrypted per-grant props -> a private-CA Container bridge -> Bee `GET /v1/me`. The `whoami` tool returns your Bee identity over the live connector; **Phase 2 adds the read surface — `bee_docs` + `bee_read` (read-only retrieval) — now merged to `main` and fresh-context validated (E0021), with operator-only residuals remaining.** There is **no `BEE_API_TOKEN` Worker secret** — each user's token lives only in their own encrypted grant. Write tools (`bee_write`) and broader hosted hardening (Phase 3) remain future work. Chris already runs a small invitation-only service; this does not close the public deployment gates. `RESUME.md` is the fresh-context entry point; `PRD.md` (v0.5, draft) is the spec.
+**Status: PHASE 2 — read surface merged + fresh-context validated (E0021), accept-with-named-residuals (self-host). Phase 1 live & mobile-validated.** The full path runs end-to-end on Cloudflare Workers and is validated on mobile: GitHub identity gate -> your Bee token captured at a consent step into encrypted per-grant props -> a private-CA Container bridge -> Bee `GET /v1/me`. The `whoami` tool returns your Bee identity over the live connector; **Phase 2 adds the read surface — `bee_docs` + `bee_read` (read-only retrieval) — now merged to `main` and fresh-context validated (E0021), with operator-only residuals remaining.** There is **no `BEE_API_TOKEN` Worker secret** — each user's token lives only in their own encrypted grant. Write tools (`bee_write`) and broader hosted hardening (Phase 3) remain future work. Klappy already runs a small invitation-only service; this does not close the public deployment gates. `RESUME.md` is the fresh-context entry point; `PRD.md` (v0.5, draft) is the spec.
 
-## Invited by Chris?
+## Invited by Klappy?
 
-Use [the hosted connection guide](https://bee.klappy.dev/#connect) for Claude, ChatGPT or Grok, with `https://bee.klappy.dev/mcp`. Chris must approve your GitHub username; you pair your own Bee account. No hosting or CLI installation is needed. The hosted service handles your Bee credential and retrieved data; see [privacy and access](https://bee.klappy.dev/security).
+Use [the hosted connection guide](https://bee.klappy.dev/#connect) for Claude, ChatGPT or Grok, with `https://bee.klappy.dev/mcp`. Klappy must approve your GitHub username; you pair your own Bee account. No hosting or CLI installation is needed. The hosted service handles your Bee credential and retrieved data; see [privacy and access](https://bee.klappy.dev/security).
 
 ## Start here — developers
 
@@ -61,7 +61,7 @@ MIT. See `LICENSE`.
 
 **Connecting your Bee.** Use the consent screen's phone deep link or desktop QR and approve in the Bee app. It is labeled Bee CLI because the relay uses that registration. A manual token path remains a fallback; see `docs/connecting-and-getting-your-bee-token.md`.
 
-**Security model (honest).** Your Bee token is held only in your encrypted grant props (workers-oauth-provider, token-derived key — no master key); it never appears in logs, URLs, errors, or tool output. **Revocation:** client disconnection is not proof of relay-grant deletion or Bee-side revocation. For hosted access removal or help revoking Bee authorization, contact Chris.
+**Security model (honest).** Your Bee token is held only in your encrypted grant props (workers-oauth-provider, token-derived key — no master key); it never appears in logs, URLs, errors, or tool output. **Revocation:** client disconnection is not proof of relay-grant deletion or Bee-side revocation. For hosted access removal or help revoking Bee authorization, contact Klappy.
 
 **Tools.** `whoami` (credential smoke check, `GET /v1/me`), plus the Phase-2 read surface: `bee_docs` (serves the Bee API usage reference) and `bee_read` (read-only — GET any `/v1/*`, POST only to the allow-listed `/v1/search/*`; `/v1/stream` and all mutations refused). `bee_write` is deferred to a future write phase. Fewer tools, good docs by design.
 

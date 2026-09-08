@@ -12,11 +12,11 @@ The following preserves the homepage's wording, including expandable guides and 
 
 [Connect](#connect)[Help](#help)
 
-For friends & family · Hosted by Chris
+For friends & family · Hosted by Klappy
 
 ### Your Bee, in the AI you already use.
 
-Ask Claude, ChatGPT or Grok about conversations your Bee captured. Chris hosts the connection; you connect **your own Bee account**.
+Ask Claude, ChatGPT or Grok about conversations your Bee captured. Klappy hosts the connection; you connect **your own Bee account**.
 
 Your connector URL
 
@@ -32,7 +32,7 @@ Before you start
 
 #### Three things to have ready.
 
-- **An invitation from Chris.** Send him your GitHub username so he can approve access.
+- **An invitation from Klappy.** Send him your GitHub username so he can approve access.
 - **Your own GitHub account.** It identifies you during sign-in. No coding or repository access is needed. [Create an account](https://github.com/signup) if you need one.
 - **Your Bee app, signed in on your phone.** You'll approve the connection there. Your AI account must also support custom connectors.
 
@@ -82,7 +82,7 @@ These guides describe each platform's supported setup. They are not a promise th
 
 ##### Sign in with your approved GitHub account
 
-GitHub checks who you are. Use the username you shared with Chris.
+GitHub checks who you are. Use the username you shared with Klappy.
 
 2
 
@@ -110,11 +110,11 @@ Your account · Your choice
 
 #### Know what you're connecting.
 
-This service can read your Bee conversations; it does not edit or delete them. Each connection uses the Bee account you approve, not Chris's account.
+This service can read your Bee conversations; it does not edit or delete them. Each connection uses the Bee account you approve, not Klappy's account.
 
-**Chris operates the hosted service.** It holds your Bee credential in an encrypted connection grant and processes retrieved data on the way to your AI app. This means trusting Chris and the hosting infrastructure with that access. Your AI provider receives the material you retrieve, subject to its own settings and policies.
+**Klappy operates the hosted service.** It holds your Bee credential in an encrypted connection grant and processes retrieved data on the way to your AI app. This means trusting Klappy and the hosting infrastructure with that access. Your AI provider receives the material you retrieve, subject to its own settings and policies.
 
-Disconnect Bee in your AI app when you no longer want to use it there. That does not erase material already included in chats. For help removing hosted access or revoking Bee authorization, ask Chris.
+Disconnect Bee in your AI app when you no longer want to use it there. That does not erase material already included in chats. For help removing hosted access or revoking Bee authorization, ask Klappy.
 
 [More about access & privacy →](/security)
 
@@ -124,7 +124,7 @@ If something gets stuck
 
 “Not authorized” after GitHub sign-in
 
-Check that you signed in with the username Chris approved. If it's right, ask Chris to check your invitation. Any instruction to change server configuration is for the host; you don't need to do that.
+Check that you signed in with the username Klappy approved. If it's right, ask Klappy to check your invitation. Any instruction to change server configuration is for the host; you don't need to do that.
 
 I can't find the connector option
 
@@ -136,7 +136,7 @@ Make sure Bee is installed and signed in. Try the pairing screen's connect URL i
 
 Connected, but Bee won't answer
 
-Enable Bee in the conversation and try once more. If the error persists, tell Chris which AI app you used and the error message. Keep Bee tokens, pairing codes and private conversation text out of screenshots.
+Enable Bee in the conversation and try once more. If the error persists, tell Klappy which AI app you used and the error message. Keep Bee tokens, pairing codes and private conversation text out of screenshots.
 
 Bee · a klappy.dev service[Privacy & access](/security)[For developers: self-host](/setup)[Source · MIT](https://github.com/klappy/bee-ai-auth-mcp)
 
@@ -153,6 +153,6 @@ Official pages verified by coordinator on 2026-09-08:
 
 Supporting pages distinguish invited hosted users from self-host developers; correct single-tenant custody claims and avoid treating client disconnect as verified grant deletion. Public-registration and broader hardening gates remain open.
 
-Existing runtime consent says “fine for self-hosting” and links /setup; setup now begins with a hosted-guide callout. Existing denial errors mention server configuration; homepage help tells invitees to ask Chris. Runtime wording is outside this ticket's product edits.
+Existing runtime consent says “fine for self-hosting” and links /setup; setup now begins with a hosted-guide callout. Existing denial errors mention server configuration; homepage help tells invitees to ask Klappy. Runtime wording is outside this ticket's product edits.
 
 Checks: static HTML IDs and local link targets, plus executable clipboard success and unavailable-API fallback mocks. No browser/visual QA, authenticated pairing or end-to-end retrieval was performed. Official client support does not prove tested compatibility for every app/account.
