@@ -1,6 +1,6 @@
 # Hosted onboarding — exact copy for approval
 
-Draft: not approved for publication. Runtime, auth, allow-list and artwork unchanged.
+Draft: not approved for publication. This is target-state email onboarding, dependent on verified release of auth PR34. Runtime, auth, allow-list and artwork are unchanged by this homepage PR. Do not publish or invite brother testing before auth E2E and homepage validation pass.
 
 ## Exact homepage text
 
@@ -32,8 +32,8 @@ Before you start
 
 #### Three things to have ready.
 
-- **An invitation from Klappy.** Send him your GitHub username so he can approve access.
-- **Your own GitHub account.** It identifies you during sign-in. No coding or repository access is needed. [Create an account](https://github.com/signup) if you need one.
+- **An invitation from Klappy.** Tell him which email you want to use so he can approve access.
+- **Access to that inbox.** Sign in with the code emailed to you. No GitHub or Cloudflare account is required.
 - **Your Bee app, signed in on your phone.** You'll approve the connection there. Your AI account must also support custom connectors.
 
 1 · Choose your app
@@ -80,9 +80,9 @@ These guides describe each platform's supported setup. They are not a promise th
 
 1
 
-##### Sign in with your approved GitHub account
+##### Sign in with your approved email
 
-GitHub checks who you are. Use the username you shared with Klappy.
+Enter the email Klappy approved, check your inbox, and enter the sign-in code. Already using GitHub with Bee? That sign-in option is still available.
 
 2
 
@@ -122,9 +122,9 @@ If something gets stuck
 
 #### A few quick fixes.
 
-“Not authorized” after GitHub sign-in
+I can't sign in or haven't received a code
 
-Check that you signed in with the username Klappy approved. If it's right, ask Klappy to check your invitation. Any instruction to change server configuration is for the host; you don't need to do that.
+Use the email Klappy approved and check your spam folder for the sign-in code. If you still can't get in, ask Klappy to check your invitation. You don't need to create a GitHub or Cloudflare account or change server settings.
 
 I can't find the connector option
 
