@@ -1,8 +1,8 @@
 /**
  * The Cloudflare Access door — sketch point 6 of ticket bee-relay-cf-access:
  *   1. header absent → GitHub path regression (302 to github.com, unchanged)
- *   2. bad signature → falls through to the GitHub redirect
- *   3. wrong AUD → falls through to the GitHub redirect
+ *   2. bad signature → email route fails closed
+ *   3. wrong AUD → email route fails closed
  *   4. email off-list → 403 deny BEFORE any consent screen renders
  *   5. email on-list → reaches the consent form as that email
  *   6. existing GitHub grants untouched → /consent still honors a
@@ -81,8 +81,8 @@ function envWith(overrides: Record<string, unknown> = {}): any {
   };
 }
 
-function authorizeReq(headers: Record<string, string> = {}): Request {
-  return new Request("https://relay.example/authorize?client_id=client-1", { headers });
+function authorizeReq(headers: Record<string, string> = {}, path = "/authorize/email"): Request {
+  return new Request(`https://relay.example${path}?client_id=client-1`, { headers });
 }
 
 const ctx = {} as ExecutionContext;
@@ -130,26 +130,53 @@ describe("verifyAccessJwt", () => {
 });
 
 describe("/authorize — the two doors", () => {
-  it("header absent: GitHub path regression — 302 to github.com, exactly as before", async () => {
+  it("offers both routes with the original escaped OAuth query when Access is configured", async () => {
+    const res = await BeeAuthHandler.fetch(new Request('https://relay.example/authorize?client_id=client-1&state=a%26b&code_challenge=pkce'), envWith(), ctx);
+    expect(res.status).toBe(200);
+    const body = await res.text();
+    expect(body).toContain('/authorize/email?client_id=client-1&amp;state=a%26b&amp;code_challenge=pkce');
+    expect(body).toContain('/authorize/github?client_id=client-1&amp;state=a%26b&amp;code_challenge=pkce');
+  });
+
+  it("direct GitHub stays reachable when Access is configured and no assertion exists", async () => {
+    const res = await BeeAuthHandler.fetch(authorizeReq({}, "/authorize/github"), envWith(), ctx);
+    expect(res.status).toBe(302);
+    expect(new URL(res.headers.get("location")!).hostname).toBe("github.com");
+  });
+
+  it("missing proof cannot enter the email route", async () => {
     const res = await BeeAuthHandler.fetch(authorizeReq(), envWith(), ctx);
+    expect(res.status).toBe(403);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it.each(["/authorize", "/authorize/email", "/authorize/github"])("rejects unknown OAuth clients on %s", async (path) => {
+    const env = envWith();
+    env.OAUTH_PROVIDER.lookupClient = async () => null;
+    const res = await BeeAuthHandler.fetch(authorizeReq({}, path), env, ctx);
+    expect(res.status).toBe(400);
+    expect(await res.text()).toContain("Unknown client");
+  });
+  it("header absent: GitHub path regression — 302 to github.com, exactly as before", async () => {
+    const res = await BeeAuthHandler.fetch(authorizeReq({}, "/authorize"), envWith({ ACCESS_TEAM_DOMAIN: "", ACCESS_AUD: "" }), ctx);
     expect(res.status).toBe(302);
     const loc = res.headers.get("location") ?? "";
     expect(loc.startsWith("https://github.com/login/oauth/authorize")).toBe(true);
     expect(new URL(loc).searchParams.get("client_id")).toBe("gh-client-id");
   });
 
-  it("bad signature: falls through to the GitHub redirect (no error page, no consent)", async () => {
+  it("bad signature: email route fails closed", async () => {
     const token = await mintAccessJwt({ email: "wife@example.com", key: imposterKeys.privateKey });
     const res = await BeeAuthHandler.fetch(authorizeReq({ [ACCESS_JWT_HEADER]: token }), envWith(), ctx);
-    expect(res.status).toBe(302);
-    expect(res.headers.get("location") ?? "").toContain("github.com/login/oauth/authorize");
+    expect(res.status).toBe(403);
+    expect(res.headers.get("location")).toBeNull();
   });
 
-  it("wrong AUD: falls through to the GitHub redirect", async () => {
+  it("wrong AUD: email route fails closed", async () => {
     const token = await mintAccessJwt({ email: "wife@example.com", aud: "some-other-app" });
     const res = await BeeAuthHandler.fetch(authorizeReq({ [ACCESS_JWT_HEADER]: token }), envWith(), ctx);
-    expect(res.status).toBe(302);
-    expect(res.headers.get("location") ?? "").toContain("github.com/login/oauth/authorize");
+    expect(res.status).toBe(403);
+    expect(res.headers.get("location")).toBeNull();
   });
 
   it("valid JWT, email off-list: 403 deny BEFORE any consent screen renders", async () => {
@@ -173,6 +200,16 @@ describe("/authorize — the two doors", () => {
 });
 
 describe("existing GitHub grants and namespaces stay untouched", () => {
+  it.each(["/consent", "/pairing/start", "/pairing/status"])("rejects unsigned shared state on %s without requiring Access", async (path) => {
+    const form = new FormData();
+    form.set("s", "tampered");
+    const request = path === "/consent"
+      ? new Request(`https://relay.example${path}`, { method: "POST", body: form })
+      : new Request(`https://relay.example${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ s: "tampered" }) });
+    const res = await BeeAuthHandler.fetch(request, envWith(), ctx);
+    expect(res.status).toBe(400);
+    expect(res.headers.get("location")).toBeNull();
+  });
   it("/consent still honors a GitHub-login consent state (dual-namespace re-check)", async () => {
     // A consent state exactly as /callback would sign it for a GitHub login.
     const signed = await signConsent(
