@@ -1,6 +1,6 @@
 # Hosted onboarding — exact copy for approval
 
-Draft: not approved for publication. This is target-state hosted onboarding: Klappy-approved email, inbox code, then Bee approval via the hosted Bee CLI's generated link or QR. It depends on verified release of auth PR34, including Cloudflare config and hosted E2E. Runtime, auth, allow-list and artwork are unchanged by this homepage PR. Do not publish or invite brother testing before those gates, homepage validation, and exact public-copy approval. This draft does not claim the hosted CLI broker is live.
+Draft: not approved for publication. This is target-state hosted onboarding: Klappy-approved email, inbox code, then Bee approval via the hosted Bee CLI's generated link or QR. Commercial framing is a free trial, Standard — Auth Relay (cost-recovery, no price yet), and later value-added services kept separate and unpromised. It depends on verified release of auth PR34, including Cloudflare config and hosted E2E. Runtime, auth, allow-list and artwork are unchanged by this homepage PR. Do not publish or invite brother testing before those gates, homepage validation, and exact public-copy approval. This draft does not claim the hosted CLI broker is live.
 
 ## Exact homepage text
 
@@ -10,7 +10,7 @@ The following preserves the homepage's wording, including expandable guides and 
 
 [ Bee, connected](/)
 
-[Connect](#connect)[Help](#help)
+[Connect](#connect)[Plans](#plans)[Help](#help)
 
 For friends & family · Hosted by Klappy
 
@@ -105,6 +105,30 @@ If the scanner is missing, enable Developer Mode in the Bee app by tapping its a
 > Use Bee to find my most recent conversation. Tell me when it happened and summarize its main points. If you can't access Bee, say so.
 
 A successful response uses Bee and identifies a conversation from your account. If it only gives general advice, ask it to use the Bee connector. No recordings yet? Try again after a conversation appears in your Bee app.
+
+Plans
+
+#### Try first. Standard keeps the relay running.
+
+Standard covers the cost of the hosted authentication relay. Paying for it does not buy Bee, extra tools, or later products.
+
+1
+
+##### Free trial
+
+Try the hosted relay with your own Bee account. Same connector URL, same pairing, same grant. Ask Klappy if you want to start.
+
+2
+
+##### Standard — Auth Relay
+
+A low-cost plan that covers the cost of keeping this hosted authentication relay running: a simple connection, your own Bee account and grant, and a maintained service. The price is not set yet.
+
+→
+
+##### Future value-added services
+
+Separate from Standard. Klappy may later build reusable tools and workflows for Tata, his brother, and himself. Those are not included here and are not promised or priced.
 
 Your account · Your choice
 

@@ -26,3 +26,9 @@ Removed wording that the Worker merely uses or impersonates the Bee CLI pairing 
 This draft is not live readiness. No runtime, allow-list, secrets, dependencies, hosting or artwork changes. Prior independent review is historical and does not approve this amendment.
 
 Checks observed this amendment: homepage unique IDs and internal anchors passed; pairing-registration impersonation phrasing absent from the homepage; GitHub signup/prerequisite absent (optional GitHub remains). Clipboard script unchanged; local success and unavailable-API fallback mocks passed. `npm run typecheck` passed. `npm test`: 49 passed, 2 skipped. No browser/visual QA, authenticated E2E, or preview success claimed.
+
+## Commercial-framing homepage amendment — 2026-09-08
+
+Captain approved the current invitee text direction and asked for a plans ladder on this same draft. Added Free trial, Standard — Auth Relay, and Future value-added services. Standard is cost-recovery for the hosted authentication relay only; no price was invented. Later tools are named as separate and unpromised. Approved pairing copy, MCP URL, Klappy naming, and the release hold are unchanged. No runtime, auth, allow-list, secrets, dependencies, hosting or artwork changes.
+
+Checks observed this amendment: homepage unique IDs (including `#plans`) and internal anchors passed; no invented dollar/period price on the homepage; clipboard success/fallback mocks passed; `npm run typecheck` passed; `npm test`: 49 passed, 2 skipped. No browser/visual QA, authenticated E2E, or live-readiness claimed.
