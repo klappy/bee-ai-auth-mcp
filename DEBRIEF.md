@@ -33,14 +33,8 @@ Captain approved the current invitee text direction and asked for a plans ladder
 
 Checks observed this amendment: homepage unique IDs (including `#plans`) and internal anchors passed; no invented dollar/period price on the homepage; clipboard success/fallback mocks passed; `npm run typecheck` passed; `npm test`: 49 passed, 2 skipped. No browser/visual QA, authenticated E2E, or live-readiness claimed.
 
-## Standard price bound — 2026-09-08
-
-Captain bound Standard — Auth Relay at $24 for 2 years ($1/month equivalent). Homepage and review copy now state that amount. Free trial and future value-added services stay separate; trial length, renewal, processor, refunds, taxes, auto-renewal, and later-service prices remain unspecified. Release hold unchanged.
-
-Checks: unique IDs/internal anchors passed; bound price present; invented commercial terms absent; clipboard mocks passed; `npm run typecheck` passed; `npm test` 49 passed, 2 skipped. No browser/E2E/live-readiness claimed.
-
 ## Standard purchase options — 2026-09-08
 
-Captain corrected Standard to three purchase options for the same Auth Relay: Monthly $5/month; 2-Year $24 for 2 years ($1/month equivalent); Lifetime $100 one time. Not feature tiers. Free trial remains above; future value-added services remain separate and unpriced. Auto-renewal, lifetime-transfer, taxes, refunds, and processor remain unspecified. Release hold unchanged.
+Current bound Auth Relay purchase options: $5/month; $24/year ($2/month equivalent); $100 lifetime one-time. Same service, not feature tiers. Free trial remains above; future value-added services remain separate and unpriced. Earlier option-2 wording was superseded and removed from current review copy. Auto-renewal, lifetime-transfer, taxes, refunds, and processor remain unspecified. Release hold unchanged.
 
-Checks: unique IDs/internal anchors passed; three bound prices present; invented commercial terms absent; clipboard mocks passed; `npm run typecheck` passed; `npm test` 49 passed, 2 skipped. No browser/E2E/live-readiness claimed.
+Checks: unique IDs/internal anchors passed; current three prices present; superseded option-2 wording absent from homepage, review, order, and debrief; clipboard mocks passed; `npm run typecheck` passed; `npm test` 49 passed, 2 skipped. No browser/E2E/live-readiness claimed.
