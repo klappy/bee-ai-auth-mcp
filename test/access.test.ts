@@ -457,6 +457,91 @@ describe("consent/pairing identity rechecks do not require Access", () => {
       message: "Pairing state invalid or stale — get a new code.",
     });
     expect(brokerMock.resumeBeeBroker).not.toHaveBeenCalled();
+    expect(brokerMock.clearBeeBroker).not.toHaveBeenCalled();
+  });
+
+  it("retry start clears only that identity's previous broker dir", async () => {
+    const { sealBrokerState } = await import("../src/broker");
+    const previousId = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+    const sealed = await sealBrokerState(
+      { kind: "cli-broker-v1", brokerId: previousId, login: "wife@example.com", clientId: "client-1", iat: Date.now() },
+      CONSENT_SECRET
+    );
+    brokerMock.startBeeBroker.mockResolvedValue({
+      status: "pending",
+      connectUrl: "https://bee.computer/connect#retry",
+    });
+    const signed = await signConsent(
+      { req: { clientId: "client-1", scope: [], state: "s" }, login: "wife@example.com" },
+      CONSENT_SECRET
+    );
+    const res = await BeeAuthHandler.fetch(
+      new Request("https://relay.example/pairing/start", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ s: signed, p: sealed }),
+      }),
+      envWith(),
+      ctx
+    );
+    expect(res.status).toBe(200);
+    expect(brokerMock.clearBeeBroker).toHaveBeenCalledWith(previousId);
+    expect(brokerMock.startBeeBroker).toHaveBeenCalledTimes(1);
+    expect(brokerMock.startBeeBroker.mock.calls[0][0]).not.toBe(previousId);
+  });
+
+  it("retry start with another identity's sealed blob does not clear that dir", async () => {
+    const { sealBrokerState } = await import("../src/broker");
+    const wifeId = "ffffffffffffffffffffffffffffffff";
+    const sealedForWife = await sealBrokerState(
+      { kind: "cli-broker-v1", brokerId: wifeId, login: "wife@example.com", clientId: "client-1", iat: Date.now() },
+      CONSENT_SECRET
+    );
+    brokerMock.startBeeBroker.mockResolvedValue({
+      status: "pending",
+      connectUrl: "https://bee.computer/connect#klappy",
+    });
+    const signedKlappy = await signConsent(
+      { req: { clientId: "client-1", scope: [], state: "s" }, login: "klappy" },
+      CONSENT_SECRET
+    );
+    const res = await BeeAuthHandler.fetch(
+      new Request("https://relay.example/pairing/start", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ s: signedKlappy, p: sealedForWife }),
+      }),
+      envWith(),
+      ctx
+    );
+    expect(res.status).toBe(200);
+    expect(brokerMock.clearBeeBroker).not.toHaveBeenCalled();
+  });
+
+  it("expired resume clears the owned broker dir", async () => {
+    const { sealBrokerState } = await import("../src/broker");
+    const brokerId = "12121212121212121212121212121212";
+    const sealed = await sealBrokerState(
+      { kind: "cli-broker-v1", brokerId, login: "wife@example.com", clientId: "client-1", iat: Date.now() },
+      CONSENT_SECRET
+    );
+    brokerMock.resumeBeeBroker.mockResolvedValue({ status: "expired" });
+    const signed = await signConsent(
+      { req: { clientId: "client-1", scope: [], state: "s" }, login: "wife@example.com" },
+      CONSENT_SECRET
+    );
+    const res = await BeeAuthHandler.fetch(
+      new Request("https://relay.example/pairing/status", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ s: signed, p: sealed }),
+      }),
+      envWith(),
+      ctx
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ status: "expired" });
+    expect(brokerMock.clearBeeBroker).toHaveBeenCalledWith(brokerId);
   });
 });
 

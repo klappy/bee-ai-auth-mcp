@@ -26,7 +26,7 @@ One-shot hosted Bee CLI broker inside the existing container:
 1. Opaque broker id (never email/login) sealed into consent state.
 2. `BEE_CONFIG_DIR=/tmp/bee-broker/<id>` + `BEE_FORCE_FILE_STORE=1`; `bee login --no-wait`.
 3. Resume under that directory; validate via the existing caddy `/v1/me`; bind the grant.
-4. Delete that directory. Later reads stay on the shared token-agnostic caddy path.
+4. Delete that directory. Retry start and expiry clear only a sealed blob that matches the current identity. Later reads stay on the shared token-agnostic caddy path.
 5. No new Bee app, no new paid Worker, no shared operator session.
 
 ## Architecture decisions required by f615e434 (source-grounded)

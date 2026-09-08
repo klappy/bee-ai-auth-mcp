@@ -16,7 +16,8 @@
  *   /consent   — (POST) verify the signed state, validate the pasted Bee token
  *                via GET /v1/me through the bridge, then completeAuthorization
  *                binding { login, beeToken } into encrypted props.
- *   /pairing/start  — (POST, page JS) verify the signed state, mint an opaque
+ *   /pairing/start  — (POST, page JS) verify the signed state, clear any
+ *                previous owned broker dir from sealed `p`, mint an opaque
  *                broker id, exec hosted Bee CLI `login --no-wait` in an isolated
  *                config dir, return the CLI connect URL/QR + a sealed blob.
  *   /pairing/status — (POST, page JS) resume that same broker dir, validate the
@@ -32,6 +33,7 @@ import { encodeState, decodeState, signConsent, verifyConsent } from "./state";
 import { beeGetMe } from "./bee";
 import {
   newBrokerId,
+  ownedBrokerId,
   sealBrokerState,
   unsealBrokerState,
   type BeeBroker,
@@ -175,7 +177,7 @@ export function consentForm(login: string, signed: string, isMobile: boolean, er
         var myGen = ++gen;
         attempt = 0; done = false; polling = false; clearPairingActions();
          statusEl.textContent = 'Getting a pairing code…';
-         post('/pairing/start', { s: s }).then(function (d) {
+         post('/pairing/start', { s: s, p: p }).then(function (d) {
            if (myGen !== gen) return;
            if (d.status !== 'pending') { retryLink(d.message || 'Could not start pairing.'); return; }
            p = d.p;
@@ -267,6 +269,24 @@ export function isAllowedEmail(email: string, env: Env): boolean {
  *  construction, so one signed `login` field routes to exactly one list. */
 function isAllowedIdentity(login: string, env: Env): boolean {
   return login.includes("@") ? isAllowedEmail(login, env) : isAllowed(login, env);
+}
+
+/** Best-effort delete of one owned broker dir. Wrong identity or a stale blob
+ *  is a no-op — never clear a sibling. */
+async function clearOwnedBrokerDir(
+  broker: BeeBroker,
+  blob: unknown,
+  secret: string,
+  login: string,
+  clientId: string
+): Promise<void> {
+  const id = ownedBrokerId(await unsealBrokerState(str(blob), secret), login, clientId);
+  if (!id) return;
+  try {
+    await broker.clearBeeBroker(id);
+  } catch {
+    /* leftover dir dies with container sleep */
+  }
 }
 
 interface ConsentState {
@@ -437,8 +457,10 @@ export const BeeAuthHandler = {
         return json({ status: "error", message: "Not authorized." }, 403);
       }
 
-      const brokerId = newBrokerId();
       const broker = getContainer(env.BEE_BRIDGE) as unknown as BeeBroker;
+      await clearOwnedBrokerDir(broker, body?.["p"], env.CONSENT_SIGNING_SECRET, cs.login, cs.req.clientId);
+
+      const brokerId = newBrokerId();
       let outcome: Awaited<ReturnType<BeeBroker["startBeeBroker"]>>;
       try {
         outcome = await broker.startBeeBroker(brokerId);
@@ -492,7 +514,10 @@ export const BeeAuthHandler = {
         return json({ status: "error", message: "hosted Bee CLI broker unreachable" }, 502);
       }
       if (outcome.status === "pending") return json({ status: "pending" });
-      if (outcome.status === "expired") return json({ status: "expired" });
+      if (outcome.status === "expired") {
+        await clearOwnedBrokerDir(broker, body?.["p"], env.CONSENT_SIGNING_SECRET, cs.login, cs.req.clientId);
+        return json({ status: "expired" });
+      }
       if (outcome.status === "error") return json({ status: "error", message: outcome.message }, 502);
 
       const beeToken = outcome.token;

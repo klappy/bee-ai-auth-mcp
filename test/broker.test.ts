@@ -17,6 +17,7 @@ import {
   brokerExecArgv,
   extractConnectUrl,
   newBrokerId,
+  ownedBrokerId,
   parseBrokerResume,
   parseBrokerStart,
   sanitizeBrokerLine,
@@ -101,6 +102,20 @@ describe("sealed broker state", () => {
     expect(await unsealBrokerState(blob, "other")).toBeNull();
     expect(await unsealBrokerState(blob.slice(1), "secret")).toBeNull();
     expect(await unsealBrokerState(blob, "secret", state.iat + 16 * 60 * 1000)).toBeNull();
+  });
+
+  it("ownedBrokerId only names the matching identity's directory", () => {
+    const a = {
+      kind: "cli-broker-v1" as const,
+      brokerId: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      login: "wife@example.com",
+      clientId: "client-1",
+      iat: Date.now(),
+    };
+    expect(ownedBrokerId(a, "wife@example.com", "client-1")).toBe(a.brokerId);
+    expect(ownedBrokerId(a, "klappy", "client-1")).toBeNull();
+    expect(ownedBrokerId(a, "wife@example.com", "client-2")).toBeNull();
+    expect(ownedBrokerId(null, "wife@example.com", "client-1")).toBeNull();
   });
 });
 

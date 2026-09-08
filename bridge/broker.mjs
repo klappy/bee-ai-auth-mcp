@@ -166,12 +166,20 @@ function clear(id) {
   emit({ status: "cleared" });
 }
 
-const [cmd, idArg] = process.argv.slice(2);
-if (cmd === "proxy" || process.argv.includes("proxy")) {
-  fail("bee proxy is forbidden in the hosted broker");
+export { takeToken, tokenPath, pairingPath, dirFor };
+
+function dispatch(argv) {
+  const [cmd, idArg] = argv;
+  if (cmd === "proxy" || argv.includes("proxy")) {
+    fail("bee proxy is forbidden in the hosted broker");
+  }
+  const id = assertId(idArg);
+  if (cmd === "start") start(id);
+  else if (cmd === "resume") resume(id);
+  else if (cmd === "clear") clear(id);
+  else fail("unknown broker command");
 }
-const id = assertId(idArg);
-if (cmd === "start") start(id);
-else if (cmd === "resume") resume(id);
-else if (cmd === "clear") clear(id);
-else fail("unknown broker command");
+
+if (!process.env.VITEST) {
+  dispatch(process.argv.slice(2));
+}

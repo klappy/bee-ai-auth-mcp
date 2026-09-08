@@ -238,6 +238,18 @@ export async function unsealBrokerState(
   return state;
 }
 
+/** Id to clear for this consent identity only. Null if the blob is missing,
+ *  stale, or belongs to another login/client — never a sibling directory. */
+export function ownedBrokerId(
+  state: SealedBrokerState | null,
+  login: string,
+  clientId: string
+): string | null {
+  if (!state) return null;
+  if (state.login !== login || state.clientId !== clientId) return null;
+  return assertBrokerId(state.brokerId);
+}
+
 /** Compiled helper — no bun/shell in the final image. */
 export const BROKER_HELPER_ARGV = ["/opt/bee-broker/broker"] as const;
 

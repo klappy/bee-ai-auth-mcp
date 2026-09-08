@@ -94,4 +94,9 @@ describe("consentForm render", () => {
     expect(body).toContain("operator fallback");
     expect(body).not.toContain("npm i -g @beeai/cli");
   });
+
+  it("retry start posts the previous sealed broker blob so the Worker can clear that dir", async () => {
+    const body = await bodyOf(consentForm("wife@example.com", "signed-blob", false));
+    expect(body).toContain("post('/pairing/start', { s: s, p: p })");
+  });
 });
