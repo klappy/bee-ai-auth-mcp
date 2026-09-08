@@ -1,6 +1,6 @@
 # Hosted onboarding — exact copy for approval
 
-Draft: not approved for publication. This is target-state email onboarding, dependent on verified release of auth PR34. Runtime, auth, allow-list and artwork are unchanged by this homepage PR. Do not publish or invite brother testing before auth E2E and homepage validation pass.
+Draft: not approved for publication. This is target-state hosted onboarding: Klappy-approved email, inbox code, then Bee approval via the hosted Bee CLI's generated link or QR. It depends on verified release of auth PR34, including Cloudflare config and hosted E2E. Runtime, auth, allow-list and artwork are unchanged by this homepage PR. Do not publish or invite brother testing before those gates, homepage validation, and exact public-copy approval. This draft does not claim the hosted CLI broker is live.
 
 ## Exact homepage text
 
@@ -34,7 +34,7 @@ Before you start
 
 - **An invitation from Klappy.** Tell him which email you want to use so he can approve access.
 - **Access to that inbox.** Sign in with the code emailed to you. No GitHub or Cloudflare account is required.
-- **Your Bee app, signed in on your phone.** You'll approve the connection there. Your AI account must also support custom connectors.
+- **Your Bee app, signed in on your phone.** You'll approve the connection there. You do not install or run Bee CLI. Your AI account must also support custom connectors.
 
 1 · Choose your app
 
@@ -88,13 +88,13 @@ Enter the email Klappy approved, check your inbox, and enter the sign-in code. A
 
 ##### Approve in your Bee app
 
-On your phone, tap **Open in the Bee app**. On a computer, scan the displayed QR code with your Bee app. The approval is labeled **Bee CLI** because this service uses that pairing registration.
+The hosted service runs Bee's official CLI and shows you the approval link or QR that CLI generates. On your phone, tap **Open in the Bee app**. On a computer, scan the QR with your Bee app. You do not install or run the CLI yourself. The Bee app may label the approval **Bee CLI**.
 
 3
 
 ##### Return to your AI app
 
-Finish any remaining connection prompts and enable Bee for your conversation. You don't need to paste a Bee token into chat.
+After you approve, the hosted service finishes the connection. Complete any remaining prompts and enable Bee for your conversation. You don't need to paste a Bee token into chat.
 
 If the scanner is missing, enable Developer Mode in the Bee app by tapping its app Version five times. The pairing screen also offers a connect URL for the Bee app's **Enter Bee ID** field. [Bee's guide ↗](https://docs.bee.computer/docs/developer-mode)
 
@@ -132,7 +132,7 @@ Try the web version and check your app's guide above. Your plan or workspace per
 
 The Bee link or QR code isn't working
 
-Make sure Bee is installed and signed in. Try the pairing screen's connect URL in Bee's Enter Bee ID field, or restart the connection to get a fresh code. Use the code generated during your own sign-in.
+Make sure Bee is installed and signed in. Try the pairing screen's connect URL in Bee's Enter Bee ID field, or restart the connection so the hosted service can generate a fresh CLI approval. Use the link or QR from your own sign-in.
 
 Connected, but Bee won't answer
 
@@ -147,7 +147,8 @@ Official pages verified by coordinator on 2026-09-08:
 - ChatGPT: https://developers.openai.com/api/docs/guides/developer-mode
 - Grok: https://docs.x.ai/grok/connectors
 - Bee app help already linked by product: https://docs.bee.computer/docs/developer-mode
-- Pairing behavior: existing src/bee-auth.ts at order commit 12b2aba48fbd086a332505d3b279033d975393cc.
+- Hosted pairing architecture (bound, not live): kitchen `rail/3-pass/2026-08-13-bee-relay-cf-access/CLI-BROKER-AMENDMENT-2026-09-08.md` at `2c4d263e7b8f448c2d28b698a66d05ffb2258be9`.
+- Auth capability checkpoint: kitchen `rail/3-pass/2026-08-13-bee-relay-cf-access/EXECUTION-CHECKPOINT-2026-09-08.md` at `875bf92164961168b23a46bb2e066b95b4186e19`. PR34 remains open and unmerged; CLI-broker implementation and hosted E2E are remaining gates. Do not treat current `src/pairing.ts` Worker handshake as the hosted invitee architecture.
 
 ## Limits and supporting corrections
 
@@ -155,4 +156,4 @@ Supporting pages distinguish invited hosted users from self-host developers; cor
 
 Existing runtime consent says “fine for self-hosting” and links /setup; setup now begins with a hosted-guide callout. Existing denial errors mention server configuration; homepage help tells invitees to ask Klappy. Runtime wording is outside this ticket's product edits.
 
-Checks: static HTML IDs and local link targets, plus executable clipboard success and unavailable-API fallback mocks. No browser/visual QA, authenticated pairing or end-to-end retrieval was performed. Official client support does not prove tested compatibility for every app/account.
+Checks: static HTML IDs and local link targets, plus executable clipboard success and unavailable-API fallback mocks. Homepage invitee copy no longer describes Worker pairing-registration impersonation; GitHub signup/prerequisite text remains absent. No browser/visual QA, authenticated pairing or end-to-end retrieval was performed. Official client support does not prove tested compatibility for every app/account. This draft does not claim PR34 or the hosted CLI broker is live.

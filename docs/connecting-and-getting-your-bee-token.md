@@ -15,15 +15,20 @@ relates_to: "odd/ledger/2026-06-15-bridge-deployed-container-env-fix-validation-
 
 Use [the hosted connection guide](https://bee.klappy.dev/#connect), with
 `https://bee.klappy.dev/mcp`, in Claude, ChatGPT or Grok. Klappy approves your
-email; the draft flow uses a sign-in code from your inbox, then you connect your own Bee account. Invitees need no GitHub or Cloudflare account. **Release hold:** email onboarding depends on auth PR34 being released and verified; existing GitHub login remains optional. On a phone, use the
-consent screen's Bee-app link; on a computer, scan its QR. No CLI or manual
-token extraction is needed for that flow. The Bee approval says **Bee CLI**.
+email; the draft flow uses a sign-in code from your inbox. The hosted service
+then runs Bee's official CLI and shows you its approval link or QR; you
+approve in the Bee app. Invitees need no GitHub or Cloudflare account, and
+they do not install or run the CLI. **Release hold:** email onboarding and
+the hosted CLI broker depend on auth PR34 being released and verified;
+existing GitHub login remains optional. No manual token extraction is needed
+for that flow. The Bee app may still label the approval **Bee CLI**.
 Klappy's service handles your credential and retrieved data; read
 [privacy and access](https://bee.klappy.dev/security).
 
-The developer notes below preserve the prior pairing-registration findings
-and broader public-deployment gates. They do not claim those gates are closed
-by the existing small invitation-only service.
+The developer notes below preserve prior pairing-registration findings and
+broader public-deployment gates. They describe the currently shipped Worker
+handshake and the now-bound hosted CLI-broker target. They do not claim
+PR34 or the hosted CLI broker is live.
 
 > This is the connect-flow runbook the consent screen links to. The consent
 > screen itself now offers a relay-native pairing CTA (device-aware: a
@@ -149,5 +154,6 @@ any public/multi-tenant deployment.
   `app-api-developer.ce.bee.amazon.dev` (from `bee status`).
 - **Remaining (formal DoD):** a three-pass re-run, a demonstrated second-login
   denial, and a no-token-in-logs audit.
-- **Built:** the *laptop-free* relay-native pairing CTA on the consent screen (device-aware: tap-to-approve deep link on mobile, QR on desktop, both with a copyable connect URL) — it reuses the CLI's `app_id` (the Demo-only path above), which is why the Bee app names the approval "Bee CLI". A relay-registered `app_id` (the Clean path) remains unbuilt and is gated for any public/multi-tenant deployment. CLI-broker variant unevaluated. The CLI-assisted paste path (above) remains the manual fallback and needs no `app_id`.
+- **Built on this branch:** the *laptop-free* relay-native pairing CTA on the consent screen (device-aware: tap-to-approve deep link on mobile, QR on desktop, both with a copyable connect URL) still uses the Demo-only Worker handshake in `src/pairing.ts`.
+- **Hosted architecture (bound, not live):** kitchen `CLI-BROKER-AMENDMENT-2026-09-08.md` at `2c4d263e7b8f448c2d28b698a66d05ffb2258be9` binds the hosted invitee path to a one-shot Bee CLI broker. Auth PR34 remains open; Cloudflare config and hosted E2E are remaining gates. Do not treat this homepage draft as hosted CLI-broker readiness. The CLI-assisted paste path (above) remains the manual fallback and needs no `app_id`.
 
