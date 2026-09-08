@@ -97,19 +97,12 @@ jobs:
         run: |
           EXPECTED_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
           URL="${{ steps.gate.outputs.base_url }}/version"
-          DEPLOYED=$(curl -fs --max-time 10 "$URL" 2>/dev/null || true)
+          # curl -f fails the step on transport/HTTP error (fail-closed).
+          DEPLOYED="$(curl -fsS --max-time 10 "$URL" | tr -d '[:space:]')"
           echo "Isolated Worker /version: '${DEPLOYED:-<none>}'"
           echo "Commit under test: ${EXPECTED_SHA}"
-          case "$EXPECTED_SHA" in
-            "$DEPLOYED"*)
-              echo "Isolated Worker is serving the commit under test."
-              ;;
-            *)
-              echo "Isolated Worker is not serving the commit under test."
-              echo "Refuse smoke against a stale or other SHA. Set DEPLOYED_VALIDATION_URL only when that Worker tracks this PR head."
-              exit 1
-              ;;
-          esac
+          chmod +x scripts/check-deployed-version.sh
+          scripts/check-deployed-version.sh "$EXPECTED_SHA" "$DEPLOYED"
 
       - name: Run smoke battery against isolated Worker
         if: steps.gate.outputs.skip == 'false'
