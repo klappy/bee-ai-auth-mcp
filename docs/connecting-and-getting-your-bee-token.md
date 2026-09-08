@@ -11,6 +11,20 @@ relates_to: "odd/ledger/2026-06-15-bridge-deployed-container-env-fix-validation-
 
 # Connecting bee-ai-auth-mcp — How a User Gets Their Bee Token
 
+## Invited users: start with the hosted guide
+
+Use [the hosted connection guide](https://bee.klappy.dev/#connect), with
+`https://bee.klappy.dev/mcp`, in Claude, ChatGPT or Grok. Chris approves your
+GitHub username; you connect your own Bee account. On a phone, use the
+consent screen's Bee-app link; on a computer, scan its QR. No CLI or manual
+token extraction is needed for that flow. The Bee approval says **Bee CLI**.
+Chris's service handles your credential and retrieved data; read
+[privacy and access](https://bee.klappy.dev/security).
+
+The developer notes below preserve the prior pairing-registration findings
+and broader public-deployment gates. They do not claim those gates are closed
+by the existing small invitation-only service.
+
 > This is the connect-flow runbook the consent screen links to. The consent
 > screen itself now offers a relay-native pairing CTA (device-aware: a
 > tap-to-approve deep link on a phone, a QR on desktop, both with a copyable
@@ -66,8 +80,8 @@ Bee token by hand via the Bee CLI, which needs a computer with Node.
 
 ### Token hygiene
 The token is a long-lived Bee bearer. Treat it like a password: do not paste it
-into chats, issues, or logs. If it is ever exposed, **rotate it**: disconnect at
-the relay to delete the relay's copy, then re-pair / rotate in the Bee app.
+into chats, issues, or logs. If it is ever exposed, **rotate it**: ask Chris for help removing hosted access and revoking Bee authorization.
+Client disconnection alone does not prove relay-grant deletion or Bee-side revocation.
 Inside the relay it is held only in your encrypted grant props — never shown to
 the AI client, never logged, never serialized into an error.
 
@@ -136,3 +150,4 @@ any public/multi-tenant deployment.
 - **Remaining (formal DoD):** a three-pass re-run, a demonstrated second-login
   denial, and a no-token-in-logs audit.
 - **Built:** the *laptop-free* relay-native pairing CTA on the consent screen (device-aware: tap-to-approve deep link on mobile, QR on desktop, both with a copyable connect URL) — it reuses the CLI's `app_id` (the Demo-only path above), which is why the Bee app names the approval "Bee CLI". A relay-registered `app_id` (the Clean path) remains unbuilt and is gated for any public/multi-tenant deployment. CLI-broker variant unevaluated. The CLI-assisted paste path (above) remains the manual fallback and needs no `app_id`.
+

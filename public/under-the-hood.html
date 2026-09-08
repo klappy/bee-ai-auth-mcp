@@ -27,7 +27,7 @@
     <a class="brand" href="/"><img src="/favicon.svg" width="24" height="24" alt="" /> bee-ai-auth-mcp</a>
     <nav>
       <a class="nav-hide" href="/under-the-hood" aria-current="page">Under the hood</a>
-      <a href="/setup">Set up</a>
+      <a href="/setup">Self-host</a>
       <a class="nav-hide" href="/security">Security</a>
       <a class="nav-hide" href="/roadmap">Roadmap</a>
       <a class="ghost" href="https://github.com/klappy/bee-ai-auth-mcp">GitHub&nbsp;↗</a>
@@ -36,6 +36,7 @@
 </header>
 
 <main class="wrap">
+  <div class="callout info"><p class="h">Invited by Chris?</p><p>Use the <a href="/#connect">hosted connection guide</a> to connect your own Bee. Chris manages this service; you do not need to deploy software or change server settings.</p></div>
 
   <section class="page-hero flush">
     <p class="breadcrumb"><a href="/">Home</a> / Under the hood</p>
@@ -68,7 +69,7 @@
     <div class="callout info"><p class="h">Why an OAuth App, not a GitHub App</p><p>The sibling <code>git-repo-auth</code> uses a GitHub <em>App</em> because it mints repository tokens. bee only needs to read a login, so a plain <strong>GitHub OAuth App</strong> is the right, smaller primitive. Its <code>client_id</code> and <code>client_secret</code> are the two secrets this leg needs.</p></div>
 
     <h2>Leg two — the relay ↔ Bee <span class="tag live">live</span></h2>
-    <p>This leg carries <em>your</em> Bee credential to Bee. The token is <strong>captured at a consent step when you connect and held only in your own encrypted grant props</strong> — there is no <code>BEE_API_TOKEN</code> Worker secret, and nothing is custodied for anyone else. The relay reaches Bee's read surface: <code>GET /v1/me</code> behind <code>whoami</code>, plus the Phase-2 <code>bee_read</code> passthrough (GET any <code>/v1/*</code>, POST only to <code>/v1/search/*</code>) and the <code>bee_docs</code> reference tool.</p>
+    <p>This leg carries <em>your</em> Bee credential to Bee. The token is <strong>captured at a consent step when you connect and held only in your own encrypted grant props</strong> — there is no <code>BEE_API_TOKEN</code> Worker secret, each invited user supplies their own Bee credential to the hosted service. The relay reaches Bee's read surface: <code>GET /v1/me</code> behind <code>whoami</code>, plus the Phase-2 <code>bee_read</code> passthrough (GET any <code>/v1/*</code>, POST only to <code>/v1/search/*</code>) and the <code>bee_docs</code> reference tool.</p>
     <div class="callout"><p class="h">The private-CA bridge</p><p>A Cloudflare Worker's <code>fetch</code> trusts only publicly-trusted certificates, and Bee's direct API uses a private CA. So the relay reaches Bee through a <strong>Cloudflare Container bound to the Worker</strong> (<code>BEE_BRIDGE</code>) running caddy, which trusts <code>bee-ca.pem</code> and re-originates TLS to Bee. The Worker->container hop is internal (no public hostname or cert); only the container->Bee hop is TLS. Requires the Workers Paid plan.</p></div>
 
     <h2>What's stored</h2>
@@ -86,7 +87,7 @@
     </table>
 
     <h2>Tiers</h2>
-    <p><strong>Tier 1 (Model A, self-host)</strong> is what ships: one deployment, one operator, zero third-party custody. <strong>Tier 2 (hosted, multi-tenant)</strong> is deferred — without an upstream minting primitive it would mean storing many users' long-lived Bee tokens, the exact honeypot self-host avoids. The <a href="/roadmap">roadmap</a> covers why, and the <a href="/security">security model</a> covers the custody trade in full.</p>
+    <p><strong>Self-hosting</strong> remains available for operators who want deployment control. <strong>Chris's hosted service</strong> admits invited GitHub users and stores each connection's Bee credential in its own encrypted grant. This existing small service does not establish completion of the broader hosted-hardening plan. The <a href="/roadmap">roadmap</a> retains those gates; the <a href="/security">security model</a> explains hosted custody.</p>
     <p><a href="https://github.com/klappy/bee-ai-auth-mcp">Read the source on GitHub →</a></p>
   </section>
 
@@ -95,9 +96,9 @@
 <footer>
   <div class="wrap frow">
     <span class="mono">bee-ai-auth-mcp</span><span class="sep">·</span>
-    <span>MIT — self-host-first</span><span class="sep">·</span>
+    <span>MIT · self-hosting available</span><span class="sep">·</span>
     <a href="/">Home</a><span class="sep">·</span>
-    <a href="/setup">Set up</a><span class="sep">·</span>
+    <a href="/setup">Self-host</a><span class="sep">·</span>
     <a href="/security">Security</a><span class="sep">·</span>
     <a href="/roadmap">Roadmap</a><span class="sep">·</span>
     <a href="https://github.com/klappy/bee-ai-auth-mcp">GitHub</a>
@@ -106,3 +107,4 @@
 
 </body>
 </html>
+
