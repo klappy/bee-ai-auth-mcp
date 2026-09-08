@@ -25,7 +25,8 @@
     // REQUIRED — the instance denies all logins until this is set.
     "ALLOWED_GITHUB_LOGIN": "klappy,tatacurly",
     // ---- Cloudflare Access door (email identity BESIDE GitHub OAuth) ----
-    // All three empty = door OFF; /authorize behaves exactly as before.
+    // Both Access vars empty = door OFF; /authorize behaves exactly as before.
+    // ALLOWED_EMAILS is a separate private secret; unset/empty denies every email.
     // To enable: set the Zero Trust team domain (e.g. myteam.cloudflareaccess.com),
     // the Access application's AUD tag, and the email allow-list — then scope the
     // Access app to the BROWSER paths only (/authorize, /consent, /pairing/*,
