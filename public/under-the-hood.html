@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Under the hood — bee-ai-auth-mcp</title>
-<meta name="description" content="How bee-ai-auth-mcp is built: one Cloudflare Worker, two-leg auth (GitHub OAuth for identity + your Bee token captured at consent into an encrypted grant), workers-oauth-provider storage, a private-CA Container bridge, and the MCP surface." />
+<meta name="description" content="How bee-ai-auth-mcp is built: one Cloudflare Worker, two-leg auth (approved identity + your Bee token captured at consent into an encrypted grant), workers-oauth-provider storage, a private-CA Container bridge, and the MCP surface." />
 <meta property="og:type" content="article" />
 <meta property="og:title" content="Under the hood — bee-ai-auth-mcp" />
 <meta property="og:description" content="One Worker, two legs of trust, and an honest account of what's gated and why." />
@@ -57,7 +57,7 @@
     <p>The provider wraps the whole Worker. Requests to <code>/mcp</code> go to the MCP API handler; everything else (identity, health) goes to the default handler. The OAuth endpoints — <code>/authorize</code>, <code>/token</code>, <code>/register</code>, and <code>/.well-known/oauth-authorization-server</code> — are served by the provider itself.</p>
 
     <h2>Leg one — you ↔ the relay <span class="tag live">live</span></h2>
-    <p>This leg proves you're allowed to use the instance. It's a standard OAuth web flow with GitHub as the upstream identity provider:</p>
+    <p>This leg proves you're allowed to use the instance. Hosted invitees use an email approved by Klappy and a code from their inbox, with Cloudflare Access providing the email identity check. No GitHub or Cloudflare account is required. The relay then completes the client's OAuth connection. The optional existing GitHub path works as follows:</p>
     <ol>
       <li>Your MCP client registers itself (dynamic client registration) and opens <code>/authorize</code>.</li>
       <li>The relay 302-redirects to GitHub's <code>/login/oauth/authorize</code> with the instance's <code>GITHUB_CLIENT_ID</code> and a callback of <code>https://&lt;your-worker&gt;/callback</code>.</li>
@@ -87,7 +87,7 @@
     </table>
 
     <h2>Tiers</h2>
-    <p><strong>Self-hosting</strong> remains available for operators who want deployment control. <strong>Klappy's hosted service</strong> admits invited GitHub users and stores each connection's Bee credential in its own encrypted grant. This existing small service does not establish completion of the broader hosted-hardening plan. The <a href="/roadmap">roadmap</a> retains those gates; the <a href="/security">security model</a> explains hosted custody.</p>
+    <p><strong>Self-hosting</strong> remains available for operators who want deployment control. <strong>Klappy's hosted service</strong> admits approved invitees and stores each connection's Bee credential in its own encrypted grant. This existing small service does not establish completion of the broader hosted-hardening plan. The <a href="/roadmap">roadmap</a> retains those gates; the <a href="/security">security model</a> explains hosted custody.</p>
     <p><a href="https://github.com/klappy/bee-ai-auth-mcp">Read the source on GitHub →</a></p>
   </section>
 
