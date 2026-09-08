@@ -98,20 +98,18 @@ security find-generic-password -s bee-cli -a token:prod -w   <span class="c"># p
 
   <section class="prose">
     <h2>Optional: the email door (Cloudflare Access)</h2>
-    <p>Family without GitHub can sign in with an <b>email one-time PIN</b> — Cloudflare Access sits in front of the browser pages, proves the email, and the relay validates the Access JWT server-side (never a bare header). GitHub login keeps working beside it; leave the Access vars empty and this door simply stays off. The separate private <code>ALLOWED_EMAILS</code> secret denies every email when unset or empty.</p>
+    <p>Family without GitHub can sign in with an <b>email one-time PIN</b> — Cloudflare Access protects the separate email route, proves the email, and the relay validates the Access JWT server-side (never a bare header). GitHub login keeps working beside it; leave the Access vars empty and this door simply stays off. The separate private <code>ALLOWED_EMAILS</code> secret denies every email when unset or empty.</p>
     <ol class="steps">
       <li>
         <h3>Create the Access application</h3>
-        <p>Zero Trust dashboard → <strong>Access → Applications → Add an application → Self-hosted</strong>, on your worker's hostname. Scope it to the <em>browser paths only</em> — add path rules for:</p>
-        <pre>/authorize
-/consent
-/pairing/*
-/setup</pre>
+        <p>Zero Trust dashboard → <strong>Access → Applications → Add an application → Self-hosted</strong>, on your worker's hostname. Scope it to this <em>email route only</em>:</p>
+        <pre>/authorize/email</pre>
+        <p>Keep <code>/authorize</code> (the chooser), <code>/authorize/github</code>, <code>/callback</code>, <code>/consent</code>, <code>/pairing/*</code> and public pages outside Access. Shared consent and pairing validate signed, expiring state and re-check the identity allow-list, without requiring an Access session. Narrow older broad Access applications before release and inspect every enabled custom or workers.dev hostname.</p>
         <div class="callout warn"><p class="h">Never put the MCP endpoints behind Access</p><p><code>/register</code>, <code>/token</code>, and <code>/mcp</code> are non-browser endpoints your MCP client calls directly. An Access interstitial on any of them breaks every client connection — for everyone, both doors.</p></div>
       </li>
       <li>
         <h3>Add the login methods</h3>
-        <p>Zero Trust → <strong>Settings → Authentication → Login methods</strong>: add <strong>One-time PIN</strong> (the email door), and optionally <strong>GitHub</strong> as a federated IdP so devs see a familiar "Continue with GitHub" button on the same Access page.</p>
+        <p>Zero Trust → <strong>Settings → Authentication → Login methods</strong>: add <strong>One-time PIN</strong>. The relay chooser offers email and direct GitHub OAuth separately. GitHub federation through Access is not required and does not replace the direct GitHub door.</p>
       </li>
       <li>
         <h3>Write the Access policy</h3>
@@ -119,7 +117,7 @@ security find-generic-password -s bee-cli -a token:prod -w   <span class="c"># p
       </li>
       <li>
         <h3>Point the relay at your team</h3>
-        <p>In <code>wrangler.jsonc</code>, set <code>ACCESS_TEAM_DOMAIN</code> (e.g. <code>myteam.cloudflareaccess.com</code>) and <code>ACCESS_AUD</code> (the application's <strong>AUD tag</strong>, on the app's overview page). Set <code>ALLOWED_EMAILS</code> separately as a <strong>private Worker secret</strong> containing the comma-separated approved addresses, using the operator's secure secret-setting workflow. Never put invited addresses in <code>wrangler.jsonc</code>, source control, logs, or chat. Keep this secret aligned with the Access policy; unset or empty denies every email. Push reviewed code to deploy. The relay verifies each <code>Cf-Access-Jwt-Assertion</code> against <code>https://&lt;team&gt;/cdn-cgi/access/certs</code> with issuer and AUD pinned; a request with no valid assertion falls through to the GitHub login unchanged.</p>
+        <p>In <code>wrangler.jsonc</code>, set <code>ACCESS_TEAM_DOMAIN</code> (e.g. <code>myteam.cloudflareaccess.com</code>) and <code>ACCESS_AUD</code> (the application's <strong>AUD tag</strong>, on the app's overview page). Set <code>ALLOWED_EMAILS</code> separately as a <strong>private Worker secret</strong> containing the comma-separated approved addresses, using the operator's secure secret-setting workflow. Never put invited addresses in <code>wrangler.jsonc</code>, source control, logs, or chat. Keep this secret aligned with the Access policy; unset or empty denies every email. Push reviewed code to deploy. The relay verifies each <code>Cf-Access-Jwt-Assertion</code> against <code>https://&lt;team&gt;/cdn-cgi/access/certs</code> with issuer and AUD pinned; a request to <code>/authorize/email</code> without a valid assertion fails closed with HTTP 403. Direct GitHub OAuth remains available separately; an invalid email assertion never silently changes sign-in methods. Test email and direct GitHub sign-in through shared consent/pairing, plus the MCP flow, before release.</p>
       </li>
     </ol>
   </section>
