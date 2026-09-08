@@ -122,12 +122,11 @@ export function consentForm(login: string, signed: string, isMobile: boolean, er
        <input type="password" name="bee_token" placeholder="Bee API token" autocomplete="off">
        <button type="submit">Authorize</button>
      </form>
-     <details><summary><b>How do I get my Bee token by hand?</b></summary>
+     <details><summary><b>Already have a Bee token? (operator fallback)</b></summary>
+     <p style="font-size:0.9em">Invited users should approve the hosted CLI link or QR above — do not install the CLI. Paste is only for someone who already holds a token.</p>
      <ol style="padding-left:1.2em">
-       <li>In the <b>Bee iOS app</b>, open Settings and tap the app <b>Version 5 times</b> to turn on Developer Mode (<a href="${BEE_TOKEN_HELP}" target="_blank" rel="noopener">Bee's guide</a>).</li>
-       <li>On a computer with Node, run <code>npm i -g @beeai/cli</code>, then <code>bee login --qr</code>, and approve the scan in your Bee app.</li>
-       <li>Print your token — macOS Keychain: <code>security find-generic-password -s bee-cli -a token:prod -w</code>; or file store: <code>cat ~/.bee/token-prod</code>.</li>
-       <li>Paste it above and choose Authorize.</li>
+       <li>If you already have a token, paste it above and choose Authorize. The relay validates it through Bee <code>GET /v1/me</code>.</li>
+       <li>To print an existing local token — macOS Keychain: <code>security find-generic-password -s bee-cli -a token:prod -w</code>; or file store: <code>cat ~/.bee/token-prod</code>. Bee Developer Mode notes: <a href="${BEE_TOKEN_HELP}" target="_blank" rel="noopener">Bee's guide</a>.</li>
      </ol></details>
      <p style="font-size:0.85em">Full walkthrough: <a href="/setup">setup guide</a>. To revoke: disconnect here to delete this copy, then re-pair or rotate in the Bee app.</p>
      <script>

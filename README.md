@@ -19,17 +19,17 @@ A thin Cloudflare Worker: `@cloudflare/workers-oauth-provider` handles the user<
 
 ## Connecting — device-aware pairing at consent
 
-Adding this relay as a custom connector walks you through GitHub sign-in and then a consent screen that pairs directly with your Bee. The screen adapts to the device it renders on:
+Adding this relay as a custom connector walks you through identity (approved email one-time code, or optional GitHub) and then a consent screen that pairs your Bee via the hosted Bee CLI. The screen adapts to the device it renders on:
 
 - **On a phone**, the primary action is a tap-to-approve deep link, **"Open in the Bee app"** — a phone can't usefully scan its own screen — with the QR still available, collapsed behind an "Or scan a QR code" toggle.
 - **On desktop**, the QR stays primary, with a fallback link below it for the case where you're reading this screen on a computer but approving from your phone.
 
-Either way: approve in the Bee app, and the relay receives your token encrypted to a single-use key it minted for that page view, validates it through the bridge, and seals it into your encrypted grant. No CLI install, no keychain spelunking, no copy/paste required. Both variants also show a copyable **connect URL** for manual entry into the Bee app's "Enter Bee ID" field, and the raw-token paste box remains further below as the ultimate fallback.
+Either way: approve the **CLI-generated** deep link or QR in the Bee app. The hosted CLI finishes login under an isolated directory, the Worker validates that invitee's bearer through the bridge, and seals it into **that** encrypted grant. No local CLI install, no GitHub or Cloudflare account for invitees, no shared operator Bee session. Both variants also show a copyable **connect URL** for manual entry into the Bee app's "Enter Bee ID" field. The raw-token paste box remains as the operator fallback.
 
 Two things worth knowing:
 
 - **The hosted Bee CLI is the Bee application.** The bound container execs the real CLI as a one-shot broker under an isolated config directory, then moves that invitee's bearer into their encrypted grant and deletes the broker state. You approve in the Bee app if asked; you do not install the CLI, and you do not inherit anyone else's Bee account. The long-lived data plane remains the shared token-agnostic caddy bridge.
-- **Nothing secret rides in the QR or connect URL.** Both encode only `https://bee.computer/connect#<requestId>`; the token comes back NaCl-boxed to an ephemeral key that never exists at rest anywhere — the consent page carries it between polls only as AES-GCM ciphertext, and the parser accepts the pairing service's completed response whether it puts that token at the top level or nested under `result.encryptedToken`.
+- **Nothing secret rides in the QR or connect URL.** Both encode only `https://bee.computer/connect#<requestId>`. The Bee token stays inside the hosted CLI directory until resume, then moves into the encrypted grant; the consent page carries only sealed broker metadata (opaque id + login + client id), never the token. Helper stdout is never logged.
 
 ## License
 
@@ -53,9 +53,9 @@ MIT. See `LICENSE`.
 3. Create a GitHub **OAuth App** (not a GitHub App): callback `https://<your-worker>/callback`. Set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` as Worker secrets.
 4. In `wrangler.jsonc` set `ALLOWED_GITHUB_LOGIN` to your GitHub login (the instance denies all logins until set). `BEE_UPSTREAM`/`BEE_SNI` (Bee's real API host), the `BEE_BRIDGE` Container, and `bridge/bee-ca.pem` (Bee's public CA roots) are already committed.
 5. **Deploy by pushing the connected production branch** — live `/version` on `bee.klappy.dev` tracks branch `production`, not merge-to-`main` (issue #37). Branch pushes upload a Worker version; this Durable Object + Container Worker does **not** get a Preview URL. No manual `wrangler deploy`. See `docs/ci-cd.md`.
-6. Add the Worker URL as a custom connector in your MCP client, approve the GitHub login, then **paste your Bee token at the consent screen** and run `whoami` (or `bee_docs` / `bee_read`).
+6. Add the Worker URL as a custom connector in your MCP client, sign in (email OTP or GitHub), approve the hosted CLI link/QR in the Bee app, then run `whoami` (or `bee_docs` / `bee_read`).
 
-**Getting your Bee token.** In the Bee iOS app, unlock Developer Mode (tap the app Version 5x); then on a computer with Node run `npm i -g @beeai/cli && bee login --qr` and approve the scan in your Bee app. Read the token from the macOS Keychain (`security find-generic-password -s bee-cli -a token:prod -w`) or `~/.bee/token-prod`, and paste it at the relay's consent screen. A one-tap in-app QR pairing is planned (pending a Bee-registered app id). See `docs/connecting-and-getting-your-bee-token.md`.
+**Getting your Bee token.** The consent screen starts the hosted Bee CLI and shows its connect link/QR — approve that in the Bee app. You do not install the CLI. Paste remains an operator fallback if you already have a token (`docs/connecting-and-getting-your-bee-token.md`).
 
 **Security model (honest).** Your Bee token is held only in your encrypted grant props (workers-oauth-provider, token-derived key — no master key); it never appears in logs, URLs, errors, or tool output. **Revocation:** disconnecting deletes the relay's copy of your token; to fully revoke, re-pair / rotate it in the Bee app.
 

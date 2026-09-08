@@ -10,11 +10,11 @@ export interface Env {
    *  to CONSENT_SIGNING_SECRET; see ticket bee-relay-cf-access). */
   GITHUB_CLIENT_SECRET: string;
   /** Dedicated secret that HMAC-signs the consent round-trip state
-   *  (src/state.ts signConsent/verifyConsent) and keys the sealed pairing
-   *  state (src/pairing.ts, AES-GCM under HKDF). Introduced by the dual-door
-   *  change to end GITHUB_CLIENT_SECRET's dual use. Hard switch: consent and
-   *  pairing states live minutes; any in-flight round-trip at deploy moment
-   *  restarts. Set via `wrangler secret put CONSENT_SIGNING_SECRET`. */
+   *  (src/state.ts signConsent/verifyConsent) and keys the sealed hosted-CLI
+   *  broker state (src/broker.ts, AES-GCM under HKDF). Introduced by the
+   *  dual-door change to end GITHUB_CLIENT_SECRET's dual use. Hard switch:
+   *  consent and broker states live minutes; any in-flight round-trip at
+   *  deploy moment restarts. Set via `wrangler secret put CONSENT_SIGNING_SECRET`. */
   CONSENT_SIGNING_SECRET: string;
   /** Comma-separated GitHub login(s) allowed to use this self-host instance.
    *  Tenancy is governed by this allow-list together with ALLOWED_EMAILS —

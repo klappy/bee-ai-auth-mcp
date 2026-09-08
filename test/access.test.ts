@@ -424,6 +424,40 @@ describe("consent/pairing identity rechecks do not require Access", () => {
     expect(captured.props).toEqual({ login: "wife@example.com", beeToken: "invitee-bee-token" });
     expect(brokerMock.clearBeeBroker).toHaveBeenCalledWith(brokerId);
   });
+
+  it("an invitee cannot finish pairing with another identity's sealed broker state", async () => {
+    const { sealBrokerState } = await import("../src/broker");
+    const sealedForWife = await sealBrokerState(
+      {
+        kind: "cli-broker-v1",
+        brokerId: "dddddddddddddddddddddddddddddddd",
+        login: "wife@example.com",
+        clientId: "client-1",
+        iat: Date.now(),
+      },
+      CONSENT_SECRET
+    );
+    brokerMock.resumeBeeBroker.mockResolvedValue({ status: "completed", token: "should-not-be-used" });
+    const signedKlappy = await signConsent(
+      { req: { clientId: "client-1", scope: [], state: "s" }, login: "klappy" },
+      CONSENT_SECRET
+    );
+    const res = await BeeAuthHandler.fetch(
+      new Request("https://relay.example/pairing/status", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ s: signedKlappy, p: sealedForWife }),
+      }),
+      envWith(),
+      ctx
+    );
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      status: "error",
+      message: "Pairing state invalid or stale — get a new code.",
+    });
+    expect(brokerMock.resumeBeeBroker).not.toHaveBeenCalled();
+  });
 });
 
 describe("non-browser MCP endpoints do not depend on Access", () => {

@@ -12,20 +12,18 @@ relates_to: "odd/ledger/2026-06-15-bridge-deployed-container-env-fix-validation-
 # Connecting bee-ai-auth-mcp — How a User Gets Their Bee Token
 
 > This is the connect-flow runbook the consent screen links to. The consent
-> screen itself now offers a relay-native pairing CTA (device-aware: a
-> tap-to-approve deep link on a phone, a QR on desktop, both with a copyable
-> connect URL for manual entry — see the README's "Connecting" section) — no
-> CLI needed for that path. This doc records the **verified** manual/CLI
-> fallback way to obtain a Bee token, where that token lives, how to hand it
-> to the relay by pasting it, and the finding that explains why that fallback
-> was, for a time, the only path. Validation status is at the bottom — read it
-> before treating anything here as "done."
+> screen starts the **hosted Bee CLI** and shows that CLI's deep link/QR
+> (device-aware: tap-to-approve on a phone, QR on desktop, plus a copyable
+> connect URL). Invitees do not install or run the CLI. This doc also records
+> the **manual paste fallback** for operators who already have a token.
+> Validation status is at the bottom — read it before treating anything here
+> as "done."
 
 ## The two legs (recap)
 
-- **You ↔ relay:** GitHub OAuth, identity gate only. Authenticates you to *this*
-  relay and checks the `ALLOWED_GITHUB_LOGIN` allow-list. The GitHub token is
-  read once for your login, then discarded.
+- **You ↔ relay:** approved email (Cloudflare Access OTP) or optional GitHub
+  OAuth. Authenticates you to *this* relay and checks the matching allow-list.
+  The GitHub token, when used, is read once for your login, then discarded.
 - **Relay ↔ Bee:** your **Bee bearer token**, captured at the consent step and
   bound into your own encrypted OAuth grant props. There is no shared Bee secret.
 
@@ -117,12 +115,15 @@ So a relay that *reimplements* the pairing cannot invent its own `app_id`. **Sco
   data-plane container rejected in D0022 (a transient auth handshake, not an
   always-on MCP).
 
-**Shipped:** the relay-native flow now built on the consent screen took the
-**Demo-only** path above — it reuses the CLI's own `app_id` (`src/pairing.ts`),
-which for a personal self-host is an accepted trade-off; the Bee app names the
-approval "Bee CLI" as a result (called out on the consent screen and in the
-README). The **Clean** (relay-registered `app_id`) path remains the gate for
-any public/multi-tenant deployment.
+**Shipped (2026-09-08, kitchen CLI-BROKER-AMENDMENT f615e434):** the consent
+screen takes the **CLI broker** path. The bound container execs the real Bee
+CLI under an opaque per-attempt `BEE_CONFIG_DIR`; the Worker shows the
+CLI-printed connect URL/QR and binds that attempt's bearer into the invitee's
+encrypted grant. `src/pairing.ts` is leftover Worker-side handshake code and
+is not the live `/pairing/*` path. The Bee app still names the approval
+"Bee CLI" because that is the application identity in use — expected, not a
+second invented app. The **Clean** (relay-registered `app_id`) path remains
+unbuilt and is gated for any public/multi-tenant deployment.
 
 ## Validation status (honest)
 
@@ -135,4 +136,9 @@ any public/multi-tenant deployment.
   `app-api-developer.ce.bee.amazon.dev` (from `bee status`).
 - **Remaining (formal DoD):** a three-pass re-run, a demonstrated second-login
   denial, and a no-token-in-logs audit.
-- **Built:** the *laptop-free* relay-native pairing CTA on the consent screen (device-aware: tap-to-approve deep link on mobile, QR on desktop, both with a copyable connect URL) — it reuses the CLI's `app_id` (the Demo-only path above), which is why the Bee app names the approval "Bee CLI". A relay-registered `app_id` (the Clean path) remains unbuilt and is gated for any public/multi-tenant deployment. CLI-broker variant unevaluated. The CLI-assisted paste path (above) remains the manual fallback and needs no `app_id`.
+- **Built:** hosted Bee CLI broker on the consent screen (device-aware deep
+  link + QR of the CLI-printed `https://bee.computer/connect#…` URL). Isolation
+  is one `BEE_CONFIG_DIR` per attempt, then that invitee's `GrantProps.beeToken`.
+  `bee proxy` is not the data plane. Live container `exec()` + real `bee login`
+  against production remains a human/config gate. The CLI-assisted paste path
+  (above) remains the operator fallback and needs no `app_id`.

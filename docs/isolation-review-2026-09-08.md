@@ -13,7 +13,8 @@ Source review on PR #34 head after the CI/docs continuation. Not live E2E. No se
 
 ## Logging / cache surfaces checked
 
-- `src/pairing.ts` `console.log` only after `sanitizePairingBody` (keys matching `/token|secret|key/i` become `<redacted:N>`).
+- Live `/pairing/*` uses `src/broker.ts`. Helper stdout is never logged; `sanitizeBrokerLine` redacts token/secret/key/authorization/bearer fields if a diagnostic is ever needed. Resume JSON that carries a token is parsed in memory and bound into the grant.
+- `src/pairing.ts` is unused by the live handlers. Its `console.log` still runs only after `sanitizePairingBody` (keys matching `/token|secret|key/i` become `<redacted:N>`).
 - `src/bee.ts` errors return generic messages; no bearer, no Bee body.
 - `src/mcp-api.ts` documents that `beeToken` is never returned; `whoami` returns Bee account identity from `/v1/me`, not the bearer.
 - JWKS is cached per team domain, not per user. No email cache.

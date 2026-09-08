@@ -147,6 +147,9 @@ function clear(id) {
 }
 
 const [cmd, idArg] = process.argv.slice(2);
+if (cmd === "proxy" || process.argv.includes("proxy")) {
+  fail("bee proxy is forbidden in the hosted broker");
+}
 const id = assertId(idArg);
 if (cmd === "start") start(id);
 else if (cmd === "resume") resume(id);

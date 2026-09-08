@@ -91,5 +91,7 @@ describe("consentForm render", () => {
     expect(body).toContain("wife@example.com");
     expect(body).toContain("does not share another person's Bee account");
     expect(body).toContain("you do not install or run");
+    expect(body).toContain("operator fallback");
+    expect(body).not.toContain("npm i -g @beeai/cli");
   });
 });

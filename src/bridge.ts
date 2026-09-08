@@ -23,12 +23,13 @@
 
 import { Container } from "@cloudflare/containers";
 import {
-  BROKER_HELPER_ARGV,
   assertBrokerId,
   brokerConfigDir,
+  brokerExecArgv,
   parseBrokerResume,
   parseBrokerStart,
   type BrokerClearResult,
+  type BrokerCommand,
   type BrokerResumeResult,
   type BrokerStartResult,
 } from "./broker";
@@ -128,15 +129,16 @@ export class BeeBridge extends Container<Env> {
     return container ?? null;
   }
 
-  private async execBroker(brokerId: string, command: "start" | "resume" | "clear"): Promise<string> {
+  private async execBroker(brokerId: string, command: BrokerCommand): Promise<string> {
     const dir = brokerConfigDir(brokerId);
-    if (!dir) throw new Error("invalid broker id");
+    const argv = brokerExecArgv(command, brokerId);
+    if (!dir || !argv) throw new Error("invalid broker id");
     const container = this.containerExec();
     if (!container) throw new Error("container exec unavailable");
     if (!container.running) {
       await this.startAndWaitForPorts(this.defaultPort);
     }
-    const process = await container.exec([...BROKER_HELPER_ARGV, command, brokerId], {
+    const process = await container.exec(argv, {
       env: {
         BEE_CONFIG_DIR: dir,
         BEE_FORCE_FILE_STORE: "1",

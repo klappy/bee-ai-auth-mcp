@@ -19,4 +19,4 @@ Did not: disable local validation; extend the alias poll; point PR CI at product
 
 ## Named cargo
 
-An isolated Git-connected validation Worker with its own DO/Container bindings is the supported hosted E2E route. It does not exist in this repo's config. Hosted email-login acceptance, secret provisioning, and Access-app narrowing remain human gates.
+An isolated Git-connected validation Worker with its own DO/Container bindings is the supported hosted E2E route. It does not exist in this repo's config. When `DEPLOYED_VALIDATION_URL` is later set, CI fails on `/version` SHA mismatch before smoke. Hosted email-login acceptance, secret provisioning, and Access-app narrowing remain human gates.

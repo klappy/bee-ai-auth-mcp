@@ -241,6 +241,17 @@ export async function unsealBrokerState(
 /** Container exec argv prefix. Command + opaque id are appended by BeeBridge. */
 export const BROKER_HELPER_ARGV = ["bun", "/opt/bee-broker/broker.mjs"] as const;
 
+export const BROKER_COMMANDS = ["start", "resume", "clear"] as const;
+export type BrokerCommand = (typeof BROKER_COMMANDS)[number];
+
+/** The only argv BeeBridge may exec. Never `bee proxy` — that injects one
+ *  CLI login's bearer into every /v1 request (bee-cli proxy/index.ts). */
+export function brokerExecArgv(command: string, brokerId: string): string[] | null {
+  if (!BROKER_COMMANDS.includes(command as BrokerCommand)) return null;
+  if (!assertBrokerId(brokerId)) return null;
+  return [...BROKER_HELPER_ARGV, command, brokerId];
+}
+
 export interface BeeBroker {
   startBeeBroker(brokerId: string): Promise<BrokerStartResult>;
   resumeBeeBroker(brokerId: string): Promise<BrokerResumeResult>;

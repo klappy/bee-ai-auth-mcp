@@ -105,8 +105,9 @@ jobs:
               echo "Isolated Worker is serving the commit under test."
               ;;
             *)
-              echo "SHA mismatch is evidence, not a silent pass: smoke still runs against the configured isolated URL."
-              echo "It does not prove this PR head is live there."
+              echo "Isolated Worker is not serving the commit under test."
+              echo "Refuse smoke against a stale or other SHA. Set DEPLOYED_VALIDATION_URL only when that Worker tracks this PR head."
+              exit 1
               ;;
           esac
 
