@@ -39,8 +39,10 @@ docker build -t bee-bridge:local .
 
 The Dockerfile final stage is `gcr.io/distroless/base-debian12:nonroot` plus
 static caddy and two compiled binaries (`bee`, `broker`), running as uid 65532.
-Debian and bun exist only in builder stages. The remaining hardening is
-**run-time** flags — apply them in whatever runs the image:
+Debian and bun exist only in builder stages. The broker helper is the
+narrow token handoff (read isolated `token-prod`, one exec JSON line to
+the Worker, unlink). It is not a shell or a proxy. The remaining
+hardening is **run-time** flags — apply them in whatever runs the image:
 
 ```
 --read-only \

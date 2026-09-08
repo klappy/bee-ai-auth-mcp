@@ -119,6 +119,9 @@ describe("bee proxy is not a hosted multi-user path", () => {
     const helper = readFileSync(new URL("../bridge/broker.mjs", import.meta.url), "utf8");
     const docker = readFileSync(new URL("../bridge/Dockerfile", import.meta.url), "utf8");
     expect(helper).toContain('fail("bee proxy is forbidden in the hosted broker")');
+    expect(helper).toContain("function takeToken");
+    expect(helper).toContain("unlinkSync");
+    expect(helper).toContain("One-shot handoff");
     expect(docker).toContain('ENTRYPOINT ["/usr/bin/caddy"');
     expect(docker).not.toMatch(/ENTRYPOINT.*bee proxy/);
     expect(docker).not.toMatch(/CMD.*bee proxy/);

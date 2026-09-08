@@ -7,11 +7,17 @@
  *   /opt/bee-broker/broker resume <32-hex>
  *   /opt/bee-broker/broker clear  <32-hex>
  *
- * Prints exactly one JSON line on stdout. A token appears only on resume
- * completed. Do not log this process's stdout in the Worker.
+ * Token handoff (review residual): Bee CLI writes token-prod under the
+ * isolated BEE_CONFIG_DIR. This helper is the only process that may read
+ * that file. On resume completed it emits `{token}` as one JSON line on
+ * stdout — the internal Worker↔Container exec pipe — then unlinks
+ * token-prod and pairing-prod.json. The Worker parses that line in memory,
+ * never logs it, validates via caddy /v1/me, binds the grant, then clear.
+ * Not a shell, not cat, not a long-lived proxy, not createBeeClient
+ * (auth.login() does not return the token).
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, unlinkSync } from "node:fs";
 import { resolve } from "node:path";
 
 const BROKER_ID_RE = /^[a-f0-9]{32}$/;
@@ -71,6 +77,20 @@ function readToken(id) {
   }
 }
 
+/** One-shot handoff: read the isolated token, then delete token + pairing. */
+function takeToken(id) {
+  const value = readToken(id);
+  if (!value) return null;
+  for (const path of [tokenPath(id), pairingPath(id)]) {
+    try {
+      if (existsSync(path)) unlinkSync(path);
+    } catch {
+      /* best-effort; clear() still rmdir */
+    }
+  }
+  return value;
+}
+
 function pairingExpiry(id) {
   const path = pairingPath(id);
   if (!existsSync(path)) return null;
@@ -109,7 +129,7 @@ function start(id) {
 }
 
 function resume(id) {
-  const existing = readToken(id);
+  const existing = takeToken(id);
   if (existing) {
     emit({ status: "completed", token: existing });
     return;
@@ -126,7 +146,7 @@ function resume(id) {
   // Bounded resume: the upstream CLI polls until deadline. Kill after a few
   // seconds so the consent page can keep polling without a 5-minute exec.
   runBee(id, ["login"], 8_000);
-  const token = readToken(id);
+  const token = takeToken(id);
   if (token) {
     emit({ status: "completed", token });
     return;

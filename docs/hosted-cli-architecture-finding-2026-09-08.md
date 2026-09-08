@@ -85,5 +85,24 @@ Local `docker build -t bee-bridge:local bridge/` on this seat
 `clear` as uid 65532 writes `/tmp`. Workers Builds image publish
 remains a deploy-time gate.
 
-Default `@cloudflare/workers-types` on this repo still omit `exec()`; the
-call is a runtime-shaped wrapper per Cloudflare Containers docs.
+## Token handoff residual (review note)
+
+Upstream `@beeai/cli` `auth.login()` drives the CLI process and does **not**
+return the token; `secureStore.ts` persists it. A library runner cannot
+satisfy the Worker grant bind. A shared `bee proxy` was rejected (one
+login, unauthenticated `/v1`).
+
+**Chosen boundary:** compiled `/opt/bee-broker/broker` is the only
+process that may read `/tmp/bee-broker/<id>/token-prod`. `resume`
+completed emits one JSON line `{status, token}` on the internal
+`container.exec` stdout pipe (Worker↔Container only). The helper then
+unlinks `token-prod` and `pairing-prod.json`. The Worker parses that
+line in memory, never logs it (`sanitizeBrokerLine` if a diagnostic is
+ever needed), validates through caddy `/v1/me`, binds
+`GrantProps.beeToken`, then `clear` removes the directory.
+
+**Residual vs empty-toolbox Caddy:** two compiled binaries (`bee`,
+`broker`) and one exec stdout line that carries a bearer once. No shell,
+no apt, no bun, no `cat`, no public proxy, no CLI source tree. Container
+platform logs of exec stdout/stderr were not inspected from this seat
+(operator cargo).

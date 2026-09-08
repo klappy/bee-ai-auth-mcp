@@ -147,7 +147,9 @@ export class BeeBridge extends Container<Env> {
       },
     });
     const output = await process.output();
-    // Decode stdout for the parser only. Do not log it — resume may carry a token.
+    // Decode stdout for the parser only. Do not log stdout or stderr —
+    // resume completed is the one-shot token handoff.
+    void output.stderr;
     return new TextDecoder().decode(output.stdout);
   }
 }
