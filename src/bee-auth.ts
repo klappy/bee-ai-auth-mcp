@@ -291,7 +291,7 @@ export const BeeAuthHandler = {
     if (url.pathname === "/version") return new Response(COMMIT_SHA, { status: 200 });
 
     // ---- MCP client begins authorization ----
-    if (url.pathname === "/authorize") {
+    if (["/authorize", "/authorize/email", "/authorize/github"].includes(url.pathname)) {
       let oauthReqInfo: AuthRequest;
       try {
         oauthReqInfo = await env.OAUTH_PROVIDER.parseAuthRequest(request);
@@ -306,14 +306,20 @@ export const BeeAuthHandler = {
       if (!(await env.OAUTH_PROVIDER.lookupClient(oauthReqInfo.clientId))) {
         return html(`<h2>Unknown client</h2><p>Register via <code>/register</code> first.</p>`, 400);
       }
-      // ---- Cloudflare Access fast path (email door; ticket bee-relay-cf-access) ----
-      // A validated Access JWT skips the GitHub leg entirely: email becomes the
-      // identity, straight to the consent form. A VALID identity that is
-      // off-list is denied loudly here — before any consent screen renders.
-      // An absent/invalid assertion (door unconfigured, bad signature, wrong
-      // AUD, expiry) falls through to the GitHub redirect unchanged.
-      const access = await verifyAccessJwt(request, env);
-      if (access) {
+      // Only the email route is protected at the Access edge. The chooser and
+      // direct GitHub route must remain reachable without an Access session.
+      if (url.pathname === "/authorize" && env.ACCESS_TEAM_DOMAIN && env.ACCESS_AUD) {
+        const query = url.search.replaceAll("&", "&amp;").replaceAll('"', "&quot;")
+          .replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+        return html(`<h2>Connect your Bee</h2><p>Choose how to sign in.</p>
+          <a class="btn-hero" href="/authorize/email${query}">Continue with email</a>
+          <p><a href="/authorize/github${query}">Continue with GitHub</a></p>`);
+      }
+      if (url.pathname === "/authorize/email") {
+        const access = await verifyAccessJwt(request, env);
+        if (!access) {
+          return html(`<h2>Email sign-in could not be verified</h2><p>Restart the connection from your client. If this continues, contact the relay operator.</p>`, 403);
+        }
         if (!isAllowedEmail(access.email, env)) {
           return html(
             `<h2>Not authorized</h2><p>Signed in as <b>${access.email}</b>, but this self-host instance only allows its configured operator(s). Set <code>ALLOWED_EMAILS</code> and retry.</p>`,
