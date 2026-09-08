@@ -6,7 +6,7 @@
 
 ## Invited by Klappy?
 
-Use [the hosted connection guide](https://bee.klappy.dev/#connect) for Claude, ChatGPT or Grok, with `https://bee.klappy.dev/mcp`. Klappy must approve your GitHub username; you pair your own Bee account. No hosting or CLI installation is needed. The hosted service handles your Bee credential and retrieved data; see [privacy and access](https://bee.klappy.dev/security).
+Use [the hosted connection guide](https://bee.klappy.dev/#connect) for Claude, ChatGPT or Grok, with `https://bee.klappy.dev/mcp`. The draft email-onboarding path is: Klappy approves your email, you sign in with an inbox code, then pair your own Bee account. Invitees need no GitHub or Cloudflare account, hosting or CLI installation. **Release hold:** this path depends on auth PR34 being released and verified; the homepage draft must not publish before that. Existing GitHub login remains an optional path. The hosted service handles your Bee credential and retrieved data; see [privacy and access](https://bee.klappy.dev/security).
 
 ## Start here — developers
 
@@ -23,7 +23,7 @@ A thin Cloudflare Worker: `@cloudflare/workers-oauth-provider` handles the user<
 
 ## Connecting — device-aware pairing at consent
 
-Adding this relay as a custom connector walks you through GitHub sign-in and then a consent screen that pairs directly with your Bee. The screen adapts to the device it renders on:
+Adding this relay as a custom connector walks you through sign-in and then a consent screen that pairs directly with your Bee. The hosted homepage targets approved-email sign-in after auth PR34 is released and verified; existing GitHub sign-in is preserved. The screen adapts to the device it renders on:
 
 - **On a phone**, the primary action is a tap-to-approve deep link, **"Open in the Bee app"** — a phone can't usefully scan its own screen — with the QR still available, collapsed behind an "Or scan a QR code" toggle.
 - **On desktop**, the QR stays primary, with a fallback link below it for the case where you're reading this screen on a computer but approving from your phone.
