@@ -1,6 +1,6 @@
 # Hosted onboarding — exact copy for approval
 
-Draft: not approved for publication. This is target-state hosted onboarding: Klappy-approved email, inbox code, then Bee approval via the hosted Bee CLI's generated link or QR. Commercial framing is a free trial, Standard — Auth Relay (cost-recovery, no price yet), and later value-added services kept separate and unpromised. It depends on verified release of auth PR34, including Cloudflare config and hosted E2E. Runtime, auth, allow-list and artwork are unchanged by this homepage PR. Do not publish or invite brother testing before those gates, homepage validation, and exact public-copy approval. This draft does not claim the hosted CLI broker is live.
+Draft: not approved for publication. This is target-state hosted onboarding: Klappy-approved email, inbox code, then Bee approval via the hosted Bee CLI's generated link or QR. Commercial framing is a free trial, Standard — Auth Relay at $24 for 2 years ($1/month equivalent), and later value-added services kept separate and unpromised. Trial length, renewal, payment processor, refunds, taxes and later-service prices are unspecified. It depends on verified release of auth PR34, including Cloudflare config and hosted E2E. Runtime, auth, allow-list and artwork are unchanged by this homepage PR. Do not publish or invite brother testing before those gates, homepage validation, and exact public-copy approval. This draft does not claim the hosted CLI broker is live.
 
 ## Exact homepage text
 
@@ -122,7 +122,7 @@ Try the hosted relay with your own Bee account. Same connector URL, same pairing
 
 ##### Standard — Auth Relay
 
-A low-cost plan that covers the cost of keeping this hosted authentication relay running: a simple connection, your own Bee account and grant, and a maintained service. The price is not set yet.
+A low-cost plan that covers the cost of keeping this hosted authentication relay running: a simple connection, your own Bee account and grant, and a maintained service. $24 for 2 years ($1/month equivalent).
 
 →
 

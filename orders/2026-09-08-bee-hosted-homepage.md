@@ -11,3 +11,5 @@ Product scope: existing static homepage and consequential supporting copy; prese
 2026-09-08 CLI-broker copy amendment: homepage draft describes the bound hosted architecture — the service runs Bee's official CLI as a one-shot broker, presents the CLI-generated deep link and/or QR, and finishes the connection after Bee-app approval. Invitees do not install or run the CLI. Do not describe the Worker pairing handshake as the hosted invitee architecture. Still copy-only; still held for PR34 E2E and exact-text approval.
 
 2026-09-08 commercial-framing amendment: captain approved the current invitee text direction and asked for a plans ladder on this same draft — Free trial; Standard — Auth Relay (cost-recovery, no price); future value-added services kept separate and unpromised. Do not invent a price or promise later tools. Still held for PR34 E2E and exact-text approval.
+
+2026-09-08 Standard price bound: $24 for 2 years ($1/month equivalent). Do not invent trial duration, renewal, processor, refunds, taxes, auto-renewal, or future-service prices. Still a review draft.

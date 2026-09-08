@@ -32,3 +32,7 @@ Checks observed this amendment: homepage unique IDs and internal anchors passed;
 Captain approved the current invitee text direction and asked for a plans ladder on this same draft. Added Free trial, Standard — Auth Relay, and Future value-added services. Standard is cost-recovery for the hosted authentication relay only; no price was invented. Later tools are named as separate and unpromised. Approved pairing copy, MCP URL, Klappy naming, and the release hold are unchanged. No runtime, auth, allow-list, secrets, dependencies, hosting or artwork changes.
 
 Checks observed this amendment: homepage unique IDs (including `#plans`) and internal anchors passed; no invented dollar/period price on the homepage; clipboard success/fallback mocks passed; `npm run typecheck` passed; `npm test`: 49 passed, 2 skipped. No browser/visual QA, authenticated E2E, or live-readiness claimed.
+
+## Standard price bound — 2026-09-08
+
+Captain bound Standard — Auth Relay at $24 for 2 years ($1/month equivalent). Homepage and review copy now state that amount. Free trial and future value-added services stay separate; trial length, renewal, processor, refunds, taxes, auto-renewal, and later-service prices remain unspecified. Release hold unchanged.
