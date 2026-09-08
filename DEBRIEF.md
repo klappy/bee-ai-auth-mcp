@@ -38,3 +38,9 @@ Checks observed this amendment: homepage unique IDs (including `#plans`) and int
 Current bound Auth Relay purchase options: $5/month; $24/year ($2/month equivalent); $100 lifetime one-time. Same service, not feature tiers. Free trial remains above; future value-added services remain separate and unpriced. Earlier option-2 wording was superseded and removed from current review copy. Auto-renewal, lifetime-transfer, taxes, refunds, and processor remain unspecified. Release hold unchanged.
 
 Checks: unique IDs/internal anchors passed; current three prices present; superseded option-2 wording absent from homepage, review, order, and debrief; clipboard mocks passed; `npm run typecheck` passed; `npm test` 49 passed, 2 skipped. No browser/E2E/live-readiness claimed.
+
+## Standard positioning — 2026-09-08
+
+Captain refined Standard: it is not frozen as a bare relay forever. Initial promise stays the hosted authentication relay. Copy now says Standard can take on useful Bee-API improvements as they are built, and does not claim those extras exist yet. A higher paid plan may be added later if value or operating cost rises materially; no extra tier name, feature list, or price was invented. Current prices unchanged. Release hold unchanged.
+
+Checks: unique IDs/internal anchors passed; current prices unchanged; no unbuilt-feature claim; clipboard mocks passed; `npm run typecheck` passed; `npm test` 49 passed, 2 skipped. No browser/E2E/live-readiness claimed.
