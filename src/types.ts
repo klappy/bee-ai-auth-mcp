@@ -31,7 +31,8 @@ export interface Env {
   /** The Access application's AUD tag (Zero Trust → Access → Applications).
    *  Pinned as the JWT audience — a token minted for another app is refused. */
   ACCESS_AUD?: string;
-  /** Comma-separated email(s) allowed through the Access door. Lives BESIDE
+  /** Private Worker secret: comma-separated email(s) allowed through the Access
+   *  door. Never commit invited addresses; unset/empty denies all. Lives BESIDE
    *  ALLOWED_GITHUB_LOGIN, never replacing it. Emails contain `@` and GitHub
    *  logins cannot, so the two namespaces are disjoint by construction. */
   ALLOWED_EMAILS?: string;
