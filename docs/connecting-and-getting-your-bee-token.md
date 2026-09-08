@@ -15,7 +15,7 @@ relates_to: "odd/ledger/2026-06-15-bridge-deployed-container-env-fix-validation-
 
 Use [the hosted connection guide](https://bee.klappy.dev/#connect), with
 `https://bee.klappy.dev/mcp`, in Claude, ChatGPT or Grok. Klappy approves your
-GitHub username; you connect your own Bee account. On a phone, use the
+email; the draft flow uses a sign-in code from your inbox, then you connect your own Bee account. Invitees need no GitHub or Cloudflare account. **Release hold:** email onboarding depends on auth PR34 being released and verified; existing GitHub login remains optional. On a phone, use the
 consent screen's Bee-app link; on a computer, scan its QR. No CLI or manual
 token extraction is needed for that flow. The Bee approval says **Bee CLI**.
 Klappy's service handles your credential and retrieved data; read
