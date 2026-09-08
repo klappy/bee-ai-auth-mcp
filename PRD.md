@@ -65,7 +65,7 @@ Give any MCP client read access to a Bee pendant's captured conversations on eve
 - [ ] `whoami` returns the operator's Bee identity over `/v1/me`, demonstrated on a **mobile** surface over the connector (phone-only, three-pass, fresh-context wire check).
 - [ ] The Worker→Bee leg traverses the bound Container bridge (see Approach) because Bee uses a private CA; the bridge passes each request's own bearer through and no secret appears in bridge logs.
 - [ ] Published MIT, open-source, with sanitized prior art (no PII).
-- [ ] Deployed preview reachable; closure carries independent fresh-context validation per release-validation-gate.
+- [ ] Isolated deployed validation reachable when `DEPLOYED_VALIDATION_URL` is set; this Durable Object + Container Worker has no Preview URL. Closure still requires independent fresh-context validation per release-validation-gate.
 
 ---
 
@@ -127,7 +127,7 @@ One thin **auth core** + a **pull/MCP retrieval egress**, on Cloudflare Workers,
 
 Per `klappy://canon/definition-of-done` + `klappy://docs/appendices/online-evidence`:
 
-- [ ] Deployed preview reachable online; evidence viewable without running code locally.
+- [ ] Isolated deployed validation reachable online when a separate Worker exists; Preview URLs are not generated for this Durable Object + Container shape. Evidence viewable without running code locally.
 - [ ] Live proof that OAuth completes, the Bee token is captured into encrypted grant props, and `whoami` returns the Bee account over the connector on a **mobile** surface (phone-only, three-pass, fresh-context).
 - [ ] The Container bridge is deployed bound to the Worker (DO class `BeeBridge`, reached via `getContainer(env.BEE_BRIDGE)`), hardened to the empty-toolbox spec, with no `BEE_API_BASE` URL; a manual check confirms no token in bridge logs.
 - [ ] GitHub allow-list set to one login; a second login is denied (demonstrated, not asserted).

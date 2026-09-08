@@ -14,7 +14,8 @@
  * unvalidated header fails under Access misconfiguration or route bypass).
  *
  * Door-off by construction: with ACCESS_TEAM_DOMAIN / ACCESS_AUD unset, every
- * call returns null and /authorize falls through to the GitHub leg unchanged.
+ * call returns null. /authorize then keeps the GitHub redirect; the dedicated
+ * /authorize/email route fails closed (403) instead of falling through.
  */
 
 import { createRemoteJWKSet, jwtVerify } from "jose";
@@ -47,7 +48,8 @@ export function __resetJwksCacheForTests(): void {
  *  verifies against the team's certs, issuer and audience match the pinned
  *  values, and the token carries a non-empty `email` claim. Anything else —
  *  absent header, unconfigured door, bad signature, wrong issuer/AUD, expiry,
- *  missing email — returns null, and the caller falls through to GitHub.
+ *  missing email — returns null. /authorize/email fails closed on null; it
+ *  never silently falls through to GitHub.
  *
  *  Allow-list membership is deliberately NOT checked here: the caller owns
  *  that decision so a VALID identity that is simply off-list can be denied

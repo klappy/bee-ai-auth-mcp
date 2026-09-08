@@ -86,7 +86,7 @@ security find-generic-password -s bee-cli -a token:prod -w   <span class="c"># p
       </li>
       <li>
         <h3>Deploy by pushing</h3>
-        <p>Connect the repo to Cloudflare Workers Builds, then just push: a push to <code>main</code> deploys to prod (and builds the bridge container image); a branch push is a preview. No manual <code>wrangler deploy</code>.</p>
+        <p>Connect the repo to Cloudflare Workers Builds, then push the connected <strong>production</strong> branch to deploy prod (and build the bridge container image). Live <code>/version</code> on this host has tracked branch <code>production</code>, not merge-to-<code>main</code>. A feature-branch push uploads a Worker version; this Durable Object + Container Worker does not get a Preview URL. No manual <code>wrangler deploy</code>.</p>
         <pre>git push origin main</pre>
       </li>
       <li>

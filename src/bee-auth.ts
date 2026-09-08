@@ -286,8 +286,9 @@ export const BeeAuthHandler = {
     if (url.pathname === "/healthz") return new Response("ok", { status: 200 });
 
     // Commit SHA baked into this immutable version's bundle at build time
-    // (scripts/gen-version.mjs), so CI can confirm this preview is the commit
-    // under test. Per-version by construction — no shared/mutable deploy var.
+    // (scripts/gen-version.mjs). A versions-upload is not a reachable preview
+    // URL for this Durable Object + Container Worker; /version still names
+    // the bundle. Per-version by construction — no shared/mutable deploy var.
     if (url.pathname === "/version") return new Response(COMMIT_SHA, { status: 200 });
 
     // ---- MCP client begins authorization ----

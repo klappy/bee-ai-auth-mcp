@@ -1,10 +1,12 @@
 # Weekly live check vs production — pattern borrowed from
 # klappy/git-repo-auth-mcp/.github/workflows/live-check.yml.
 #
-# PR-time smoke proves the branch preview; this proves prod is still healthy
-# between merges (secret rotation, KV drift, upstream changes). On failure it
-# opens a deduplicated issue. Reads the prod base URL from the PROD_BASE_URL
-# repo variable; if unset (prod not stood up yet), it skips rather than alarm.
+# PR-time deployed smoke is gated on an isolated Worker URL (see ci.yml).
+# This workflow proves prod is still healthy between promotions (secret
+# rotation, KV drift, upstream changes). Live fire has tracked branch
+# `production`, not merge-to-main (issue #37). On failure it opens a
+# deduplicated issue. Reads the prod base URL from the PROD_BASE_URL
+# repo variable; if unset, it skips rather than alarm.
 
 name: Live Check
 

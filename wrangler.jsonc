@@ -25,13 +25,14 @@
     // REQUIRED — the instance denies all logins until this is set.
     "ALLOWED_GITHUB_LOGIN": "klappy,tatacurly",
     // ---- Cloudflare Access door (email identity BESIDE GitHub OAuth) ----
-    // Both Access vars empty = door OFF; /authorize behaves exactly as before.
+    // Both Access vars empty = door OFF; /authorize keeps the GitHub redirect.
     // ALLOWED_EMAILS is a separate private secret; unset/empty denies every email.
-    // To enable: set the Zero Trust team domain (e.g. myteam.cloudflareaccess.com),
-    // the Access application's AUD tag, and the email allow-list — then scope the
-    // Access app to the BROWSER paths only (/authorize, /consent, /pairing/*,
-    // /setup). /register, /token, /mcp must NEVER sit behind Access: they are
-    // non-browser MCP-client endpoints. Full steps: /setup (public/setup.html).
+    // To enable: set the Zero Trust team domain (e.g. myteam.cloudflareaccess.com)
+    // and the Access application's AUD tag, then scope the Access app to
+    // `/authorize/email` ONLY. /authorize (chooser), /authorize/github,
+    // /callback, /consent, /pairing/*, /setup, and the non-browser MCP
+    // endpoints /register, /token, /mcp must NEVER sit behind Access.
+    // Full steps: /setup (public/setup.html).
     "ACCESS_TEAM_DOMAIN": "",
     "ACCESS_AUD": "",
     // Bee's direct-API endpoint, read by BeeBridge (src/bridge.ts) and passed to

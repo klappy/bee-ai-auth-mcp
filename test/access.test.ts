@@ -252,4 +252,94 @@ describe("existing GitHub grants and namespaces stay untouched", () => {
     expect(isAllowedEmail("wife@example.com", env)).toBe(true);
     expect(isAllowedEmail("klappy", env)).toBe(false); // a login is not an email
   });
+
+  it("empty ALLOWED_EMAILS denies every email identity at consent", async () => {
+    const signed = await signConsent(
+      { req: { clientId: "client-1", scope: [], state: "s" }, login: "wife@example.com" },
+      CONSENT_SECRET
+    );
+    const form = new FormData();
+    form.set("s", signed);
+    form.set("bee_token", "irrelevant");
+    const res = await BeeAuthHandler.fetch(
+      new Request("https://relay.example/consent", { method: "POST", body: form }),
+      envWith({ ALLOWED_EMAILS: "" }),
+      ctx
+    );
+    expect(res.status).toBe(403);
+  });
+});
+
+describe("consent/pairing identity rechecks do not require Access", () => {
+  it.each(["/pairing/start", "/pairing/status"])("%s denies an off-list email without an Access JWT", async (path) => {
+    const signed = await signConsent(
+      { req: { clientId: "client-1", scope: [], state: "s" }, login: "stranger@example.com" },
+      CONSENT_SECRET
+    );
+    const res = await BeeAuthHandler.fetch(
+      new Request(`https://relay.example${path}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ s: signed, p: "unused" }),
+      }),
+      envWith(),
+      ctx
+    );
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ status: "error", message: "Not authorized." });
+  });
+
+  it("/pairing/start accepts an on-list GitHub identity and only then reaches the pairing service", async () => {
+    const signed = await signConsent(
+      { req: { clientId: "client-1", scope: [], state: "s" }, login: "klappy" },
+      CONSENT_SECRET
+    );
+    const res = await BeeAuthHandler.fetch(
+      new Request("https://relay.example/pairing/start", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ s: signed }),
+      }),
+      envWith(),
+      ctx
+    );
+    // Identity passed. The certs-only fetch stub makes the pairing POST throw,
+    // which postPairing reports as unreachable — not an Access or allow-list deny.
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ status: "error", message: "pairing service unreachable" });
+  });
+
+  it("/pairing/start accepts an on-list email identity the same way", async () => {
+    const signed = await signConsent(
+      { req: { clientId: "client-1", scope: [], state: "s" }, login: "wife@example.com" },
+      CONSENT_SECRET
+    );
+    const res = await BeeAuthHandler.fetch(
+      new Request("https://relay.example/pairing/start", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ s: signed }),
+      }),
+      envWith(),
+      ctx
+    );
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ status: "error", message: "pairing service unreachable" });
+  });
+});
+
+describe("non-browser MCP endpoints do not depend on Access", () => {
+  it.each(["/register", "/token", "/mcp"])("BeeAuthHandler does not intercept %s or require an Access JWT", async (path) => {
+    const res = await BeeAuthHandler.fetch(
+      new Request(`https://relay.example${path}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
+      envWith(),
+      ctx
+    );
+    expect(res.status).toBe(404);
+    expect(await res.text()).toBe("Not found");
+  });
 });
