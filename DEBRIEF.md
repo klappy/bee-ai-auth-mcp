@@ -36,3 +36,5 @@ Checks observed this amendment: homepage unique IDs (including `#plans`) and int
 ## Standard price bound — 2026-09-08
 
 Captain bound Standard — Auth Relay at $24 for 2 years ($1/month equivalent). Homepage and review copy now state that amount. Free trial and future value-added services stay separate; trial length, renewal, processor, refunds, taxes, auto-renewal, and later-service prices remain unspecified. Release hold unchanged.
+
+Checks: unique IDs/internal anchors passed; bound price present; invented commercial terms absent; clipboard mocks passed; `npm run typecheck` passed; `npm test` 49 passed, 2 skipped. No browser/E2E/live-readiness claimed.
