@@ -50,3 +50,23 @@ Checks: unique IDs/internal anchors passed; current prices unchanged; no unbuilt
 Captain recorded a future-value example: with permission, later work could distill Bee transcripts into a user-owned GitHub knowledge base / second brain. Desired feel: you talk; conversation becomes durable, structured, AI-readable knowledge. Homepage copy labels this Coming exploration and states it is not built. Current relay is not claimed to ingest transcripts in the background, write to GitHub, graph knowledge, or persist a second brain. The example may later land on Standard or on a higher paid plan if processing, storage, or automation is much larger; no extra plan was named or priced. Prices and release hold unchanged.
 
 Checks: unique IDs/internal anchors passed (including `#talk-kb`); current prices unchanged; coming-exploration label present; current-relay implementation claims absent; clipboard mocks passed; `npm run typecheck` passed; `npm test` 49 passed, 2 skipped. No browser/E2E/live-readiness claimed.
+
+## Homepage validation + CI honesty — 2026-09-09
+
+Receiver: existing PR50 writer `bc-538adc5a-d294-493d-828c-d4e29527f8b2`. Cook-order: kitchen `rail/meals/2026-09-08-bee-stripe-billing/COOK-ORDER-2026-09-08.md` on kitchen `2afc5f01871367323898258166f944bc6c2d32fa`. Ticket: `rail/3-pass/2026-09-08-bee-hosted-homepage/TICKET.md`. Return also belongs on meal issue #51.
+
+Local browser (not hosted auth E2E), serving `public/` at `http://127.0.0.1:4173/`:
+- Desktop hero and `#plans` observed; prices `$5/month`, `$24/year — $2/month equivalent`, `$100 lifetime — one-time`; Coming exploration labeled not built.
+- Copy URL success status: `Copied. Paste this URL into your AI app.`
+- Nav anchors `#connect`, `#plans`, `#help` jumped.
+- ChatGPT and Grok details opened; official guide links present.
+- Keyboard tab/focus visible; skip link `href="#main"` present in DOM.
+- Narrow ~400x924 hero and plans readable; URL field + Copy URL usable.
+- Raw `python -m http.server` returned 404 for `/security` and `/setup` (no extensionless HTML map). Session-only pretty-URL mapper on `:4174` returned 200 for `/`, `/security`, `/setup`, `/roadmap`. Homepage hrefs were not changed.
+- Denied-clipboard fallback not re-run in the browser this pass. Hosted email OTP, Bee-app approval, and live MCP retrieval were not performed.
+
+CI honesty reuse from auth PR34 `@6055b780b2dd92163a8c8b5d96c14d8e553180fe` only: replaced obsolete `Resolve preview URL` / `Smoke vs preview` with gated `Deployed validation`. Job `102279387773` on `22b76f78871098133638d061f2612c7d4a8e8f53` observed `/version` `<none>` until timeout; no blind retry of that poll. Unset `DEPLOYED_VALIDATION_URL` is a named skip, not hosted acceptance. No auth source merge, no new Worker, no Cloudflare mutation, no Stripe, no publication.
+
+Browser artifacts: `/opt/cursor/artifacts/homepage_desktop_hero.webp`, `homepage_desktop_plans.webp`, `homepage_copy_url_success.webp`, `homepage_desktop_guides.webp`, `homepage_mobile_hero.webp`, `homepage_mobile_plans.webp`.
+
+Fresh independent review is requested because CI/docs/scripts changed. Homepage `public/index.html` copy was not edited this pass. Bugbot `102294087760` SUCCESS on the previous head `22b76f7` is historical for this new head.
