@@ -35,7 +35,7 @@ Ledger D0031 (2026-06-15) removed the separate `bee-ai-auth-mcp-staging` Worker 
 
 ## `ci.yml` — on every push/PR to `main`
 
-1. **check** — `npm ci` → `npm run typecheck` → `npm test`. Pure units, no network. **This is the required automated gate.**
+1. **check** — `npm ci` → `npm run typecheck` → `npm test`. Pure units, no network. **This is the required automated gate.** Optional `npm run test:image` probes a locally built `bee-bridge:local` (`scripts/probe-bridge-image.sh`). Missing docker/image exits 2 (named skip). It is not a required CI job and does not create a paid Worker.
 2. **deployed-validation** — PR only. Live smoke against `vars.DEPLOYED_VALIDATION_URL` when that repo variable names an **isolated** Worker. If the variable is unset, the job records the named gap and succeeds. When the URL is set, `/version` must be a git SHA of the PR head **before** smoke; mismatch, empty body, unreachable URL, or a non-SHA body fails the job (fail-closed) and smoke does not run. It does **not** poll `https://<slug>-bee-ai-auth-mcp.klappy.workers.dev`. It does **not** smoke `https://bee.klappy.dev` from a PR. It does **not** change the non-production build command into `wrangler deploy`.
 
 **What smoke does NOT do:** exercise the Bee credential. `whoami` needs a captured per-grant Bee token and rides the private-CA Container bridge. Smoke proves only what is honestly provable without secrets: `/healthz` is up, and `/mcp` rejects the unauthenticated. The `whoami` wire check is a manual, phone-only validation step.

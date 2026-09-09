@@ -79,11 +79,13 @@ no apt) + static caddy + those two binaries, `USER 65532:65532`. Debian
 and bun exist only in builder stages.
 
 Local `docker build -t bee-bridge:local bridge/` on this seat
-(2026-09-08): image `26b1de329f5c`, `User=65532:65532`,
-`bee version` → `@beeai/cli 0.7.3`, broker `proxy` → forbidden,
-`/bin/sh` and `/usr/bin/apt-get` and `/usr/local/bin/bun` absent,
-`clear` as uid 65532 writes `/tmp`. Workers Builds image publish
-remains a deploy-time gate.
+(2026-09-09, current `broker.mjs`): image `cac2bff91ef1`,
+`User=65532:65532`, `bee version` → `@beeai/cli 0.7.3`,
+broker `proxy` → forbidden, `/bin/sh` and `/usr/bin/apt-get` and
+`/usr/local/bin/bun` absent, `clear` A and B as uid 65532.
+Probe: `scripts/probe-bridge-image.sh`. Workers Builds image
+publish remains a deploy-time gate. The prior `26b1de329f5c`
+observation was the distroless hardening build, not this helper.
 
 ## Token handoff residual (review note)
 
