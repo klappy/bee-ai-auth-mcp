@@ -20,7 +20,7 @@ Issue receipt: https://github.com/klappy/bee-ai-auth-mcp/issues/51#issuecomment-
 | Git read (GitAuth + cartographer) | Proven |
 | Issue comment via GitAuth `issues:write` | Proven (`5594071917`) |
 | Default `gh` integration comment | Failed (`Resource not accessible by integration`) |
-| Product/kitchen git push | Proven only if this branch lands |
+| Product git push | Proven: `cursor/auggie-meal-coordination-b4be` @ `c94a617`; draft PR52 |
 | Spawn / resume other Cursor agents | **Missing.** `list-cloud-agents` and `batch-fetch-details` read; no inject/follow-up tool. `@cursor` on a PR can mint a **new** leaf — not used |
 | Independent review | Read-only. This seat is not Bugbot/Otto |
 | Merge / deploy / charge | Refused |

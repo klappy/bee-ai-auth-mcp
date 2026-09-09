@@ -6,7 +6,8 @@ This folder is **coordination cargo only**. It is not a product implementation d
 Pinned this receiver: kitchen `0ab326bcbab8106258d6b3447f888f4b1cde4f39`.  
 Order cited by issue `#51`: `COOK-ORDER-2026-09-08.md` at `8b10dcc7458cfb9f48ef5b77620ab80212d6d7af`.
 
-**Receiver / return channel:** https://github.com/klappy/bee-ai-auth-mcp/issues/51
+**Receiver / return channel:** https://github.com/klappy/bee-ai-auth-mcp/issues/51  
+**Coordination draft PR:** https://github.com/klappy/bee-ai-auth-mcp/pull/52
 
 Product code stays on existing writers:
 
