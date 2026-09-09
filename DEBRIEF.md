@@ -63,10 +63,25 @@ Local browser (not hosted auth E2E), serving `public/` at `http://127.0.0.1:4173
 - Keyboard tab/focus visible; skip link `href="#main"` present in DOM.
 - Narrow ~400x924 hero and plans readable; URL field + Copy URL usable.
 - Raw `python -m http.server` returned 404 for `/security` and `/setup` (no extensionless HTML map). Session-only pretty-URL mapper on `:4174` returned 200 for `/`, `/security`, `/setup`, `/roadmap`. Homepage hrefs were not changed.
-- Denied-clipboard fallback not re-run in the browser this pass. Hosted email OTP, Bee-app approval, and live MCP retrieval were not performed.
+- Denied-clipboard fallback was later observed on this same writer (see next section). Hosted email OTP, Bee-app approval, and live MCP retrieval were not performed.
 
 CI honesty reuse from auth PR34 `@6055b780b2dd92163a8c8b5d96c14d8e553180fe` only: replaced obsolete `Resolve preview URL` / `Smoke vs preview` with gated `Deployed validation`. Job `102279387773` on `22b76f78871098133638d061f2612c7d4a8e8f53` observed `/version` `<none>` until timeout; no blind retry of that poll. Unset `DEPLOYED_VALIDATION_URL` is a named skip, not hosted acceptance. No auth source merge, no new Worker, no Cloudflare mutation, no Stripe, no publication.
 
 Browser artifacts: `/opt/cursor/artifacts/homepage_desktop_hero.webp`, `homepage_desktop_plans.webp`, `homepage_copy_url_success.webp`, `homepage_desktop_guides.webp`, `homepage_mobile_hero.webp`, `homepage_mobile_plans.webp`.
 
 Fresh independent review is requested because CI/docs/scripts changed. Homepage `public/index.html` copy was not edited this pass. Bugbot `102294087760` SUCCESS on the previous head `22b76f7` is historical for this new head.
+
+## Clipboard fallback browser evidence — 2026-09-09
+
+Same receiver `bc-538adc5a-d294-493d-828c-d4e29527f8b2`. Source bound to `7776706427c3c4e25db84c5ebeb46b451093d033` (`public/index.html` clipboard script unchanged). Local Chrome on `http://127.0.0.1:4173/`. No homepage/runtime/auth/config/secret/Stripe edits. No preview retry. No duplicate Bugbot of `7776706`.
+
+Observed actions and results:
+1. Permission/API rejection: DevTools `navigator.clipboard.writeText` forced to `Promise.reject(NotAllowedError)`, then Copy URL clicked. Status became `Select and copy the URL above, then paste it into your AI app.` Field showed `https://bee.klappy.dev/mcp` selected. No uncaught console error observed.
+2. Unavailable API: reload, `navigator.clipboard` getter returned `undefined`, then Copy URL clicked. Same fallback status and selected URL. No uncaught console error observed.
+3. Keyboard + narrow: ~375–400px viewport, Tab to Copy URL, Enter, same rejection override. Same fallback status and selected URL. Layout remained usable.
+
+Honest layout note: paths 1–2 were observed with DevTools open in a ~400px responsive pane, not a full-width desktop chrome. Path 3 was iPhone SE 375x667.
+
+Artifacts: `/opt/cursor/artifacts/clipboard_reject_fallback.webp`, `clipboard_unavailable_fallback.webp`, `clipboard_fallback_narrow_keyboard.webp`.
+
+This debrief commit, if any, is a new head; Bugbot on `7776706` is not current for that later SHA. Hosted email/CLI/MCP acceptance and publication remain held.
