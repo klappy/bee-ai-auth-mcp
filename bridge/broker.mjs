@@ -160,13 +160,20 @@ function resume(id) {
 
 function clear(id) {
   const target = resolvedDir(id);
+  try {
+    if (existsSync(target)) {
+      rmSync(target, { recursive: true, force: true });
+    }
+  } catch {
+    fail("hosted Bee CLI broker could not clear isolated directory");
+  }
   if (existsSync(target)) {
-    rmSync(target, { recursive: true, force: true });
+    fail("hosted Bee CLI broker could not clear isolated directory");
   }
   emit({ status: "cleared" });
 }
 
-export { takeToken, tokenPath, pairingPath, dirFor };
+export { takeToken, tokenPath, pairingPath, dirFor, clear };
 
 function dispatch(argv) {
   const [cmd, idArg] = argv;

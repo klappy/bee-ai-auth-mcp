@@ -16,8 +16,10 @@ import {
   brokerConfigDir,
   brokerExecArgv,
   extractConnectUrl,
+  finishBrokerExec,
   newBrokerId,
   ownedBrokerId,
+  parseBrokerClear,
   parseBrokerResume,
   parseBrokerStart,
   sanitizeBrokerLine,
@@ -85,6 +87,56 @@ describe("broker helper wire", () => {
 
   it("rejects a start result that is not a Bee connect URL", () => {
     expect(parseBrokerStart('{"status":"pending","connectUrl":"https://evil.example/x"}\n').status).toBe("error");
+  });
+
+  it("parses clear JSON and refuses empty or unexpected shapes", () => {
+    expect(parseBrokerClear('{"status":"cleared"}\n')).toEqual({ status: "cleared" });
+    expect(parseBrokerClear("")).toEqual({
+      status: "error",
+      message: "hosted Bee CLI broker returned no result",
+    });
+    expect(parseBrokerClear("not-json\n")).toEqual({
+      status: "error",
+      message: "hosted Bee CLI broker returned no result",
+    });
+    expect(parseBrokerClear('{"status":"pending"}\n')).toEqual({
+      status: "error",
+      message: "hosted Bee CLI broker returned an unexpected clear shape",
+    });
+    expect(parseBrokerClear('{"status":"error","message":"hosted Bee CLI broker could not clear isolated directory"}\n')).toEqual({
+      status: "error",
+      message: "hosted Bee CLI broker could not clear isolated directory",
+    });
+  });
+
+  it("nonzero exec exit is never a pending/cleared/completed success", () => {
+    expect(
+      finishBrokerExec({ stdout: '{"status":"cleared"}\n', exitCode: 1 }, parseBrokerClear)
+    ).toEqual({ status: "error", message: "hosted Bee CLI broker failed" });
+    expect(
+      finishBrokerExec(
+        { stdout: '{"status":"pending","connectUrl":"https://bee.computer/connect#abc"}\n', exitCode: 2 },
+        parseBrokerStart
+      )
+    ).toEqual({ status: "error", message: "hosted Bee CLI broker failed" });
+    expect(
+      finishBrokerExec(
+        { stdout: '{"status":"completed","token":"invitee-bee-token"}\n', exitCode: 1 },
+        parseBrokerResume
+      )
+    ).toEqual({ status: "error", message: "hosted Bee CLI broker failed" });
+    expect(finishBrokerExec({ stdout: '{"status":"cleared"}\n', exitCode: 0 }, parseBrokerClear)).toEqual({
+      status: "cleared",
+    });
+    expect(
+      finishBrokerExec(
+        { stdout: '{"status":"error","message":"hosted Bee CLI broker could not clear isolated directory"}\n', exitCode: 2 },
+        parseBrokerClear
+      )
+    ).toEqual({
+      status: "error",
+      message: "hosted Bee CLI broker could not clear isolated directory",
+    });
   });
 });
 

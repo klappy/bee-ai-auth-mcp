@@ -4,7 +4,7 @@
  */
 import { mkdirSync, writeFileSync, existsSync, rmSync, readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
-import { dirFor, pairingPath, takeToken, tokenPath } from "../bridge/broker.mjs";
+import { clear, dirFor, pairingPath, takeToken, tokenPath } from "../bridge/broker.mjs";
 
 const A = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const B = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -38,5 +38,13 @@ describe("helper takeToken isolation", () => {
     expect(existsSync(pairingPath(B))).toBe(true);
     expect(takeToken(B)).toBe("token-b");
     expect(existsSync(tokenPath(B))).toBe(false);
+  });
+
+  it("clearing A does not remove B", () => {
+    seed(A, "token-a");
+    seed(B, "token-b");
+    clear(A);
+    expect(existsSync(dirFor(A))).toBe(false);
+    expect(readFileSync(tokenPath(B), "utf8")).toBe("token-b");
   });
 });

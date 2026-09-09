@@ -108,3 +108,10 @@ ever needed), validates through caddy `/v1/me`, binds
 no apt, no bun, no `cat`, no public proxy, no CLI source tree. Container
 platform logs of exec stdout/stderr were not inspected from this seat
 (operator cargo).
+
+**Clear honesty:** `clearBeeBroker` may report `{status:"cleared"}` only
+after helper exit 0 and `{status:"cleared"}` JSON. Nonzero exec, empty
+stdout, or a leftover directory after `rmSync` fail closed with a
+sanitized error. This does not prove production directories were
+removed; it only stops the Worker from claiming a cleanup it did not
+observe.

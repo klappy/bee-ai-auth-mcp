@@ -37,7 +37,7 @@ This seat is **not** Auggie. It is the recovered PR34 implementation worker:
 | Evidence | Result |
 |---|---|
 | Local `tsc --noEmit` | clean |
-| Local `npm test` | **102 passed / 2 skipped** (live smoke unset) |
+| Local `npm test` | **118 passed / 2 skipped** (live smoke unset). Includes `test/bridge-exec.test.ts` fail-closed exec/clear honesty after reproducing 6 success-on-failure cases on `e912920`. |
 | Local `scripts/probe-bridge-image.sh bee-bridge:local` | **pass**. Image `cac2bff91ef1`. User `65532:65532`. `bee version` = `@beeai/cli 0.7.3`. `broker proxy` forbidden. `clear` A and B as 65532. No `/bin/sh`, apt-get, or bun in the final image. |
 | GitHub Actions `34291837385` on `714edea` | success. Typecheck & Unit success. Deployed validation success **because `DEPLOYED_VALIDATION_URL` is empty** — named skip, not live acceptance. |
 | Workers Builds check `102280033835` | success. Upload is not reachable auth and not production. |
@@ -46,7 +46,9 @@ This seat is **not** Auggie. It is the recovered PR34 implementation worker:
 
 ## Goal advanced
 
-Hosted CLI broker remains the live `/pairing/*` path. Retry/expiry clear only an owned sealed broker id (`714edea`). This turn added a supported image/runtime probe and rebuilt the helper binary from current `bridge/broker.mjs`. Distroless/non-root Dockerfile was **not** recooked. SHA-mismatch CI was **not** recooked. Stripe was **not** touched. PR50 was **not** edited.
+Hosted CLI broker remains the live `/pairing/*` path. Retry/expiry clear only an owned sealed broker id (`714edea`). Image probe and sanitized handshake remain as previously recorded.
+
+This turn (clear honesty on `e912920`): bounded regression reproduced `clearBeeBroker` reporting `cleared` on empty/malformed/nonzero helper output, and start/resume treating nonzero exits as success when stdout looked valid. Source now fail-closes those paths (`finishBrokerExec` + `parseBrokerClear`). Helper `clear` no longer emits `cleared` if the directory remains. This is **not** a leaked-token finding and **not** proof of production cleanup. Distroless/non-root Dockerfile was **not** recooked. SHA-mismatch CI was **not** recooked. Stripe was **not** touched. PR50 was **not** edited.
 
 ## Recovered PR50 (no write)
 

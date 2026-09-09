@@ -26,6 +26,9 @@ import {
   assertBrokerId,
   brokerConfigDir,
   brokerExecArgv,
+  decodeBrokerExec,
+  finishBrokerExec,
+  parseBrokerClear,
   parseBrokerResume,
   parseBrokerStart,
   type BrokerClearResult,
@@ -97,7 +100,7 @@ export class BeeBridge extends Container<Env> {
   async startBeeBroker(brokerId: string): Promise<BrokerStartResult> {
     if (!assertBrokerId(brokerId)) return { status: "error", message: "invalid broker id" };
     try {
-      return parseBrokerStart(await this.execBroker(brokerId, "start"));
+      return finishBrokerExec(await this.execBroker(brokerId, "start"), parseBrokerStart);
     } catch {
       return { status: "error", message: "hosted Bee CLI broker unreachable" };
     }
@@ -108,7 +111,7 @@ export class BeeBridge extends Container<Env> {
   async resumeBeeBroker(brokerId: string): Promise<BrokerResumeResult> {
     if (!assertBrokerId(brokerId)) return { status: "error", message: "invalid broker id" };
     try {
-      return parseBrokerResume(await this.execBroker(brokerId, "resume"));
+      return finishBrokerExec(await this.execBroker(brokerId, "resume"), parseBrokerResume);
     } catch {
       return { status: "error", message: "hosted Bee CLI broker unreachable" };
     }
@@ -117,8 +120,7 @@ export class BeeBridge extends Container<Env> {
   async clearBeeBroker(brokerId: string): Promise<BrokerClearResult> {
     if (!assertBrokerId(brokerId)) return { status: "error", message: "invalid broker id" };
     try {
-      await this.execBroker(brokerId, "clear");
-      return { status: "cleared" };
+      return finishBrokerExec(await this.execBroker(brokerId, "clear"), parseBrokerClear);
     } catch {
       return { status: "error", message: "hosted Bee CLI broker unreachable" };
     }
@@ -129,7 +131,10 @@ export class BeeBridge extends Container<Env> {
     return container ?? null;
   }
 
-  private async execBroker(brokerId: string, command: BrokerCommand): Promise<string> {
+  private async execBroker(
+    brokerId: string,
+    command: BrokerCommand
+  ): Promise<{ stdout: string; exitCode: number }> {
     const dir = brokerConfigDir(brokerId);
     const argv = brokerExecArgv(command, brokerId);
     if (!dir || !argv) throw new Error("invalid broker id");
@@ -148,8 +153,8 @@ export class BeeBridge extends Container<Env> {
     });
     const output = await process.output();
     // Decode stdout for the parser only. Do not log stdout or stderr —
-    // resume completed is the one-shot token handoff.
-    void output.stderr;
-    return new TextDecoder().decode(output.stdout);
+    // resume completed is the one-shot token handoff. Nonzero exit is
+    // never treated as success by finishBrokerExec.
+    return decodeBrokerExec(output);
   }
 }

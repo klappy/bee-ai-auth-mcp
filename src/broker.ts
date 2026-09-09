@@ -125,6 +125,40 @@ export function parseBrokerResume(stdout: string): BrokerResumeResult {
   return { status: "error", message: "hosted Bee CLI broker returned an unexpected resume shape" };
 }
 
+export function parseBrokerClear(stdout: string): BrokerClearResult {
+  const parsed = parseFirstJsonObject(stdout);
+  if (!parsed) return { status: "error", message: "hosted Bee CLI broker returned no result" };
+  if (parsed.status === "cleared") return { status: "cleared" };
+  if (parsed.status === "error") {
+    return { status: "error", message: brokerErrorMessage(parsed.message) };
+  }
+  return { status: "error", message: "hosted Bee CLI broker returned an unexpected clear shape" };
+}
+
+/** Decode exec output for parsers only. Never log stdout or stderr. */
+export function decodeBrokerExec(output: {
+  stdout: ArrayBuffer | Uint8Array | string;
+  stderr?: ArrayBuffer | Uint8Array | string;
+  exitCode: number;
+}): { stdout: string; exitCode: number } {
+  void output.stderr;
+  const stdout =
+    typeof output.stdout === "string" ? output.stdout : new TextDecoder().decode(output.stdout);
+  return { stdout, exitCode: output.exitCode };
+}
+
+/** Nonzero helper exits are never success, even if stdout looks like pending/cleared/completed. */
+export function finishBrokerExec<T extends { status: string }>(
+  decoded: { stdout: string; exitCode: number },
+  parse: (stdout: string) => T
+): T | { status: "error"; message: string } {
+  const parsed = parse(decoded.stdout);
+  if (decoded.exitCode !== 0 && parsed.status !== "error") {
+    return { status: "error", message: "hosted Bee CLI broker failed" };
+  }
+  return parsed;
+}
+
 function brokerErrorMessage(message: unknown): string {
   return typeof message === "string" && message.length > 0 && message.length < 200
     ? message

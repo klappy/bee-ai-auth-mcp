@@ -8,7 +8,7 @@ Source review on PR #34 head after the CI/docs continuation. Not live E2E. No se
 - Namespaces are disjoint by `@`. Consent and pairing re-check `isAllowedIdentity` before any Bee token is bound.
 - Pairing state is sealed under `CONSENT_SIGNING_SECRET` and rebound to the same `login` + `clientId`. A swapped blob fails closed.
 - The BeeBridge container is a shared singleton by design (E0014). Isolation rides the per-request bearer, not a per-user container. `getContainer(env.BEE_BRIDGE)` is never named per user.
-- Hosted Bee CLI pairing uses an opaque broker id and `/tmp/bee-broker/<id>` only. Paths are never derived from email/login. Completing A cannot read B. Retry start and expiry clear only a sealed blob that matches the current `login` + `clientId`. A swapped blob is a no-op (does not clear the other dir). The operator Bee session is not a fallback.
+- Hosted Bee CLI pairing uses an opaque broker id and `/tmp/bee-broker/<id>` only. Paths are never derived from email/login. Completing A cannot read B. Retry start and expiry clear only a sealed blob that matches the current `login` + `clientId`. A swapped blob is a no-op (does not clear the other dir). The operator Bee session is not a fallback. `clearBeeBroker` reports cleared only on helper exit 0 plus `{status:"cleared"}`; nonzero exec or empty/malformed helper output fails closed. This is Worker honesty, not proof that production directories were removed.
 - Telemetry `deriveTenantKey` HMACs the login; rows carry `t_…`, never login/email/token/path/content. Path class strips ids.
 
 ## Logging / cache surfaces checked
