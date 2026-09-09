@@ -66,3 +66,15 @@ Human-only (do not invent values):
 Creating an isolated `DEPLOYED_VALIDATION_URL` Worker is a **paid-resource** decision. Not taken here.
 
 **Smallest owner action after this leaf is exhausted:** provision items 1–3 under Otto, then one real invitee walkthrough. No secret values belong in chat.
+
+## Handshake probe (2026-09-09, sanitized)
+
+Scoped runtime on the already-built local image. Synthetic opaque broker id. No Bee-app approval, no inbox action, no operator session, no CF mutation. Public cargo below contains **no** URL, QR, id, token, or helper/CLI stdout.
+
+| Subtest | Exit | Sanitized result |
+|---|---|---|
+| `resume` on a never-started id | 0 | `status=expired`, `hasToken=false` |
+| `start` (`bee login --no-wait` inside the compiled helper) | 0 | `status=pending`, `hasConnectUrl=true`, `connectUrlShape=true`, `hasExpiresAt=true`, `hasToken=false` |
+| `clear` of that start id | 0 | `status=cleared` |
+
+`npm run test:handshake` / `scripts/probe-broker-handshake.sh`. This is **not** hosted Container `exec`, not email OTP, not own-grant E2E, and not release-ready.

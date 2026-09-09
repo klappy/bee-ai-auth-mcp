@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:smoke": "vitest run test/smoke.live.test.ts",
-    "test:image": "scripts/probe-bridge-image.sh bee-bridge:local"
+    "test:image": "scripts/probe-bridge-image.sh bee-bridge:local",
+    "test:handshake": "scripts/probe-broker-handshake.sh bee-bridge:local"
   },
   "dependencies": {
     "@cloudflare/containers": "^0.3.7",
