@@ -15,3 +15,7 @@ Required Bugbot found that first owner approval unnecessarily revoked already-en
 Root authorized a separate replacement branch, preserving the automatic receiver branch and partial. The correction adds independent decisionRevision freshness rather than weakening grant revocation. Every accepted owner action advances the decision revision; nonces retain target, owner, action, grant epoch and decision revision. Old opposite forms now return409. Reload coexistence, legacy nonce migration, current saved MCP access, native refresh after approval, disabled manual behavior, denial and nonrevival after reapproval have synthetic regression coverage.
 
 Lesson bound locally: authorization-grant revocation and UI decision freshness are different clocks. Tests separately assert both boundaries. This replacement supersedes unfinished PR56 only when its own cargo exists; no provider or production action.
+
+## Combined-tree reconciliation
+
+After OAuth PR57 merged to main33c80b8a44385482e346b554f9da357f3b87f5da, this monthly candidate merges that actual main while retaining both histories. Provider0.10.3, OAuth migration tests/evidence and monthly revision tests/docs all remain. README includes both additions. Fresh npm ci, TypeScript clean,227 passed/two existing live skips on the combined source. New exact-head independent review, CI and Bugbot remain required; earlier separate-tree results do not substitute.

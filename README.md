@@ -63,6 +63,10 @@ MIT. See `LICENSE`.
 
 ## Source and deployment environments
 
+OAuth client authentication negotiation uses a pinned maintained provider.
+See [the compatibility repair and migration evidence](docs/oauth-negotiation-repair-2026-09-10.md)
+for supported public-client alternatives, synthetic checks and remaining hosted gates.
+
 The staging code includes a [default-disabled monthly allowance](docs/monthly-allowance.md).
 It does not activate self-service, choose an allowance, or add billing/referrals.
 When separately configured, each successful `bee_read` page consumes one unit;
