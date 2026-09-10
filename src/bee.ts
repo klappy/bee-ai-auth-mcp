@@ -128,18 +128,11 @@ export interface BeeReadResult {
  *  the read-only guarantee is structural, not advisory. /v1/stream (SSE) is
  *  refused (long-lived, not request/response). Same custody, bridge, and
  *  no-secret-in-errors rules as beeGetMe. */
-import {
-  type UtterancePagerOpts,
-  isConversationDetailPath,
-  pageConversationUtterances,
-} from "./bee-utterance-pager";
-
 export async function beeRead(
   beeToken: string,
   bridge: DurableObjectStub,
   rawPath: string,
-  searchBody?: unknown,
-  pagerOpts?: UtterancePagerOpts
+  searchBody?: unknown
 ): Promise<BeeReadResult | BeeError> {
   if (!beeToken || !bridge) {
     return {
@@ -207,7 +200,7 @@ export async function beeRead(
 
   const text = await res.text().catch(() => "");
   const CAP = 512 * 1024; // guard so a huge list can't blow the client's context
-  if (text.length > CAP && !isConversationDetailPath(pathname)) {
+  if (text.length > CAP) {
     return {
       ok: true,
       status: res.status,
@@ -226,6 +219,5 @@ export async function beeRead(
   } catch {
     body = text;
   }
-  body = pageConversationUtterances(pathname, body, pagerOpts);
   return { ok: true, status: res.status, body, bridgeCold, bridgeMs };
 }

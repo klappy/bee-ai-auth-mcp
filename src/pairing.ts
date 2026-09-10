@@ -1,5 +1,9 @@
 /**
- * Server-side Bee QR pairing (the consent screen's scan-and-approve path).
+ * Legacy Worker-side Bee QR pairing protocol helpers.
+ *
+ * Consent `/pairing/*` now uses the hosted Bee CLI broker (`src/broker.ts`).
+ * This module remains for protocol facts and unit coverage of the CLI wire
+ * format. Do not add a new Bee app_id here.
  *
  * Replicates the @beeai/cli pairing handshake from inside the Worker so the
  * consent screen can offer a QR instead of token-hunting. Protocol facts were
@@ -21,7 +25,7 @@
  *
  * Custody: the Worker keeps NO pairing state. The ephemeral keypair rides in a
  * sealed blob — AES-256-GCM under an HKDF-SHA256 key derived from
- * GITHUB_CLIENT_SECRET (already the consent-HMAC anchor; no new secret to
+ * CONSENT_SIGNING_SECRET (the consent-HMAC anchor; no additional secret to
  * steward) — held by the consent page and posted back on each poll. The
  * secret key is plaintext only inside a single request invocation; the Bee
  * token, once decrypted, follows the exact paste-path route (bridge-validated
@@ -222,7 +226,7 @@ export function openPairingEnvelope(
   return new TextDecoder().decode(opened);
 }
 
-// ---- sealed pairing state: AES-GCM under HKDF(GITHUB_CLIENT_SECRET) ----
+// ---- sealed pairing state: AES-GCM under HKDF(CONSENT_SIGNING_SECRET) ----
 // The consent page carries this blob (ciphertext only) between /pairing/start
 // and each /pairing/status poll, so the ephemeral secret key never exists at
 // rest server-side and never exists in plaintext client-side.

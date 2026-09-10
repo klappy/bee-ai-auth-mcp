@@ -19,6 +19,7 @@ import { beeGetMe, beeRead } from "./bee";
 import { BEE_API_USAGE_DOC } from "./bee-api-usage-doc";
 import { classifyPath, deriveTenantKey, statusClassOf, withTelemetry } from "./telemetry";
 import type { Env, GrantProps } from "./types";
+import { admissionAllowed, runtimeAllowed, runtimePaused } from './admission';
 
 function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer {
   const server = new McpServer({ name: "bee-ai-auth-mcp", version: "0.1.0" });
@@ -114,47 +115,12 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
           .describe(
             "JSON body for the /v1/search/* endpoints only (e.g. { query, limit, cursor }); ignored for GET paths."
           ),
-        since: z
-          .union([z.string(), z.number()])
-          .optional()
-          .describe(
-            "Relay-only: for GET /v1/conversations/:id, return utterances strictly after this utterance id. Bee ignores this param."
-          ),
-        cursor: z
-          .union([z.string(), z.number()])
-          .optional()
-          .describe("Alias for since — utterance id to continue from (exclusive). Relay-only."),
-        chunk: z
-          .number()
-          .int()
-          .positive()
-          .optional()
-          .describe(
-            "Relay-only: soft max utterances per page when paging a conversation. Serialized size under ~28KB is the hard limit."
-          ),
       },
     },
-    withTelemetry(
-      env,
-      tenantKey,
-      "bee_read",
-      (tele) =>
-        async ({
-          path,
-          search,
-          since,
-          cursor,
-          chunk,
-        }: {
-          path: string;
-          search?: Record<string, unknown>;
-          since?: string | number;
-          cursor?: string | number;
-          chunk?: number;
-        }) => {
+    withTelemetry(env, tenantKey, "bee_read", (tele) => async ({ path, search }: { path: string; search?: Record<string, unknown> }) => {
       tele.pathClass = classifyPath(path);
       const stub = getContainer(env.BEE_BRIDGE);
-      const result = await beeRead(props.beeToken, stub, path, search, { since, cursor, chunk });
+      const result = await beeRead(props.beeToken, stub, path, search);
       // bridge_ms/bridge_state come from the bridge.fetch leg measured inside
       // bee.ts — not the whole call (which includes the body read). bridgeCold is
       // set for non-2xx too: a cold container can still return 401/403/5xx.
@@ -167,8 +133,7 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
       }
       const payload = { status: result.status, truncated: result.truncated ?? false, body: result.body };
       return { content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }] };
-    }
-    )
+    })
   );
 
   return server;
@@ -180,6 +145,7 @@ export const McpApiHandler = {
     if (!props?.login) {
       return new Response("Grant is not bound to an identity. Disconnect and reconnect.", { status: 403 });
     }
+    if (env.SIGNUP_ENABLED === 'true' && (!Number.isInteger(props.admissionEpoch) || !(await admissionAllowed(env, props.login, props.admissionEpoch)))) return new Response('Access not approved. Reconnect after owner approval.', { status: 403, headers: { 'Cache-Control': 'no-store' } });
     if (!props.beeToken) {
       // A grant from before the custody bend (login only). Force a reconnect so
       // the consent step can capture a Bee token into the encrypted props.
@@ -188,6 +154,7 @@ export const McpApiHandler = {
         { status: 403 }
       );
     }
+    if (!(await runtimeAllowed(env))) return runtimePaused();
     const tenantKey = await deriveTenantKey(env, props.login);
     const handler = createMcpHandler(buildServer(env, props, tenantKey), { route: "/mcp" });
     return handler(request, env, ctx);
