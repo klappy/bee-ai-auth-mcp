@@ -19,7 +19,7 @@ import { beeGetMe, beeRead } from "./bee";
 import { BEE_API_USAGE_DOC } from "./bee-api-usage-doc";
 import { classifyPath, deriveTenantKey, statusClassOf, withTelemetry } from "./telemetry";
 import type { Env, GrantProps } from "./types";
-import { admissionAllowed, runtimeAllowed, runtimePaused } from './admission';
+import { admissionAllowed, runtimeAllowed } from './admission';
 import { meteredRead, ownUsage, quotaError, quotaPolicy } from './quota';
 
 function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer {
@@ -43,7 +43,7 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
       inputSchema: {},
     },
     withTelemetry(env, tenantKey, "whoami", (tele) => async () => {
-      if (quotaPolicy(env) && !(await runtimeAllowed(env))) return { content: [{ type: 'text' as const, text: 'The bounded Bee runtime is paused.' }], isError: true };
+      if (!(await runtimeAllowed(env))) return { content: [{ type: 'text' as const, text: 'The bounded Bee runtime is paused.' }], isError: true };
       // One shared, token-agnostic bridge: getContainer with no name resolves the
       // singleton ("cf-singleton-container"). Do NOT pass a per-user name — that
       // would shard the deliberately single shared bridge (multitenancy rule, E0014).
@@ -156,7 +156,7 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
           chunk?: number;
         }) => {
       tele.pathClass = classifyPath(path);
-      if (quotaPolicy(env) && !(await runtimeAllowed(env))) return { content: [{ type: 'text' as const, text: 'The bounded Bee runtime is paused.' }], isError: true };
+      if (!(await runtimeAllowed(env))) return { content: [{ type: 'text' as const, text: 'The bounded Bee runtime is paused.' }], isError: true };
       const metered = await meteredRead(env, props.login, props.admissionEpoch ?? -1, async () => {
         const stub = getContainer(env.BEE_BRIDGE);
         return beeRead(props.beeToken, stub, path, search, { since, cursor, chunk });
@@ -201,9 +201,8 @@ export const McpApiHandler = {
         { status: 403 }
       );
     }
-    // Enabled self-service moves the same runtime guard to expensive tool
-    // handlers, leaving protocol/docs/usage usable when the window is closed.
-    if (!quotaPolicy(env) && !(await runtimeAllowed(env))) return runtimePaused();
+    // Runtime admission belongs to expensive tools, independently of the
+    // commercial quota flag. Authenticated protocol/docs/usage do not start Bee.
     const tenantKey = await deriveTenantKey(env, props.login);
     const handler = createMcpHandler(buildServer(env, props, tenantKey), { route: "/mcp" });
     return handler(request, env, ctx);
