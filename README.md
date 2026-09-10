@@ -63,6 +63,10 @@ MIT. See `LICENSE`.
 
 ## Source and deployment environments
 
+OAuth client authentication negotiation uses a pinned maintained provider.
+See [the compatibility repair and migration evidence](docs/oauth-negotiation-repair-2026-09-10.md)
+for supported public-client alternatives, synthetic checks and remaining hosted gates.
+
 Feature branches merge into `main`, which is staging. Reviewed staging source is
 promoted by a separately approved PR from `main` to `production`. A separate
 staging branch is only needed if a distinct dev environment is introduced later.
