@@ -1,7 +1,7 @@
 import type { Env } from './types';
 import { eligible, quotaPolicy } from './quota';
 
-export type AdmissionRecord = { id: string; email: string; status: 'pending' | 'approved' | 'denied'; epoch: number; createdAt: string; trialEnrolled?: boolean };
+export type AdmissionRecord = { id: string; email: string; status: 'pending' | 'approved' | 'denied'; epoch: number; createdAt: string; selfServiceEnrolled?: boolean };
 export type AdmissionState = { records: AdmissionRecord[]; nonces?: Record<string, { owner: string; id: string; status: string; epoch?: number; expires: number }>; hour?: string; hourCount?: number; day?: string; dayCount?: number };
 export type AdmissionOperation = 'signup' | 'enroll' | 'status' | 'list' | 'nonce' | 'decision' | 'dcr';
 export const normalizeEmail = (email: string): string => email.trim().toLowerCase();
@@ -41,11 +41,11 @@ export function admissionTransition(state: AdmissionState, op: AdmissionOperatio
     return true;
   }
   const existing = state.records.find(r => r.email === email);
-  if (op === 'enroll' && existing && existing.status !== 'denied') existing.trialEnrolled = true;
+  if (op === 'enroll' && existing && existing.status !== 'denied') existing.selfServiceEnrolled = true;
   if (op === 'status' || existing) return existing ?? null;
   if (!email || email.length > 254 || !email.includes('@')) return null;
   if (state.records.length >= 100) return null;
-  const record: AdmissionRecord = { id: crypto.randomUUID(), email, status: 'pending', epoch: 0, createdAt: new Date(now).toISOString(), ...(op === 'enroll' ? { trialEnrolled: true } : {}) };
+  const record: AdmissionRecord = { id: crypto.randomUUID(), email, status: 'pending', epoch: 0, createdAt: new Date(now).toISOString(), ...(op === 'enroll' ? { selfServiceEnrolled: true } : {}) };
   state.records.push(record); return record;
 }
 

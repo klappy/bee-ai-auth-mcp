@@ -161,7 +161,7 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
         const stub = getContainer(env.BEE_BRIDGE);
         return beeRead(props.beeToken, stub, path, search, { since, cursor, chunk });
       });
-      if ('error' in metered) return quotaError(metered.error);
+      if ('error' in metered) return quotaError(metered.error, metered.renewsAt);
       const result = metered.result;
       // bridge_ms/bridge_state come from the bridge.fetch leg measured inside
       // bee.ts — not the whole call (which includes the body read). bridgeCold is
@@ -180,7 +180,7 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
   );
 
   if (quotaPolicy(env) && props.login.includes('@')) server.registerTool('bee_usage', {
-    title: 'Your read allowance', description: 'Inspect your own one-time read allowance. Does not retrieve Bee data or consume a read.',
+    title: 'Your read allowance', description: 'Inspect your own monthly successful bee_read allowance, reserved reads, remaining reads and exact UTC renewal time. Each returned page consumes one read. Does not retrieve Bee data or consume a read.',
     inputSchema: {}, annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   }, async () => ({ content: [{ type: 'text' as const, text: JSON.stringify(await ownUsage(env, props.login, props.admissionEpoch ?? -1)) }] }));
   return server;

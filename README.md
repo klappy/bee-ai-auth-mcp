@@ -63,6 +63,13 @@ MIT. See `LICENSE`.
 
 ## Source and deployment environments
 
+The staging code includes a [default-disabled monthly allowance](docs/monthly-allowance.md).
+It does not activate self-service, choose an allowance, or add billing/referrals.
+When separately configured, each successful `bee_read` page consumes one unit;
+`bee_usage` reports the account's allowance and exact renewal time without a Bee call.
+Exhaustion preserves the OAuth connection. Existing manual signup policy remains
+in force while the feature is disabled.
+
 Feature branches merge into `main`, which is staging. Reviewed staging source is
 promoted by a separately approved PR from `main` to `production`. A separate
 staging branch is only needed if a distinct dev environment is introduced later.

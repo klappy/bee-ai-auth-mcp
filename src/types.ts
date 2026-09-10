@@ -4,7 +4,7 @@ import type { BeeBridge } from "./bridge";
 export interface Env {
   /** Staging-only signup/approval feature; absent preserves production behavior. */
   SIGNUP_ENABLED?: string;
-  /** Disabled unless explicitly enabled with an approved positive one-time limit/version. */
+  /** Disabled unless explicitly enabled with an approved positive monthly limit/version. */
   SELF_SERVICE_ENABLED?: string;
   SELF_SERVICE_READ_LIMIT?: string;
   SELF_SERVICE_POLICY_VERSION?: string;

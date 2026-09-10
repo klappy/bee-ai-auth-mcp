@@ -36,14 +36,15 @@ describe('staging public native OAuth', () => {
     const response = await entry.fetch(new Request(origin + '/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ redirect_uris: ['https://chatgpt.com/connector_platform/oauth/callback'], token_endpoint_auth_method: 'none' }) }), environment(), ctx);
     expect(response.status).toBe(201); const body = await response.json() as any; expect(body.client_id).toBeTruthy(); expect(body.redirect_uris).toEqual(['https://chatgpt.com/connector_platform/oauth/callback']);
   });
-  it('native PKCE exchange succeeds only at current approved epoch and refresh fails immediately after denial', async () => {
+  it.each([false, true])('native PKCE and refresh respect admission, not exhausted monthly allowance (self-service %s)', async selfService => {
     const env = environment(), email = 'approved@example.test', redirect = 'https://client.example.test/cb';
-    const record = await mocked.authority('signup', { email });
+    if (selfService) Object.assign(env, { SELF_SERVICE_ENABLED: 'true', SELF_SERVICE_READ_LIMIT: '1', SELF_SERVICE_POLICY_VERSION: 'monthly-test' });
+    const record = await mocked.authority(selfService ? 'enroll' : 'signup', { email });
     const decide = async (status: string) => {
       const nonce = await mocked.authority('nonce', { email: 'owner@example.test', id: record.id, status });
       expect(await mocked.authority('decision', { email: 'owner@example.test', id: record.id, status, nonce })).toBe(true);
     };
-    await decide('approved');
+    if (!selfService) await decide('approved');
     const registration = await entry.fetch(new Request(origin + '/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ redirect_uris: [redirect], token_endpoint_auth_method: 'none' }) }), env, ctx);
     const client = await registration.json() as any;
     const verifier = 'synthetic-code-verifier-for-real-native-provider-123456789';
@@ -60,11 +61,18 @@ describe('staging public native OAuth', () => {
     const exchange = async (values: Record<string, string>) => entry.fetch(new Request(origin + '/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_id: client.client_id, ...values }) }), env, ctx);
     const response = await exchange({ grant_type: 'authorization_code', code, code_verifier: verifier, redirect_uri: redirect });
     expect(response.status).toBe(200); const token = await response.json() as any; expect(token.access_token).toBeTruthy(); expect(token.refresh_token).toBeTruthy();
+    // Token issue/refresh must not consult quota or start a Container. A fully
+    // exhausted account remains eligible; actual quota/route tests cover reads.
+    const nativeCalls = mocked.authority.mock.calls.length;
+    const renewed = await exchange({ grant_type: 'refresh_token', refresh_token: token.refresh_token });
+    expect(renewed.status).toBe(200);
+    expect(mocked.authority.mock.calls.slice(nativeCalls).every(([op]) => op === 'status')).toBe(true);
+    const renewedToken = await renewed.json() as any;
     await decide('denied');
-    const denied = await exchange({ grant_type: 'refresh_token', refresh_token: token.refresh_token });
+    const denied = await exchange({ grant_type: 'refresh_token', refresh_token: renewedToken.refresh_token });
     expect(denied.status).toBe(400); expect((await denied.json() as any).error).toBe('invalid_grant');
     await decide('approved');
-    const stale = await exchange({ grant_type: 'refresh_token', refresh_token: token.refresh_token });
+    const stale = await exchange({ grant_type: 'refresh_token', refresh_token: renewedToken.refresh_token });
     expect(stale.status).toBe(400); expect((await stale.json() as any).error).toBe('invalid_grant');
   });
   it('rejects plain or absent PKCE before auth, while S256 redirects intact', async () => {

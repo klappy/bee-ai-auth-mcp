@@ -35,7 +35,7 @@ export class BeeBridge extends ValidationBridge {
       const record = authority.records.find(r => r.email === input.email.trim().toLowerCase()) ?? null;
       if (!record) return { ok: false, reason: 'unavailable' };
       const key = `quota:account:${record.id}`;
-      const state = (await txn.get<QuotaState>(key)) ?? { used: 0, reservations: {} };
+      const state = (await txn.get<QuotaState>(key)) ?? { periods: {}, reservations: {} };
       const result = quotaTransition(state, record, quotaPolicy(this.env), op, input);
       await txn.put(key, state);
       return result;
