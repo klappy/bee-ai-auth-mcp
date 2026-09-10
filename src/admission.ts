@@ -43,6 +43,10 @@ export function admissionTransition(state: AdmissionState, op: AdmissionOperatio
       // were issued under the current epoch while status was still pending.
       if (!(record.selfServiceEnrolled === true && record.status === 'pending' && input.status === 'approved')) record.epoch++;
       record.status = input.status as 'approved' | 'denied';
+      // Action nonces share the grant epoch. When that epoch is preserved,
+      // drop remaining buttons from this page load so a stale opposite click
+      // cannot reverse the decision.
+      if (state.nonces) for (const key of Object.keys(state.nonces)) if (state.nonces[key].id === record.id) delete state.nonces[key];
     }
     return true;
   }
