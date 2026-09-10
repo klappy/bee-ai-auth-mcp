@@ -25,6 +25,8 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
+      - name: Check staging deployment script syntax
+        run: node --check scripts/deploy-staging.cjs
       - run: npm run typecheck
       - run: npm test
 

@@ -60,3 +60,19 @@ MIT. See `LICENSE`.
 **Security model (honest).** Your Bee token is held only in your encrypted grant props (workers-oauth-provider, token-derived key — no master key); it never appears in logs, URLs, errors, or tool output. **Revocation:** disconnecting deletes the relay's copy of your token; to fully revoke, re-pair / rotate it in the Bee app.
 
 **Tools.** `whoami` (credential smoke check, `GET /v1/me`), plus the Phase-2 read surface: `bee_docs` (serves the Bee API usage reference) and `bee_read` (read-only — GET any `/v1/*`, POST only to the allow-listed `/v1/search/*`; `/v1/stream` and all mutations refused). `bee_write` is deferred to a future write phase. Fewer tools, good docs by design.
+
+## Source and deployment environments
+
+Feature branches merge into `main`, which is staging. Reviewed staging source is
+promoted by a separately approved PR from `main` to `production`. A separate
+staging branch is only needed if a distinct dev environment is introduced later.
+
+The root `wrangler.jsonc` targets the isolated staging Worker. Trusted main Builds
+run `node scripts/deploy-staging.cjs` after install, source-ID generation,
+typechecking and tests; `npm run deploy:staging` invokes the same deployment path.
+It preserves the existing deployment metadata, storage, secrets and runtime limit.
+
+Production uses `wrangler.production.jsonc`. Before promotion, its existing Builds
+command must explicitly select that file; the retained default-config command is
+not safe for the new branch convention. See [the deployment contract](docs/ci-cd.md)
+for exact commands, validation and the production-release gate.

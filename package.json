@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "npm run deploy:staging",
+    "deploy:staging": "node scripts/gen-version.mjs && node scripts/deploy-staging.cjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:smoke": "vitest run test/smoke.live.test.ts",
@@ -24,6 +25,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "esbuild": "0.28.1",
     "@cloudflare/workers-types": "^4.20260610.1",
     "@types/node": "^26.1.0",
     "typescript": "^6.0.3",

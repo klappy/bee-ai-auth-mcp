@@ -2,12 +2,12 @@ import { expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { embeddedAssets } from "../src/embedded-assets";
-const manifest = JSON.parse(readFileSync("RUNTIME-MANIFEST.json", "utf8"));
+const manifest = { assets: JSON.parse(readFileSync(new URL('./fixtures/frozen-assets.json', import.meta.url), 'utf8')) };
 const request = (path:string, init?:RequestInit) => new Request("https://isolated.invalid"+path, init);
 it.each(Object.keys(manifest.assets))("serves exact frozen bytes and HEAD metadata: %s", async file => {
  const path=file==="index.html"?"/":file.endsWith(".html")?"/"+file.slice(0,-5):"/"+file;
  const res=await embeddedAssets.fetch(request(path));const bytes=Buffer.from(await res.arrayBuffer());
- expect(res.status).toBe(200);expect(bytes.equals(readFileSync("public/"+file))).toBe(true);
+ expect(res.status).toBe(200);expect(bytes.equals(readFileSync(new URL('../public/' + file, import.meta.url)))).toBe(true);
  expect(createHash("sha256").update(bytes).digest("hex")).toBe(manifest.assets[file].sha256);
  expect(res.headers.get("content-length")).toBe(String(bytes.length));
  const mime=file.endsWith('.html')?'text/html; charset=utf-8':file.endsWith('.css')?'text/css; charset=utf-8':file.endsWith('.png')?'image/png':file.endsWith('.svg')?'image/svg+xml':file.endsWith('.ico')?'image/x-icon':'application/manifest+json';
