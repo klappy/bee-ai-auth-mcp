@@ -4,6 +4,10 @@ import type { BeeBridge } from "./bridge";
 export interface Env {
   /** Staging-only signup/approval feature; absent preserves production behavior. */
   SIGNUP_ENABLED?: string;
+  /** Disabled unless explicitly enabled with an approved positive monthly limit/version. */
+  SELF_SERVICE_ENABLED?: string;
+  SELF_SERVICE_READ_LIMIT?: string;
+  SELF_SERVICE_POLICY_VERSION?: string;
   STAGING_PREVIEW_AUD?: string;
   STAGING_OWNER_EMAIL?: string;
   // ---- user<->relay leg: GitHub OAuth as the identity gate ----

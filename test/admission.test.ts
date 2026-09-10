@@ -22,6 +22,37 @@ describe('strong admission authority transitions', () => {
     expect(decide(s, r.id, 'denied')).toBe(true); expect(r.epoch).toBeGreaterThan(old);
     expect(decide(s, r.id, 'approved')).toBe(true); expect(r.epoch).toBe(3);
   });
+  it('first approval of an enrolled account keeps the grant epoch', () => {
+    const s = fresh(), r = admissionTransition(s, 'enroll', { email: 'person@example.test' }) as AdmissionRecord;
+    const grantEpoch = r.epoch;
+    expect(decide(s, r.id, 'approved')).toBe(true); expect(r.status).toBe('approved'); expect(r.epoch).toBe(grantEpoch);
+    expect(decide(s, r.id, 'denied')).toBe(true); expect(r.epoch).toBeGreaterThan(grantEpoch);
+  });
+  it('preserves reloaded forms until a decision, then rejects the old opposite action without rotating eligible grants', () => {
+    const s = fresh(), r = admissionTransition(s, 'enroll', { email: 'person@example.test' }) as AdmissionRecord;
+    const owner = 'owner@example.test';
+    const first = admissionTransition(s, 'nonce', { email: owner }) as Record<string, string>;
+    expect(admissionTransition(s, 'nonce', { email: owner })).toEqual(first);
+    expect(admissionTransition(s, 'decision', { email: owner, id: r.id, status: 'approved', nonce: first[r.id + ':approved'] })).toBe(true);
+    expect(r.epoch).toBe(0); expect(r.decisionRevision).toBe(1);
+    expect(admissionTransition(s, 'decision', { email: owner, id: r.id, status: 'denied', nonce: first[r.id + ':denied'] })).toBe(false);
+    expect(r.status).toBe('approved'); expect(r.epoch).toBe(0);
+    const next = admissionTransition(s, 'nonce', { email: owner }) as Record<string, string>;
+    expect(next[r.id + ':denied']).not.toBe(first[r.id + ':denied']);
+    expect(admissionTransition(s, 'decision', { email: owner, id: r.id, status: 'approved', nonce: next[r.id + ':approved'] })).toBe(true);
+    expect(r.epoch).toBe(0); expect(r.decisionRevision).toBe(2);
+    expect(admissionTransition(s, 'decision', { email: owner, id: r.id, status: 'denied', nonce: next[r.id + ':denied'] })).toBe(false);
+    expect(decide(s, r.id, 'denied')).toBe(true); expect(r.epoch).toBe(1);
+    expect(decide(s, r.id, 'approved')).toBe(true); expect(r.epoch).toBe(2);
+  });
+  it('old records and nonce shapes default revision to zero but cannot replay after first accepted decision', () => {
+    const s = fresh(), r = signup(s); r.status = 'approved';
+    s.nonces = { legacy: { owner: 'owner@example.test', id: r.id, status: 'approved', epoch: 0, expires: Date.now() + 60_000 },
+      stale: { owner: 'owner@example.test', id: r.id, status: 'denied', epoch: 0, expires: Date.now() + 60_000 } };
+    expect(admissionTransition(s, 'decision', { email: 'owner@example.test', id: r.id, status: 'approved', nonce: 'legacy' })).toBe(true);
+    expect(r.decisionRevision).toBe(1); expect(r.epoch).toBe(0);
+    expect(admissionTransition(s, 'decision', { email: 'owner@example.test', id: r.id, status: 'denied', nonce: 'stale' })).toBe(false);
+  });
   it('rejects forged, wrong-owner, expired, replayed and unknown-target decisions', () => {
     const s = fresh(), r = signup(s); const now = Date.now();
     const nonce = admissionTransition(s, 'nonce', { email: 'owner@example.test', id: r.id, status: 'approved' }, now) as string;
