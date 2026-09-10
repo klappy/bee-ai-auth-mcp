@@ -40,13 +40,12 @@ Production promotion requires its own approval and a reviewed `main` → `produc
 PR. Production uses `wrangler.production.jsonc`; its settings and secrets are not
 copied from staging. Verify the deployed production source/version after promotion.
 
-Before a production promotion, change the retained production-only Builds deploy
-command from `npx wrangler deploy` to
-`npx wrangler deploy --config wrangler.production.jsonc`, under that promotion's
-approval. The retained trigger still uses the default config today; merging the
-new staging default into `production` before changing that command would target
-the wrong Worker. This is an explicit production-release gate, not an instruction
-to mutate that trigger during staging work.
+The production-only Builds trigger was read back on September 10, 2026 at
+9:56 a.m. Eastern with the explicit deploy command
+`npx wrangler deploy --config wrangler.production.jsonc`. This prevents the staging
+default configuration from being selected on production promotion. Trigger wiring
+does not authorize a release: the `main` → `production` promotion still requires
+separate approval and deployed-version verification.
 
 The existing weekly production smoke check is a read-only health observation.
 It is not permission to deploy, to enroll users or to perform credentialed Bee work.

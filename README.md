@@ -52,7 +52,7 @@ MIT. See `LICENSE`.
 2. Create the grant store: `wrangler kv namespace create OAUTH_KV` -> paste the id into `wrangler.jsonc` under the `OAUTH_KV` binding.
 3. Create a GitHub **OAuth App** (not a GitHub App): callback `https://<your-worker>/callback`. Set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` as Worker secrets.
 4. In `wrangler.jsonc` set `ALLOWED_GITHUB_LOGIN` to your GitHub login (the instance denies all logins until set). `BEE_UPSTREAM`/`BEE_SNI` (Bee's real API host), the `BEE_BRIDGE` Container, and `bridge/bee-ca.pem` (Bee's public CA roots) are already committed.
-5. **Deploy by pushing** — a push to `main` deploys to prod via Cloudflare Workers Builds (which also builds the bridge container image); a branch push is a preview. No manual `wrangler deploy`.
+5. **Deploy through the reviewed branch flow** — feature branches merge into `main` for isolated staging. Production promotion is a separately approved PR from `main` to `production`. See [Source and deployment environments](#source-and-deployment-environments) for the exact commands and configuration gate; routine staging builds reuse the existing Container image.
 6. Add the Worker URL as a custom connector in your MCP client, approve the GitHub login, then **paste your Bee token at the consent screen** and run `whoami` (or `bee_docs` / `bee_read`).
 
 **Getting your Bee token.** In the Bee iOS app, unlock Developer Mode (tap the app Version 5x); then on a computer with Node run `npm i -g @beeai/cli && bee login --qr` and approve the scan in your Bee app. Read the token from the macOS Keychain (`security find-generic-password -s bee-cli -a token:prod -w`) or `~/.bee/token-prod`, and paste it at the relay's consent screen. A one-tap in-app QR pairing is planned (pending a Bee-registered app id). See `docs/connecting-and-getting-your-bee-token.md`.
@@ -72,7 +72,7 @@ run `node scripts/deploy-staging.cjs` after install, source-ID generation,
 typechecking and tests; `npm run deploy:staging` invokes the same deployment path.
 It preserves the existing deployment metadata, storage, secrets and runtime limit.
 
-Production uses `wrangler.production.jsonc`. Before promotion, its existing Builds
-command must explicitly select that file; the retained default-config command is
-not safe for the new branch convention. See [the deployment contract](docs/ci-cd.md)
+Production's branch-only Builds command explicitly selects
+`wrangler.production.jsonc`. Production promotion still requires its own approval.
+See [the deployment contract](docs/ci-cd.md)
 for exact commands, validation and the production-release gate.
