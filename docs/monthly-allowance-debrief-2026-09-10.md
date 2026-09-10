@@ -7,3 +7,11 @@ Implemented account-owned atomic month snapshots, original-period settlement, ro
 Observed synthetic tests exposed a calibration assumption: a small conversation is deliberately not split merely by a chunk hint. Updated the fixture to exercise the real large-result pager rather than changing correct paging behavior. Prevention: route-level calibration asserts actual returned pages and resulting units; see monthly-allowance.md.
 
 Before final cargo, TypeScript and complete synthetic tests are run; CI and independent exact-source review are still required. Existing two live smoke skips are not hosted acceptance. No real account, grant, OTP or Bee content was used. Production and actual consumer gates remain open.
+
+## Approval continuity correction
+
+Required Bugbot found that first owner approval unnecessarily revoked already-enrolled users' grants. Its automatic partial7196e397 preserves the grant epoch on that transition. Independent inspection then reproduced a second issue: an older deny form shared the preserved epoch and remained actionable.
+
+Root authorized a separate replacement branch, preserving the automatic receiver branch and partial. The correction adds independent decisionRevision freshness rather than weakening grant revocation. Every accepted owner action advances the decision revision; nonces retain target, owner, action, grant epoch and decision revision. Old opposite forms now return409. Reload coexistence, legacy nonce migration, current saved MCP access, native refresh after approval, disabled manual behavior, denial and nonrevival after reapproval have synthetic regression coverage.
+
+Lesson bound locally: authorization-grant revocation and UI decision freshness are different clocks. Tests separately assert both boundaries. This replacement supersedes unfinished PR56 only when its own cargo exists; no provider or production action.

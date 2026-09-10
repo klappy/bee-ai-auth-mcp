@@ -1,8 +1,8 @@
 import type { Env } from './types';
 import { eligible, quotaPolicy } from './quota';
 
-export type AdmissionRecord = { id: string; email: string; status: 'pending' | 'approved' | 'denied'; epoch: number; createdAt: string; selfServiceEnrolled?: boolean };
-export type AdmissionState = { records: AdmissionRecord[]; nonces?: Record<string, { owner: string; id: string; status: string; epoch?: number; expires: number }>; hour?: string; hourCount?: number; day?: string; dayCount?: number };
+export type AdmissionRecord = { id: string; email: string; status: 'pending' | 'approved' | 'denied'; epoch: number; createdAt: string; selfServiceEnrolled?: boolean; decisionRevision?: number };
+export type AdmissionState = { records: AdmissionRecord[]; nonces?: Record<string, { owner: string; id: string; status: string; epoch?: number; decisionRevision?: number; expires: number }>; hour?: string; hourCount?: number; day?: string; dayCount?: number };
 export type AdmissionOperation = 'signup' | 'enroll' | 'status' | 'list' | 'nonce' | 'decision' | 'dcr';
 export const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 
@@ -21,13 +21,15 @@ export function admissionTransition(state: AdmissionState, op: AdmissionOperatio
   if (op === 'nonce') {
     // Keep one current action per owner/target/status. Reloading another tab
     // must not invalidate an open form, and old decisions must not overwrite
-    // a newer approval epoch. Pruning keeps storage bounded to two per record.
-    state.nonces = Object.fromEntries(Object.entries(state.nonces ?? {}).filter(([, n]) => n.owner === email && n.expires > now && state.records.some(r => r.id === n.id && r.epoch === n.epoch)));
+    // a newer owner decision. Decision freshness is separate from the grant
+    // revocation epoch, which first self-service approval intentionally keeps.
+    // Missing revisions mean zero for records/nonces written before this field.
+    state.nonces = Object.fromEntries(Object.entries(state.nonces ?? {}).filter(([, n]) => n.owner === email && n.expires > now && state.records.some(r => r.id === n.id && r.epoch === n.epoch && (r.decisionRevision ?? 0) === (n.decisionRevision ?? 0))));
     const tokens: Record<string, string> = {};
     for (const record of state.records) for (const status of ['approved', 'denied']) {
       const existingValue: string | undefined = Object.keys(state.nonces).find(key => state.nonces![key].id === record.id && state.nonces![key].status === status);
       const value: string = existingValue ?? crypto.randomUUID();
-      if (!existingValue) state.nonces[value] = { owner: email, id: record.id, status, epoch: record.epoch, expires: now + 600_000 };
+      if (!existingValue) state.nonces[value] = { owner: email, id: record.id, status, epoch: record.epoch, decisionRevision: record.decisionRevision ?? 0, expires: now + 600_000 };
       tokens[`${record.id}:${status}`] = value;
     }
     return input.id ? tokens[`${input.id}:${input.status}`] ?? '' : tokens;
@@ -36,7 +38,10 @@ export function admissionTransition(state: AdmissionState, op: AdmissionOperatio
     const nonce = state.nonces?.[input.nonce]; if (state.nonces) delete state.nonces[input.nonce];
     if (!nonce || nonce.owner !== email || nonce.id !== input.id || nonce.status !== input.status || nonce.expires <= now) return false;
     const record = state.records.find(r => r.id === input.id);
-    if (!record || nonce.epoch !== record.epoch || !['approved', 'denied'].includes(input.status)) return false;
+    if (!record || nonce.epoch !== record.epoch || (nonce.decisionRevision ?? 0) !== (record.decisionRevision ?? 0) || !['approved', 'denied'].includes(input.status)) return false;
+    // Every accepted owner action invalidates forms rendered before it, even
+    // when the action preserves eligibility or repeats the current status.
+    record.decisionRevision = (record.decisionRevision ?? 0) + 1;
     if (record.status !== input.status) {
       // Denial and later status changes must stale existing grants. First-time
       // approval of an already-enrolled pending account must not — those grants

@@ -75,6 +75,26 @@ it('verified signup has own usage and disabled rollback does not silently approv
   const response = await McpApiHandler.fetch(new Request('https://staging.example.test/mcp'), env, { props: { login: email, beeToken: 'synthetic', admissionEpoch: r.epoch } } as any);
   expect(response.status).toBe(403); expect(calls.container).not.toHaveBeenCalled();
 });
+it('owner first approval preserves saved MCP grant, rejects old denial form with409, and later denial invalidates it', async () => {
+  const { env, bridge } = fixture(); const r = await connected(env, bridge);
+  env.STAGING_PREVIEW_AUD = 'synthetic-owner-aud'; env.STAGING_OWNER_EMAIL = 'owner@example.test';
+  calls.verify.mockResolvedValue({ email: env.STAGING_OWNER_EMAIL });
+  const nonce = await bridge.admission('nonce', { email: env.STAGING_OWNER_EMAIL });
+  const decide = (status: string, value: string) => signupHandler(new Request('https://staging.example.test/admin/decision', { method: 'POST', headers: { Origin: 'https://staging.example.test', 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ id: r.id, status, nonce: value }) }), env);
+  expect((await decide('approved', nonce[r.id + ':approved']))?.status).toBe(303);
+  expect((await decide('denied', nonce[r.id + ':denied']))?.status).toBe(409);
+  const request = new Request('https://staging.example.test/mcp');
+  const saved = { props: { login: email, beeToken: 'synthetic-token', admissionEpoch: r.epoch } } as any;
+  expect((await McpApiHandler.fetch(request, env, saved)).status).toBe(200);
+  env.SELF_SERVICE_ENABLED = 'false';
+  expect((await McpApiHandler.fetch(request, env, saved)).status).toBe(200);
+  const fresh = await bridge.admission('nonce', { email: env.STAGING_OWNER_EMAIL });
+  expect((await decide('denied', fresh[r.id + ':denied']))?.status).toBe(303);
+  expect((await McpApiHandler.fetch(request, env, saved)).status).toBe(403);
+  const reapprove = await bridge.admission('nonce', { email: env.STAGING_OWNER_EMAIL });
+  expect((await decide('approved', reapprove[r.id + ':approved']))?.status).toBe(303);
+  expect((await McpApiHandler.fetch(request, env, saved)).status).toBe(403);
+});
 it('denial while upstream is running discards successful data; exception refunds once', async () => {
   const { env, bridge } = fixture(); const r = await connected(env, bridge);
   const result = await meteredRead(env, email, r.epoch, async () => {
