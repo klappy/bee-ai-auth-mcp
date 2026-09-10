@@ -1,5 +1,6 @@
 import { verifyAccessJwt } from './access';
-import { admissionRecord, admissionStub, normalizeEmail, type AdmissionRecord } from './admission';
+import { admissionRecord, admissionStub, enrollVerified, normalizeEmail, type AdmissionRecord } from './admission';
+import { eligible, ownUsage, quotaPolicy } from './quota';
 import { signConsent, verifyConsent } from './state';
 import type { Env } from './types';
 
@@ -32,7 +33,7 @@ export async function pendingPage(env: Env, email: string, request?: Request): P
 }
 export async function signupHandler(request: Request, env: Env): Promise<Response | null> {
   const url = new URL(request.url);
-  if (url.pathname === '/') return privatePage('<h1>Bee staging</h1><p>Verify your email to request access. The owner approves requests before Bee connection or data access.</p><p><a href="/signup">Request access</a></p>');
+  if (url.pathname === '/') return privatePage(quotaPolicy(env) && quotaPolicy(env) !== 'invalid' ? '<h1>Bee staging</h1><p>Verify your email, then connect your own Bee account.</p><p><a href="/signup">Continue with email</a></p>' : '<h1>Bee staging</h1><p>Verify your email to request access. The owner approves requests before Bee connection or data access.</p><p><a href="/signup">Request access</a></p>');
   if (url.pathname.startsWith('/admin')) {
     const owner = await ownerIdentity(request, env);
     if (!owner) return privatePage('<h1>Owner access required</h1>', 403);
@@ -58,7 +59,13 @@ export async function signupHandler(request: Request, env: Env): Promise<Respons
   if (url.pathname === '/signup') {
     if (request.method !== 'GET') return privatePage('Method not allowed', 405);
     const identity = await verifyAccessJwt(request, env); if (!identity) return privatePage('Email verification required', 403);
-    const record = await admissionRecord(env, identity.email, true); if (!record) return privatePage('Request capacity reached', 429);
+    const policy = quotaPolicy(env);
+    if (policy === 'invalid') return privatePage('Self-service is not configured.', 503);
+    const record = await enrollVerified(env, identity.email); if (!record) return privatePage('Request capacity reached', 429);
+    if (policy && eligible(record, policy)) {
+      const usage = await ownUsage(env, identity.email, record.epoch);
+      return privatePage(`<h1>Connect your Bee</h1><p>Add this MCP URL in your client and authorize your own Bee account.</p><p><label>MCP URL <input readonly value="${escapeHtml(url.origin + '/mcp')}"></label></p><p>${usage.ok ? `${usage.used} successful reads used of ${usage.limit}. ${usage.remaining} available.` : 'Usage is temporarily unavailable.'}</p><p>Your connection remains saved when the read allowance is exhausted.</p><p><a href="/preview/">Connection instructions</a></p>`);
+    }
     return privatePage(`<h1>${record.status === 'approved' ? 'Access approved' : record.status === 'denied' ? 'Access not approved' : 'Approval pending'}</h1><p>${record.status === 'approved' ? 'Add the staging MCP URL in your client to connect your own Bee. Live Bee operations pause when the bounded test window expires.' : 'Your email is verified. The owner must approve your request before Bee connection or data access.'}</p>${record.status === 'approved' ? `<p><label>MCP URL <input readonly value="${escapeHtml(url.origin + '/mcp')}"></label></p>` : ''}<p><a href="/preview/">View homepage and connection instructions</a></p><p><a href="/admin">Manage requests (owner only)</a></p>`);
   }
   return null;

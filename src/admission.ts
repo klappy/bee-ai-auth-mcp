@@ -1,8 +1,9 @@
 import type { Env } from './types';
+import { eligible, quotaPolicy } from './quota';
 
-export type AdmissionRecord = { id: string; email: string; status: 'pending' | 'approved' | 'denied'; epoch: number; createdAt: string };
+export type AdmissionRecord = { id: string; email: string; status: 'pending' | 'approved' | 'denied'; epoch: number; createdAt: string; trialEnrolled?: boolean };
 export type AdmissionState = { records: AdmissionRecord[]; nonces?: Record<string, { owner: string; id: string; status: string; epoch?: number; expires: number }>; hour?: string; hourCount?: number; day?: string; dayCount?: number };
-export type AdmissionOperation = 'signup' | 'status' | 'list' | 'nonce' | 'decision' | 'dcr';
+export type AdmissionOperation = 'signup' | 'enroll' | 'status' | 'list' | 'nonce' | 'decision' | 'dcr';
 export const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 
 /** Pure transition, executed inside one DO storage transaction. Never starts a Container. */
@@ -40,10 +41,11 @@ export function admissionTransition(state: AdmissionState, op: AdmissionOperatio
     return true;
   }
   const existing = state.records.find(r => r.email === email);
+  if (op === 'enroll' && existing && existing.status !== 'denied') existing.trialEnrolled = true;
   if (op === 'status' || existing) return existing ?? null;
   if (!email || email.length > 254 || !email.includes('@')) return null;
   if (state.records.length >= 100) return null;
-  const record: AdmissionRecord = { id: crypto.randomUUID(), email, status: 'pending', epoch: 0, createdAt: new Date(now).toISOString() };
+  const record: AdmissionRecord = { id: crypto.randomUUID(), email, status: 'pending', epoch: 0, createdAt: new Date(now).toISOString(), ...(op === 'enroll' ? { trialEnrolled: true } : {}) };
   state.records.push(record); return record;
 }
 
@@ -55,8 +57,14 @@ export async function admissionRecord(env: Env, email: string, create = false): 
   return await admissionStub(env).admission(create ? 'signup' : 'status', { email }) as AdmissionRecord | null;
 }
 export async function admissionAllowed(env: Env, email: string, epoch?: number): Promise<boolean> {
-  try { const r = await admissionRecord(env, email); return r?.status === 'approved' && (epoch === undefined || r.epoch === epoch); }
+  try { return eligible(await admissionRecord(env, email), quotaPolicy(env), epoch); }
   catch { return false; }
+}
+/** Call only after fresh Access JWT verification, never from decrypted old grants. */
+export async function enrollVerified(env: Env, email: string): Promise<AdmissionRecord | null> {
+  const policy = quotaPolicy(env);
+  if (policy === 'invalid') return null;
+  return await admissionStub(env).admission(policy ? 'enroll' : 'signup', { email }) as AdmissionRecord | null;
 }
 export async function runtimeAllowed(env: Env): Promise<boolean> {
   if (env.SIGNUP_ENABLED !== 'true') return true;

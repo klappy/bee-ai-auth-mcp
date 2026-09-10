@@ -40,7 +40,7 @@ import {
 } from "./broker";
 import type { Env } from "./types";
 import { COMMIT_SHA } from "./version";
-import { admissionAllowed, admissionRecord, runtimeAllowed, runtimePaused } from './admission';
+import { admissionAllowed, admissionRecord, enrollVerified, runtimeAllowed, runtimePaused } from './admission';
 import { pendingPage } from './signup';
 
 const GH = "https://api.github.com";
@@ -340,7 +340,10 @@ export const BeeAuthHandler = {
         if (!access) {
           return html(`<h2>Email sign-in could not be verified</h2><p>Restart the connection from your client. If this continues, contact the relay operator.</p>`, 403);
         }
-        if (env.SIGNUP_ENABLED === 'true' && !(await admissionAllowed(env, access.email))) return pendingPage(env, access.email, request);
+        if (env.SIGNUP_ENABLED === 'true') {
+          if (!(await enrollVerified(env, access.email))) return json({ error: 'temporarily_unavailable' }, 503);
+          if (!(await admissionAllowed(env, access.email))) return pendingPage(env, access.email, request);
+        }
         if (env.SIGNUP_ENABLED !== 'true' && !isAllowedEmail(access.email, env)) {
           return html(
             `<h2>Not authorized</h2><p>Signed in as <b>${access.email}</b>, but this self-host instance only allows its configured operator(s). Set <code>ALLOWED_EMAILS</code> and retry.</p>`,

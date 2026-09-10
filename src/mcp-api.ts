@@ -20,6 +20,7 @@ import { BEE_API_USAGE_DOC } from "./bee-api-usage-doc";
 import { classifyPath, deriveTenantKey, statusClassOf, withTelemetry } from "./telemetry";
 import type { Env, GrantProps } from "./types";
 import { admissionAllowed, runtimeAllowed, runtimePaused } from './admission';
+import { meteredRead, ownUsage, quotaError, quotaPolicy } from './quota';
 
 function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer {
   const server = new McpServer({ name: "bee-ai-auth-mcp", version: "0.1.0" });
@@ -42,6 +43,7 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
       inputSchema: {},
     },
     withTelemetry(env, tenantKey, "whoami", (tele) => async () => {
+      if (quotaPolicy(env) && !(await runtimeAllowed(env))) return { content: [{ type: 'text' as const, text: 'The bounded Bee runtime is paused.' }], isError: true };
       // One shared, token-agnostic bridge: getContainer with no name resolves the
       // singleton ("cf-singleton-container"). Do NOT pass a per-user name — that
       // would shard the deliberately single shared bridge (multitenancy rule, E0014).
@@ -154,8 +156,13 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
           chunk?: number;
         }) => {
       tele.pathClass = classifyPath(path);
-      const stub = getContainer(env.BEE_BRIDGE);
-      const result = await beeRead(props.beeToken, stub, path, search, { since, cursor, chunk });
+      if (quotaPolicy(env) && !(await runtimeAllowed(env))) return { content: [{ type: 'text' as const, text: 'The bounded Bee runtime is paused.' }], isError: true };
+      const metered = await meteredRead(env, props.login, props.admissionEpoch ?? -1, async () => {
+        const stub = getContainer(env.BEE_BRIDGE);
+        return beeRead(props.beeToken, stub, path, search, { since, cursor, chunk });
+      });
+      if ('error' in metered) return quotaError(metered.error);
+      const result = metered.result;
       // bridge_ms/bridge_state come from the bridge.fetch leg measured inside
       // bee.ts — not the whole call (which includes the body read). bridgeCold is
       // set for non-2xx too: a cold container can still return 401/403/5xx.
@@ -172,6 +179,10 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
     )
   );
 
+  if (quotaPolicy(env) && props.login.includes('@')) server.registerTool('bee_usage', {
+    title: 'Your read allowance', description: 'Inspect your own one-time read allowance. Does not retrieve Bee data or consume a read.',
+    inputSchema: {}, annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  }, async () => ({ content: [{ type: 'text' as const, text: JSON.stringify(await ownUsage(env, props.login, props.admissionEpoch ?? -1)) }] }));
   return server;
 }
 
@@ -190,7 +201,9 @@ export const McpApiHandler = {
         { status: 403 }
       );
     }
-    if (!(await runtimeAllowed(env))) return runtimePaused();
+    // Enabled self-service moves the same runtime guard to expensive tool
+    // handlers, leaving protocol/docs/usage usable when the window is closed.
+    if (!quotaPolicy(env) && !(await runtimeAllowed(env))) return runtimePaused();
     const tenantKey = await deriveTenantKey(env, props.login);
     const handler = createMcpHandler(buildServer(env, props, tenantKey), { route: "/mcp" });
     return handler(request, env, ctx);
