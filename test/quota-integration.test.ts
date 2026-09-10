@@ -30,7 +30,7 @@ async function connected(env: any, bridge: any) {
   return record;
 }
 const text = (r: any) => JSON.parse(r.content[0].text);
-it('actual DO serializes last-credit concurrency and recreated instance retains identity accounting', async () => {
+it('actual DO serializes last-credit concurrency and a second client shares stored accounting', async () => {
   const { env, bridge, data } = fixture('1'); const r = await bridge.admission('enroll', { email });
   const read = vi.fn(async () => ({ ok: true }));
   const results = await Promise.all(Array.from({ length: 10 }, () => meteredRead(env, email, r.epoch, read)));

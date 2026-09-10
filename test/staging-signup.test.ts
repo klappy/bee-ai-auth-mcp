@@ -36,7 +36,7 @@ describe('staging public native OAuth', () => {
     const response = await entry.fetch(new Request(origin + '/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ redirect_uris: ['https://chatgpt.com/connector_platform/oauth/callback'], token_endpoint_auth_method: 'none' }) }), environment(), ctx);
     expect(response.status).toBe(201); const body = await response.json() as any; expect(body.client_id).toBeTruthy(); expect(body.redirect_uris).toEqual(['https://chatgpt.com/connector_platform/oauth/callback']);
   });
-  it.each([false, true])('native PKCE and refresh respect admission, not exhausted monthly allowance (self-service %s)', async selfService => {
+  it.each([false, true])('native PKCE and refresh consult admission only (self-service %s)', async selfService => {
     const env = environment(), email = 'approved@example.test', redirect = 'https://client.example.test/cb';
     if (selfService) Object.assign(env, { SELF_SERVICE_ENABLED: 'true', SELF_SERVICE_READ_LIMIT: '1', SELF_SERVICE_POLICY_VERSION: 'monthly-test' });
     const record = await mocked.authority(selfService ? 'enroll' : 'signup', { email });
@@ -61,8 +61,8 @@ describe('staging public native OAuth', () => {
     const exchange = async (values: Record<string, string>) => entry.fetch(new Request(origin + '/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_id: client.client_id, ...values }) }), env, ctx);
     const response = await exchange({ grant_type: 'authorization_code', code, code_verifier: verifier, redirect_uri: redirect });
     expect(response.status).toBe(200); const token = await response.json() as any; expect(token.access_token).toBeTruthy(); expect(token.refresh_token).toBeTruthy();
-    // Token issue/refresh must not consult quota or start a Container. A fully
-    // exhausted account remains eligible; actual quota/route tests cover reads.
+    // This assertion checks which RPCs native refresh consults, not a full
+    // exhausted-quota OAuth journey; separate quota/route tests cover reads.
     const nativeCalls = mocked.authority.mock.calls.length;
     const renewed = await exchange({ grant_type: 'refresh_token', refresh_token: token.refresh_token });
     expect(renewed.status).toBe(200);
