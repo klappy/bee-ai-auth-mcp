@@ -4,10 +4,10 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Security &amp; custody — bee-ai-auth-mcp</title>
-<meta name="description" content="The honest security model: two separated auth legs, what's stored and how it's encrypted, how revocation actually works, and why hosted multi-tenant custody is deferred until the upstream issues short-lived tokens." />
+<meta name="description" content="The honest security model: two separated auth legs, what's stored and how it's encrypted, how revocation actually works, and the tradeoff when Klappy hosts the connector for invited users." />
 <meta property="og:type" content="article" />
 <meta property="og:title" content="Security &amp; custody — bee-ai-auth-mcp" />
-<meta property="og:description" content="No central pile of keys. Here's exactly what is and isn't held, and what revocation really means." />
+<meta property="og:description" content="Understand hosted credential custody, access and disconnection." />
 <meta property="og:url" content="https://bee.klappy.dev/security" />
 <meta property="og:image" content="https://bee.klappy.dev/og-image.png" />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -27,7 +27,7 @@
     <a class="brand" href="/"><img src="/favicon.svg" width="24" height="24" alt="" /> bee-ai-auth-mcp</a>
     <nav>
       <a class="nav-hide" href="/under-the-hood">Under the hood</a>
-      <a href="/setup">Set up</a>
+      <a href="/setup">Self-host</a>
       <a class="nav-hide" href="/security" aria-current="page">Security</a>
       <a class="nav-hide" href="/roadmap">Roadmap</a>
       <a class="ghost" href="https://github.com/klappy/bee-ai-auth-mcp">GitHub&nbsp;↗</a>
@@ -36,38 +36,35 @@
 </header>
 
 <main class="wrap">
+  <div class="callout info"><p class="h">Invited by Klappy?</p><p>Use the <a href="/#connect">hosted connection guide</a> to connect your own Bee. Klappy manages this service; you do not need to deploy software or change server settings.</p></div>
 
   <section class="page-hero flush">
     <p class="breadcrumb"><a href="/">Home</a> / Security</p>
-    <p class="eyebrow">Honest + safest</p>
+    <p class="eyebrow">Access &amp; privacy</p>
     <h1>What's held, what isn't, and how to revoke.</h1>
-    <p class="lede">Custody is the whole question with a credential relay. The honest answer: this holds your own token in your own deployment, and nobody else's anywhere.</p>
+    <p class="lede">Custody is the whole question with a credential relay. On Klappy's hosted service, your Bee credential is held in an encrypted grant on infrastructure Klappy operates. You trust the operator and hosting infrastructure to handle that access; retrieved material also reaches your AI provider.</p>
   </section>
 
   <section class="prose">
     <h2>Two legs, kept separate</h2>
-    <p>The login leg (you ↔ relay) and the data leg (relay ↔ Bee) never mix. GitHub authenticates <em>who you are</em> and grants nothing else — no repository access, no profile data beyond your login, which is read once and discarded. Your Bee token rides the other leg only — captured at consent and held in your own encrypted grant, never a shared secret.</p>
+    <p>The login leg (you ↔ relay) and the data leg (relay ↔ Bee) never mix. Email sign-in verifies access to your approved inbox. GitHub remains an optional identity check for existing users — no repository access; the service reads your login for the access check and discards the GitHub token. Your Bee token rides the other leg only — captured at consent and held in your own encrypted grant, never a shared secret.</p>
 
     <h2>What gets stored</h2>
-    <p>The only persistent state is the OAuth provider's grants, in your <code>OAUTH_KV</code> namespace. Grant props are encrypted per-grant with key material derived from the token, not a shared KMS key. A storage-only leak therefore exposes metadata, not usable credentials.</p>
+    <p>Bee credentials are held in the OAuth provider's grants, in the deployment's <code>OAUTH_KV</code> namespace. Grant props are encrypted per-grant with key material derived from the token, not a shared KMS key. Encryption at rest is not a guarantee against compromise of the running service.</p>
 
     <h2>The Bee bearer</h2>
-    <p>It lives only in your own encrypted grant props — never a shared Worker secret. It is never written to logs, never placed in a URL, never serialized into an error, and never returned in tool output. Errors carry a status and a generic message — never the request, the headers, or the upstream body. Tools are read-only by default and request the narrowest data they need.</p>
+    <p>It lives only in your own encrypted grant props — never a shared Worker secret. The service is designed to keep credentials out of logs, URLs, errors and tool output. The exposed Bee tools perform read-only retrieval. Retrieved conversation data passes through the service to your AI provider.</p>
 
     <h2>Revocation — said plainly</h2>
-    <p>Disconnecting the connector deletes <em>the relay's</em> copy of your token along with the grant. It does <strong>not</strong> revoke the Bee token at Bee — to fully revoke, re-pair or rotate it in the Bee app. We won't imply a cleaner story than that — honest beats convenient.</p>
+    <p>Disconnect Bee in your AI app to stop using it there. This does not erase material already included in chats or guarantee revocation of the credential at Bee. For help removing hosted access or revoking Bee authorization, ask Klappy.</p>
 
-    <h2>Who can use your instance</h2>
-    <p>Every login is checked against <code>ALLOWED_GITHUB_LOGIN</code>. Until you set it, the instance refuses everyone — closed by default, not open by default.</p>
+    <h2>Who can use the hosted service</h2>
+    <p>Klappy approves the email addresses allowed to connect. Email sign-in uses a code sent to your inbox; you do not need a GitHub or Cloudflare account. Existing GitHub users can still use the separately approved GitHub sign-in path. Each allowed user connects their own Bee account.</p>
 
-    <h2>Why self-host is the safe default</h2>
-    <div class="compare">
-      <div class="card"><h3>A hosted store of everyone's tokens</h3><ul><li>Holds many people's long-lived Bee bearers at once</li><li>One breach exposes every connected account</li><li>A structural honeypot someone must guard forever</li><li>Reachable only once Bee issues short-lived, minted tokens</li></ul></div>
-      <div class="card good"><h3>Self-host</h3><ul><li>Your token lives only in your own encrypted grant, nowhere central</li><li>The blast radius is one person: you</li><li>No trust required in an operator you've never met</li><li>Revoke whenever: disconnect deletes the copy; re-pair in the Bee app</li></ul></div>
-    </div>
-
-    <h2>Why hosted multi-tenant is deferred</h2>
-    <p>The sibling <code>git-repo-auth</code> can host many users safely because GitHub mints ephemeral, scoped tokens that die within the hour — it never stores a long-lived credential. Bee has no equivalent minting primitive today, so a hosted bee relay would have to store long-lived Bee tokens: the exact liability self-host avoids. Hardening (envelope encryption, per-user isolation, narrowest scope, rotation) shrinks that risk but doesn't erase it. So hosted custody stays deferred and scaling is gated on an upstream "mint short-lived tokens" capability landing. The <a href="/roadmap">roadmap</a> tracks that gate.</p>
+    <h2>Hosted access and self-hosting</h2>
+    <p>The hosted service is for invited friends and family. Encryption at rest does not remove trust in the operator: the service handles your credential and retrieved data while making requests. Self-hosting puts deployment control in your hands, along with responsibility for running and securing it.</p>
+    <h2>Limits of this invitation-only service</h2>
+    <p>This is not a claim that the broader hosted-hardening roadmap is complete, or that hosted email and CLI-broker authentication are live. The intended hosted pairing has the service run Bee's official CLI, show you that CLI's approval link or QR, and finish the connection after you approve in the Bee app. Invitees do not install the CLI. Remaining public-service hardening gates stay open. See the <a href="/roadmap">developer roadmap</a>.</p>
 
     <p><a href="/under-the-hood">See the technical detail →</a></p>
   </section>
@@ -77,10 +74,10 @@
 <footer>
   <div class="wrap frow">
     <span class="mono">bee-ai-auth-mcp</span><span class="sep">·</span>
-    <span>MIT — self-host-first</span><span class="sep">·</span>
+    <span>MIT · self-hosting available</span><span class="sep">·</span>
     <a href="/">Home</a><span class="sep">·</span>
     <a href="/under-the-hood">Under the hood</a><span class="sep">·</span>
-    <a href="/setup">Set up</a><span class="sep">·</span>
+    <a href="/setup">Self-host</a><span class="sep">·</span>
     <a href="/roadmap">Roadmap</a><span class="sep">·</span>
     <a href="https://github.com/klappy/bee-ai-auth-mcp">GitHub</a>
   </div>
@@ -88,3 +85,4 @@
 
 </body>
 </html>
+

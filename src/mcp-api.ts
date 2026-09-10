@@ -19,6 +19,7 @@ import { beeGetMe, beeRead } from "./bee";
 import { BEE_API_USAGE_DOC } from "./bee-api-usage-doc";
 import { classifyPath, deriveTenantKey, statusClassOf, withTelemetry } from "./telemetry";
 import type { Env, GrantProps } from "./types";
+import { admissionAllowed, runtimeAllowed, runtimePaused } from './admission';
 
 function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer {
   const server = new McpServer({ name: "bee-ai-auth-mcp", version: "0.1.0" });
@@ -180,6 +181,7 @@ export const McpApiHandler = {
     if (!props?.login) {
       return new Response("Grant is not bound to an identity. Disconnect and reconnect.", { status: 403 });
     }
+    if (env.SIGNUP_ENABLED === 'true' && (!Number.isInteger(props.admissionEpoch) || !(await admissionAllowed(env, props.login, props.admissionEpoch)))) return new Response('Access not approved. Reconnect after owner approval.', { status: 403, headers: { 'Cache-Control': 'no-store' } });
     if (!props.beeToken) {
       // A grant from before the custody bend (login only). Force a reconnect so
       // the consent step can capture a Bee token into the encrypted props.
@@ -188,6 +190,7 @@ export const McpApiHandler = {
         { status: 403 }
       );
     }
+    if (!(await runtimeAllowed(env))) return runtimePaused();
     const tenantKey = await deriveTenantKey(env, props.login);
     const handler = createMcpHandler(buildServer(env, props, tenantKey), { route: "/mcp" });
     return handler(request, env, ctx);
