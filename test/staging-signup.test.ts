@@ -61,6 +61,7 @@ describe('staging public native OAuth', () => {
     const exchange = async (values: Record<string, string>) => entry.fetch(new Request(origin + '/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_id: client.client_id, ...values }) }), env, ctx);
     const response = await exchange({ grant_type: 'authorization_code', code, code_verifier: verifier, redirect_uri: redirect });
     expect(response.status).toBe(200); const token = await response.json() as any; expect(token.access_token).toBeTruthy(); expect(token.refresh_token).toBeTruthy();
+    if (selfService) await decide('approved');
     // This assertion checks which RPCs native refresh consults, not a full
     // exhausted-quota OAuth journey; separate quota/route tests cover reads.
     const nativeCalls = mocked.authority.mock.calls.length;

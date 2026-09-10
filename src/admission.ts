@@ -37,7 +37,13 @@ export function admissionTransition(state: AdmissionState, op: AdmissionOperatio
     if (!nonce || nonce.owner !== email || nonce.id !== input.id || nonce.status !== input.status || nonce.expires <= now) return false;
     const record = state.records.find(r => r.id === input.id);
     if (!record || nonce.epoch !== record.epoch || !['approved', 'denied'].includes(input.status)) return false;
-    if (record.status !== input.status) { record.epoch++; record.status = input.status as 'approved' | 'denied'; }
+    if (record.status !== input.status) {
+      // Denial and later status changes must stale existing grants. First-time
+      // approval of an already-enrolled pending account must not — those grants
+      // were issued under the current epoch while status was still pending.
+      if (!(record.selfServiceEnrolled === true && record.status === 'pending' && input.status === 'approved')) record.epoch++;
+      record.status = input.status as 'approved' | 'denied';
+    }
     return true;
   }
   const existing = state.records.find(r => r.email === email);

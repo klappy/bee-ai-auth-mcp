@@ -22,6 +22,12 @@ describe('strong admission authority transitions', () => {
     expect(decide(s, r.id, 'denied')).toBe(true); expect(r.epoch).toBeGreaterThan(old);
     expect(decide(s, r.id, 'approved')).toBe(true); expect(r.epoch).toBe(3);
   });
+  it('first approval of an enrolled account keeps the grant epoch', () => {
+    const s = fresh(), r = admissionTransition(s, 'enroll', { email: 'person@example.test' }) as AdmissionRecord;
+    const grantEpoch = r.epoch;
+    expect(decide(s, r.id, 'approved')).toBe(true); expect(r.status).toBe('approved'); expect(r.epoch).toBe(grantEpoch);
+    expect(decide(s, r.id, 'denied')).toBe(true); expect(r.epoch).toBeGreaterThan(grantEpoch);
+  });
   it('rejects forged, wrong-owner, expired, replayed and unknown-target decisions', () => {
     const s = fresh(), r = signup(s); const now = Date.now();
     const nonce = admissionTransition(s, 'nonce', { email: 'owner@example.test', id: r.id, status: 'approved' }, now) as string;
