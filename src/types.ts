@@ -2,7 +2,12 @@ import type { OAuthHelpers } from "@cloudflare/workers-oauth-provider";
 import type { BeeBridge } from "./bridge";
 
 export interface Env {
-  /** Staging-only signup/approval feature; absent preserves production behavior. */
+  /** Set by the entry point, never inferred from signup enablement. */
+  BEE_ENVIRONMENT?: 'production' | 'staging';
+  /** Production owner admin audience and identity; private configuration. */
+  ADMIN_ACCESS_AUD?: string;
+  ADMIN_OWNER_EMAIL?: string;
+  /** Hosted email signup/approval feature; absent preserves allowlist behavior. */
   SIGNUP_ENABLED?: string;
   /** Disabled unless explicitly enabled with an approved positive monthly limit/version. */
   SELF_SERVICE_ENABLED?: string;
@@ -103,3 +108,6 @@ export interface GrantProps extends Record<string, unknown> {
   beeToken: string;
 }
 
+
+/** Entry points and staging DO constructor own this runtime discriminator. */
+export const isStaging = (env: Env): boolean => env.BEE_ENVIRONMENT === 'staging';

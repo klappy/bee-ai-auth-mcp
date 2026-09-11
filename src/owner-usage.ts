@@ -1,3 +1,4 @@
+import { isStaging } from './types';
 /** Optional staging calibration. No identities or per-call records are stored. */
 import type { Env } from './types';
 
@@ -19,7 +20,7 @@ const sum = (a: number, b: unknown): number => Math.min(Number.MAX_SAFE_INTEGER,
 /** login must come from authenticated grant props, never client-supplied args. */
 export function ownerUsageEnabled(env: Env, login: unknown): login is string {
   const owner = env.STAGING_OWNER_EMAIL?.trim().toLowerCase();
-  return env.SIGNUP_ENABLED === 'true' && env.OWNER_USAGE_ENABLED === 'true' && !!owner && owner.includes('@') && typeof login === 'string' && login.trim().toLowerCase() === owner;
+  return isStaging(env) && env.SIGNUP_ENABLED === 'true' && env.OWNER_USAGE_ENABLED === 'true' && !!owner && owner.includes('@') && typeof login === 'string' && login.trim().toLowerCase() === owner;
 }
 
 /** Rebuild only fixed fields, pruning on every permitted read/write. No idle deletion promise. */

@@ -40,7 +40,7 @@ import {
 } from "./broker";
 import type { Env } from "./types";
 import { COMMIT_SHA } from "./version";
-import { admissionAllowed, admissionRecord, enrollVerified, runtimeAllowed, runtimePaused } from './admission';
+import { grantIdentityAllowed, admissionAllowed, admissionRecord, enrollVerified, runtimeAllowed, runtimePaused } from './admission';
 import { pendingPage } from './signup';
 
 const GH = "https://api.github.com";
@@ -270,8 +270,7 @@ export function isAllowedEmail(email: string, env: Env): boolean {
  *  `@` (Access door), GitHub logins cannot (GitHub door) — disjoint by
  *  construction, so one signed `login` field routes to exactly one list. */
 async function isAllowedIdentity(login: string, env: Env, epoch?: number): Promise<boolean> {
-  if (env.SIGNUP_ENABLED === 'true') return login.includes('@') && Number.isInteger(epoch) && admissionAllowed(env, login, epoch);
-  return login.includes("@") ? isAllowedEmail(login, env) : isAllowed(login, env);
+  return grantIdentityAllowed(env, login, epoch);
 }
 
 /** Best-effort delete of one owned broker dir. Wrong identity or a stale blob
@@ -451,7 +450,7 @@ export const BeeAuthHandler = {
         userId: cs.login,
         metadata: { label: cs.login },
         scope: ["bee_read"],
-        props: { login: cs.login, beeToken, ...(env.SIGNUP_ENABLED === 'true' ? { admissionEpoch: cs.admissionEpoch } : {}) },
+        props: { login: cs.login, beeToken, ...(env.SIGNUP_ENABLED === 'true' && cs.login.includes('@') ? { admissionEpoch: cs.admissionEpoch } : {}) },
       });
       return Response.redirect(redirectTo, 302);
     }
@@ -553,7 +552,7 @@ export const BeeAuthHandler = {
         userId: cs.login,
         metadata: { label: cs.login },
         scope: ["bee_read"],
-        props: { login: cs.login, beeToken, ...(env.SIGNUP_ENABLED === 'true' ? { admissionEpoch: cs.admissionEpoch } : {}) },
+        props: { login: cs.login, beeToken, ...(env.SIGNUP_ENABLED === 'true' && cs.login.includes('@') ? { admissionEpoch: cs.admissionEpoch } : {}) },
       });
       try {
         await broker.clearBeeBroker(st.brokerId);

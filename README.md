@@ -67,7 +67,7 @@ OAuth client authentication negotiation uses a pinned maintained provider.
 See [the compatibility repair and migration evidence](docs/oauth-negotiation-repair-2026-09-10.md)
 for supported public-client alternatives, synthetic checks and remaining hosted gates.
 
-The staging code includes a [default-disabled monthly allowance](docs/monthly-allowance.md).
+The shared hosted code includes a [default-disabled monthly allowance](docs/monthly-allowance.md).
 It does not activate self-service, choose an allowance, or add billing/referrals.
 When separately configured, each successful `bee_read` page consumes one unit;
 `bee_usage` reports the account's allowance and exact renewal time without a Bee call.
@@ -90,7 +90,7 @@ for exact commands, validation and the production-release gate.
 
 ## Owner-only staging calibration
 
-Optional `OWNER_USAGE_ENABLED=true` observes only the authenticated login matching the trusted `STAGING_OWNER_EMAIL`, with `SIGNUP_ENABLED=true`. All staging calls bypass legacy Analytics Engine identity derivation and emission, even when observation is off. Production retains its existing optional AE behavior.
+Optional `OWNER_USAGE_ENABLED=true` observes only the authenticated login matching the trusted `STAGING_OWNER_EMAIL`, with `SIGNUP_ENABLED=true` and the explicit staging runtime. All staging calls bypass legacy Analytics Engine identity derivation and emission, even when observation is off. Production retains its existing optional AE behavior.
 
 The existing per-tool wrapper measures `bee_read`, `bee_docs` and `whoami`. One existing BeeBridge Durable Object stores daily fixed-schema counts and summed duration, bridge duration and output bytes. Returned successful read pages, read failures, runtime/quota blocks, docs, identity checks and thrown errors have distinct buckets. No identity, hash, transcript, raw path, query, token or per-call record is stored. The private RPC rechecks owner matching. Emission failures never change the original tool result or thrown error.
 
@@ -119,3 +119,18 @@ writes the exact approved homepage as the output's `index.html`. It prints the
 HTML hash and byte count. No build or deployment currently invokes it. Selecting
 this asset directory belongs to the reviewed production configuration; generating
 it does not publish it or establish hosted acceptance.
+
+## Hosted production entry
+
+`src/hosted.ts` shares hardened native OAuth, email signup and admission/quota
+storage with staging. It keeps the GitHub allowlist, existing encrypted grants,
+refresh and consent route. Email signup grants additionally require their current
+admission epoch. `src/staging.ts` alone adds validation expiry, lifetime operation
+budgets, protected preview and owner-only observation. Signup enablement is no
+longer an environment detector.
+
+Production admin authentication uses private `ADMIN_ACCESS_AUD` and
+`ADMIN_OWNER_EMAIL`; staging retains its separate owner bindings. No values are
+included in source. This PR prepares the production entry configuration but does
+not deploy it, activate email signup, select a monthly allowance, or publish the
+approved homepage. See [production entry boundaries](docs/production-entry.md).

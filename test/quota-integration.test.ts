@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 const calls = vi.hoisted(() => ({ tools: new Map<string, Function>(), container: vi.fn(), runtime: vi.fn(), verify: vi.fn() }));
 vi.mock('cloudflare:workers', () => ({ WorkerEntrypoint: class {} }));
-vi.mock('../src/validation', () => ({ BeeBridge: class {} }));
+vi.mock('../src/bridge', () => ({ BeeBridge: class {} }));
 vi.mock('../src/access', () => ({ verifyAccessJwt: calls.verify }));
 vi.mock('@cloudflare/containers', () => ({ getContainer: calls.container }));
 vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({ McpServer: class { registerTool(name: string, _config: unknown, fn: Function) { calls.tools.set(name, fn); } } }));
@@ -15,7 +15,7 @@ function fixture(limit = '2') {
   const data = new Map<string, unknown>(); let tail = Promise.resolve();
   const txn = { get: async (key: string) => structuredClone(data.get(key)), put: async (key: string, value: unknown) => { data.set(key, structuredClone(value)); } };
   const bridge: any = Object.create(BeeBridge.prototype);
-  const env: any = { SIGNUP_ENABLED: 'true', SELF_SERVICE_ENABLED: 'true', SELF_SERVICE_READ_LIMIT: limit, SELF_SERVICE_POLICY_VERSION: 'monthly-v1', CONSENT_SIGNING_SECRET: 'synthetic-signing', BEE_BRIDGE: { idFromName: (n: string) => n, get: () => bridge } };
+  const env: any = { BEE_ENVIRONMENT: 'staging', SIGNUP_ENABLED: 'true', SELF_SERVICE_ENABLED: 'true', SELF_SERVICE_READ_LIMIT: limit, SELF_SERVICE_POLICY_VERSION: 'monthly-v1', CONSENT_SIGNING_SECRET: 'synthetic-signing', BEE_BRIDGE: { idFromName: (n: string) => n, get: () => bridge } };
   bridge.env = env; bridge.ctx = { storage: { ...txn, transaction: (fn: Function) => { const p = tail.then(() => fn(txn)); tail = p.then(() => {}, () => {}); return p; } } };
   bridge.reserveValidationRequest = calls.runtime;
   return { env, bridge, data };

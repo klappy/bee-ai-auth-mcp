@@ -1,13 +1,14 @@
+vi.mock('@cloudflare/containers', () => ({ getContainer: vi.fn() }));
 import { test, expect, vi, afterEach } from 'vitest';
 vi.mock('cloudflare:workers', () => ({ WorkerEntrypoint: class {} }));
-vi.mock('../src/validation', () => ({ BeeBridge: class {} }));
+vi.mock('../src/bridge', () => ({ BeeBridge: class {} }));
 vi.mock('../src/mcp-api', () => ({ McpApiHandler: { fetch: vi.fn() } }));
 vi.mock('../src/bee-auth', () => ({ BeeAuthHandler: { fetch: vi.fn() } }));
 import entry from '../src/staging';
 import { SignJWT, exportJWK, generateKeyPair } from 'jose';
 import { __resetJwksCacheForTests } from '../src/access';
 
-const original = { SIGNUP_ENABLED: 'true', ACCESS_TEAM_DOMAIN: '', ACCESS_AUD: 'synthetic-signup-audience', STAGING_PREVIEW_AUD: 'synthetic-signup-audience', VALIDATION_STARTS_AT: '', VALIDATION_EXPIRES_AT: '' };
+const original = { BEE_ENVIRONMENT: 'staging', SIGNUP_ENABLED: 'true', ACCESS_TEAM_DOMAIN: '', ACCESS_AUD: 'synthetic-signup-audience', STAGING_PREVIEW_AUD: 'synthetic-signup-audience', VALIDATION_STARTS_AT: '', VALIDATION_EXPIRES_AT: '' };
 const corrected = { ...original, ACCESS_TEAM_DOMAIN: 'klappy.cloudflareaccess.com' };
 afterEach(() => { vi.unstubAllGlobals(); __resetJwksCacheForTests(); });
 test('current staging preview and real verifier: missing issuer fails, repaired issuer succeeds, invalid tokens fail', async () => {

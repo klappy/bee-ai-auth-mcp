@@ -1,3 +1,4 @@
+import { isStaging } from './types';
 import { verifyAccessJwt } from './access';
 import { admissionRecord, admissionStub, enrollVerified, normalizeEmail, type AdmissionRecord } from './admission';
 import { eligible, ownUsage, quotaPolicy } from './quota';
@@ -6,7 +7,7 @@ import type { Env } from './types';
 
 export const escapeHtml = (s: string): string => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 export function privatePage(body: string, status = 200, referrerPolicy: 'no-referrer' | 'same-origin' = 'no-referrer'): Response {
-  return new Response(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bee staging</title><main>${body}</main>`, { status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Referrer-Policy': referrerPolicy, 'X-Robots-Tag': 'noindex, nofollow, noarchive', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'" } });
+  return new Response(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bee</title><main>${body}</main>`, { status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Referrer-Policy': referrerPolicy, 'X-Robots-Tag': 'noindex, nofollow, noarchive', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'" } });
 }
 export async function boundedBody(request: Request, limit = 16_384): Promise<string | null> {
   if (!request.body) return '';
@@ -16,9 +17,11 @@ export async function boundedBody(request: Request, limit = 16_384): Promise<str
   return new TextDecoder().decode(bytes);
 }
 export async function ownerIdentity(request: Request, env: Env): Promise<{ email: string } | null> {
-  if (!env.STAGING_PREVIEW_AUD || !env.STAGING_OWNER_EMAIL) return null;
-  const identity = await verifyAccessJwt(request, { ...env, ACCESS_AUD: env.STAGING_PREVIEW_AUD });
-  return identity && normalizeEmail(identity.email) === normalizeEmail(env.STAGING_OWNER_EMAIL) ? identity : null;
+  const audience = isStaging(env) ? env.STAGING_PREVIEW_AUD : env.ADMIN_ACCESS_AUD;
+  const owner = isStaging(env) ? env.STAGING_OWNER_EMAIL : env.ADMIN_OWNER_EMAIL;
+  if (!audience || !owner) return null;
+  const identity = await verifyAccessJwt(request, { ...env, ACCESS_AUD: audience });
+  return identity && normalizeEmail(identity.email) === normalizeEmail(owner) ? identity : null;
 }
 export async function pendingPage(env: Env, email: string, request?: Request): Promise<Response> {
   const record = await admissionRecord(env, email, true);

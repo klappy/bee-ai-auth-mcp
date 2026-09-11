@@ -1,10 +1,12 @@
+vi.mock('@cloudflare/containers', () => ({ getContainer: vi.fn() }));
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocked = vi.hoisted(() => ({ verify: vi.fn(), authority: vi.fn(), api: vi.fn(), auth: vi.fn() }));
 vi.mock('cloudflare:workers', () => ({ WorkerEntrypoint: class {} }));
-vi.mock('../src/validation', () => ({ BeeBridge: class {} }));
+vi.mock('../src/bridge', () => ({ BeeBridge: class {} }));
 vi.mock('../src/access', () => ({ verifyAccessJwt: mocked.verify }));
 vi.mock('../src/mcp-api', () => ({ McpApiHandler: { fetch: mocked.api } }));
 vi.mock('../src/bee-auth', () => ({ BeeAuthHandler: { fetch: mocked.auth } }));
+import production from '../src/hosted';
 import entry, { BeeBridge, registrationValid } from '../src/staging';
 import { signupHandler } from '../src/signup';
 import { admissionTransition, type AdmissionState } from '../src/admission';
@@ -13,7 +15,7 @@ const origin = 'https://staging.example.test';
 function environment(): any {
   const kv = new Map<string, string>(); const state: AdmissionState = { records: [] };
   mocked.authority.mockImplementation(async (op, args) => admissionTransition(state, op, args));
-  return { SIGNUP_ENABLED: 'true', CONSENT_SIGNING_SECRET: 'synthetic-test-signing-only', ACCESS_AUD: 'email-aud', STAGING_PREVIEW_AUD: 'owner-aud', STAGING_OWNER_EMAIL: 'owner@example.test',
+  return { BEE_ENVIRONMENT: 'staging', SIGNUP_ENABLED: 'true', CONSENT_SIGNING_SECRET: 'synthetic-test-signing-only', ACCESS_AUD: 'email-aud', STAGING_PREVIEW_AUD: 'owner-aud', STAGING_OWNER_EMAIL: 'owner@example.test',
     BEE_BRIDGE: { idFromName: (name: string) => name, get: () => ({ admission: mocked.authority }) },
     OAUTH_KV: { get: async (key: string, type?: string | { type: string }) => { const v = kv.get(key); return v === undefined ? null : (typeof type === 'object' ? type.type : type) === 'json' ? JSON.parse(v) : v; }, put: async (key: string, value: string) => { kv.set(key, value); }, delete: async (key: string) => { kv.delete(key); }, list: async (options: { prefix: string }) => ({ keys: [...kv.keys()].filter(k => k.startsWith(options.prefix)).map(name => ({ name })), list_complete: true }) },
   };
@@ -36,7 +38,8 @@ describe('staging public native OAuth', () => {
     const response = await entry.fetch(new Request(origin + '/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ redirect_uris: ['https://chatgpt.com/connector_platform/oauth/callback'], token_endpoint_auth_method: 'none' }) }), environment(), ctx);
     expect(response.status).toBe(201); const body = await response.json() as any; expect(body.client_id).toBeTruthy(); expect(body.redirect_uris).toEqual(['https://chatgpt.com/connector_platform/oauth/callback']);
   });
-  it.each([false, true])('native PKCE and refresh consult admission only (self-service %s)', async selfService => {
+  it.each([[false, false], [true, false], [false, true], [true, true]])('native PKCE/refresh consult admission (self-service %s, production %s)', async (selfService, hosted) => {
+    const endpoint = hosted ? production : entry;
     const env = environment(), email = 'approved@example.test', redirect = 'https://client.example.test/cb';
     if (selfService) Object.assign(env, { SELF_SERVICE_ENABLED: 'true', SELF_SERVICE_READ_LIMIT: '1', SELF_SERVICE_POLICY_VERSION: 'monthly-test' });
     const record = await mocked.authority(selfService ? 'enroll' : 'signup', { email });
@@ -45,7 +48,7 @@ describe('staging public native OAuth', () => {
       expect(await mocked.authority('decision', { email: 'owner@example.test', id: record.id, status, nonce })).toBe(true);
     };
     if (!selfService) await decide('approved');
-    const registration = await entry.fetch(new Request(origin + '/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ redirect_uris: [redirect], token_endpoint_auth_method: 'none' }) }), env, ctx);
+    const registration = await endpoint.fetch(new Request(origin + '/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ redirect_uris: [redirect], token_endpoint_auth_method: 'none' }) }), env, ctx);
     const client = await registration.json() as any;
     const verifier = 'synthetic-code-verifier-for-real-native-provider-123456789';
     const challenge = Buffer.from(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))).toString('base64url');
@@ -55,10 +58,10 @@ describe('staging public native OAuth', () => {
       const grant = await authEnv.OAUTH_PROVIDER.completeAuthorization({ request: { responseType: 'code', clientId: client.client_id, redirectUri: redirect, scope: ['bee_read'], state: 'synthetic', codeChallenge: challenge, codeChallengeMethod: 'S256', resource: origin + '/mcp' }, userId: email, metadata: {}, scope: ['bee_read'], props: { login: email, beeToken: 'synthetic-upstream-token', admissionEpoch: record.epoch } });
       return Response.redirect(grant.redirectTo);
     });
-    const consent = await entry.fetch(new Request(origin + '/authorize/email?code_challenge_method=S256&code_challenge=' + challenge), env, ctx);
+    const consent = await endpoint.fetch(new Request(origin + '/authorize/email?code_challenge_method=S256&code_challenge=' + challenge), env, ctx);
     expect(consent.status).toBe(302);
     const code = new URL(consent.headers.get('Location')!).searchParams.get('code')!;
-    const exchange = async (values: Record<string, string>) => entry.fetch(new Request(origin + '/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_id: client.client_id, ...values }) }), env, ctx);
+    const exchange = async (values: Record<string, string>) => endpoint.fetch(new Request(origin + '/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_id: client.client_id, ...values }) }), env, ctx);
     const response = await exchange({ grant_type: 'authorization_code', code, code_verifier: verifier, redirect_uri: redirect });
     expect(response.status).toBe(200); const token = await response.json() as any; expect(token.access_token).toBeTruthy(); expect(token.refresh_token).toBeTruthy();
     if (selfService) await decide('approved');
