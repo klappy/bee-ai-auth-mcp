@@ -87,3 +87,14 @@ Production's branch-only Builds command explicitly selects
 `wrangler.production.jsonc`. Production promotion still requires its own approval.
 See [the deployment contract](docs/ci-cd.md)
 for exact commands, validation and the production-release gate.
+
+## Owner-only staging calibration
+
+Optional `OWNER_USAGE_ENABLED=true` observes only the authenticated login matching the trusted `STAGING_OWNER_EMAIL`, with `SIGNUP_ENABLED=true`. All staging calls bypass legacy Analytics Engine identity derivation and emission, even when observation is off. Production retains its existing optional AE behavior.
+
+The existing per-tool wrapper measures `bee_read`, `bee_docs` and `whoami`. One existing BeeBridge Durable Object stores daily fixed-schema counts and summed duration, bridge duration and output bytes. Returned successful read pages, read failures, runtime/quota blocks, docs, identity checks and thrown errors have distinct buckets. No identity, hash, transcript, raw path, query, token or per-call record is stored. The private RPC rechecks owner matching. Emission failures never change the original tool result or thrown error.
+
+Owner-only `bee_observed_usage` reads the aggregate without calling Bee, starting the Container, consuming a commercial read or counting itself. It accepts no identity filters. Every permitted read/write consumes the existing lifetime signup-operation budget, which is never reset. At exhaustion observation is unavailable while Bee results remain unchanged. At most 31 UTC dates are retained, pruned on reads/writes; idle timed deletion is not promised.
+
+This is best-effort calibration, not a billing ledger. Coverage begins only after separately reviewed activation and actual hosted readback; enqueueing work with `waitUntil` is not persistence proof. Heavy owner usage is a useful upper-use observation, not a representative free-user distribution. No numeric allowance, self-service activation, production change or new telemetry service is selected here.
+

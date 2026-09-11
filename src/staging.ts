@@ -9,10 +9,23 @@ import { admissionAllowed, admissionStub, admissionTransition, type AdmissionOpe
 import { boundedBody, privatePage, signupHandler } from './signup';
 import { validationExpiry, VALIDATION_REQUEST_LIMIT, type ValidationWindow } from './validation-window';
 import type { Env } from './types';
+import { ownerUsageEnabled, ownerUsageTransition, OWNER_USAGE_KEY, unavailable, type OwnerObservation, type OwnerUsageState, type OwnerUsageResult } from './owner-usage';
 import { quotaPolicy, quotaTransition, type QuotaOperation, type QuotaInput, type QuotaState, type QuotaResult } from './quota';
 
 type StagingEnv = Env & ValidationWindow;
 export class BeeBridge extends ValidationBridge {
+  async ownerUsage(op: 'record' | 'read', login: string, event?: OwnerObservation): Promise<OwnerUsageResult> {
+    if (!ownerUsageEnabled(this.env, login) || !['record', 'read'].includes(op) || (op === 'record' && !event)) return unavailable();
+    return this.ctx.storage.transaction(async txn => {
+      const count = (await txn.get<number>('signup:operations')) ?? 0;
+      if (!Number.isSafeInteger(count) || count < 0 || count >= 100_000) return unavailable();
+      await txn.put('signup:operations', count + 1);
+      const state = (await txn.get<OwnerUsageState>(OWNER_USAGE_KEY)) ?? { days: {} };
+      const next = ownerUsageTransition(state, op === 'record' ? event : undefined);
+      await txn.put(OWNER_USAGE_KEY, next);
+      return op === 'read' ? { ok: true, days: next.days } : { ok: true };
+    });
+  }
   async admission(op: AdmissionOperation, input: Record<string, string>): Promise<unknown> {
     if (op === 'enroll' && (!quotaPolicy(this.env) || quotaPolicy(this.env) === 'invalid')) return null;
     return this.ctx.storage.transaction(async txn => {

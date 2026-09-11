@@ -10,10 +10,12 @@ export interface Env {
   SELF_SERVICE_POLICY_VERSION?: string;
   STAGING_PREVIEW_AUD?: string;
   STAGING_OWNER_EMAIL?: string;
+  /** Optional staging owner-only aggregate observation; absent is disabled. */
+  OWNER_USAGE_ENABLED?: string;
   // ---- user<->relay leg: GitHub OAuth as the identity gate ----
   /** GitHub OAuth App client credentials (identity only — NOT a GitHub App, no minting). */
   GITHUB_CLIENT_ID: string;
-  /** Used ONLY for the GitHub OAuth code exchange (single-use again as of the
+  /** Used for GitHub OAuth and legacy production telemetry HMAC. As of the
    *  dual-door change — consent-state signing and pairing-state sealing moved
    *  to CONSENT_SIGNING_SECRET; see ticket bee-relay-cf-access). */
   GITHUB_CLIENT_SECRET: string;
@@ -100,3 +102,4 @@ export interface GrantProps extends Record<string, unknown> {
   /** The user's Bee bearer, captured at consent. Treated as a secret throughout. */
   beeToken: string;
 }
+
