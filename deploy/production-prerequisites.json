@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "accepted": false,
+  "acceptanceReceipt": null,
+  "configurationVersion": null,
+  "previousDeployment": null,
+  "emailAccessAppId": null,
+  "adminAccessAppId": null,
+  "accessTeamDomain": null,
+  "accessAud": null,
+  "adminAccessAud": null,
+  "monthlyLimit": null,
+  "policyVersion": null,
+  "reviewedMain": null,
+  "emailPolicyId": null,
+  "adminPolicyId": null,
+  "ownerPolicyMatched": false
+}
