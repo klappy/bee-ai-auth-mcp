@@ -132,3 +132,23 @@ describe('staging shutdown and cumulative quotas', () => {
     vi.setSystemTime(Date.parse('2026-09-10T12:00:00Z')); expect(await bridge.reserveValidationRequest()).toBe(false); await bridge.expireStagingValidation(Date.now()); expect(bridge.destroy).toHaveBeenCalledOnce();
   });
 });
+
+describe('production signup instructions', () => {
+  it.each(['pending', 'approved', 'denied'])('uses a reachable production homepage for %s', async status => {
+    const env = environment(); env.BEE_ENVIRONMENT = 'production';
+    mocked.verify.mockResolvedValue({ email: 'visitor@example.test' });
+    const record = await mocked.authority('signup', { email: 'visitor@example.test' }); record.status = status;
+    const response = await signupHandler(new Request(origin + '/signup'), env);
+    const page = await response!.text(); expect(page).toContain('href="/"'); expect(page).not.toContain('/preview/');
+    expect(page).not.toContain('staging MCP'); expect(page).not.toContain('bounded test window');
+  });
+  it('uses production instructions for enrolled free usage and factual owner copy', async () => {
+    const env = environment(); Object.assign(env, { BEE_ENVIRONMENT: 'production', SELF_SERVICE_ENABLED: 'true', SELF_SERVICE_READ_LIMIT: '5', SELF_SERVICE_POLICY_VERSION: 'synthetic', ADMIN_ACCESS_AUD: 'production-admin', ADMIN_OWNER_EMAIL: 'owner@example.test' });
+    mocked.verify.mockResolvedValue({ email: 'visitor@example.test' });
+    const page = await (await signupHandler(new Request(origin + '/signup'), env))!.text();
+    expect(page).toContain('Connection instructions'); expect(page).toContain('href="/"'); expect(page).not.toContain('/preview/');
+    mocked.verify.mockResolvedValue({ email: 'owner@example.test' });
+    const admin = await (await signupHandler(new Request(origin + '/admin'), env))!.text();
+    expect(admin).toContain('Approval enables a Bee connection.'); expect(admin).not.toContain('bounded test window');
+  });
+});

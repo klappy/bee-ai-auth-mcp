@@ -13,7 +13,7 @@ identity/protocol routes; approved copy materialization remains a release step.
 Production configuration
 selects the prepared entry only; no provider change or release was performed.
 
-Validation: TypeScript passes; 263 tests passed, two live tests skipped. Native
+Validation: TypeScript passes; 267 tests passed, two live tests skipped. Native
 MCP synthetic matrix uses real provider/SDK and no live Bee network. New production
 regressions include legacy-issued grant/refresh and unchanged storage bounds;
 existing email and real JWT admin regressions now run against both entries.
@@ -30,3 +30,8 @@ promotion, grant migration or cleanup proof is claimed.
 Learning bound to docs/production-entry.md and docs/ci-cd.md: deployment role is
 explicit code policy, never inferred from a product feature flag. Source tests
 must include the preserved old grant journey as well as the new email journey.
+
+Independent review found staging-only preview links and bounded-window wording
+in shared signup pages. Corrected links/status by runtime and added pending,
+approved, denied, enrolled and admin production regressions. Staging instructions
+remain unchanged; this is functional status copy, not a marketing redesign.

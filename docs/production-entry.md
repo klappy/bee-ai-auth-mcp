@@ -42,3 +42,7 @@ only exact known embedded public assets and aliases on GET/HEAD, excluding all
 identity/protocol routes. The existing embedded map bytes stay unchanged here;
 approved homepage materialization belongs only to the separately reviewed release
 build. This supports Worker-first routing without stale asset-service precedence.
+
+Signup instructions resolve to the production homepage in production and the
+protected preview in staging. Only staging approval pages describe the bounded
+validation window; production approval text makes no staging-runtime claim.
