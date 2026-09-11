@@ -1,3 +1,4 @@
+import { isStaging } from './types';
 /**
  * The gated /mcp API. OAuthProvider has verified the access token and decrypted
  * THIS grant's props into ctx.props before we run. v0.3 per-grant custody: props
@@ -19,7 +20,7 @@ import { beeGetMe, beeRead } from "./bee";
 import { BEE_API_USAGE_DOC } from "./bee-api-usage-doc";
 import { classifyPath, deriveTenantKey, statusClassOf, withTelemetry, type ToolTelemetry } from "./telemetry";
 import type { Env, GrantProps } from "./types";
-import { admissionAllowed, runtimeAllowed } from './admission';
+import { runtimeAllowed, grantIdentityAllowed } from './admission';
 import { ownerUsageEnabled, readOwnerUsage } from './owner-usage';
 import { meteredRead, ownUsage, quotaError, quotaPolicy } from './quota';
 
@@ -209,7 +210,8 @@ export const McpApiHandler = {
     if (!props?.login) {
       return new Response("Grant is not bound to an identity. Disconnect and reconnect.", { status: 403 });
     }
-    if (env.SIGNUP_ENABLED === 'true' && (!Number.isInteger(props.admissionEpoch) || !(await admissionAllowed(env, props.login, props.admissionEpoch)))) return new Response('Access not approved. Reconnect after owner approval.', { status: 403, headers: { 'Cache-Control': 'no-store' } });
+    const hostedIdentity = isStaging(env) || env.BEE_ENVIRONMENT === 'production' || (env.SIGNUP_ENABLED === 'true' && props.login.includes('@'));
+    if (hostedIdentity && !(await grantIdentityAllowed(env, props.login, props.admissionEpoch))) return new Response('Access not approved. Reconnect after owner approval.', { status: 403, headers: { 'Cache-Control': 'no-store' } });
     if (!props.beeToken) {
       // A grant from before the custody bend (login only). Force a reconnect so
       // the consent step can capture a Bee token into the encrypted props.
@@ -221,7 +223,7 @@ export const McpApiHandler = {
     // Runtime admission belongs to expensive tools, independently of the
     // commercial quota flag. Authenticated protocol/docs/usage do not start Bee.
     // Staging must not derive or emit legacy identity-linked telemetry.
-    const tenantKey = env.SIGNUP_ENABLED === 'true' ? '' : await deriveTenantKey(env, props.login);
+    const tenantKey = isStaging(env) ? '' : await deriveTenantKey(env, props.login);
     const handler = createMcpHandler(buildServer(env, props, tenantKey, ctx), { route: "/mcp" });
     return handler(request, env, ctx);
   },

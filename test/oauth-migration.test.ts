@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ verify: vi.fn(), bridge: vi.fn(), api: vi.fn() }));
 vi.mock('cloudflare:workers', () => ({ WorkerEntrypoint: class {} }));
-vi.mock('../src/validation', () => ({ BeeBridge: class {} }));
 vi.mock('../src/bridge', () => ({ BeeBridge: class {} }));
 vi.mock('../src/access', () => ({ verifyAccessJwt: mocks.verify }));
 vi.mock('@cloudflare/containers', () => ({ getContainer: () => ({ fetch: mocks.bridge }) }));
@@ -15,7 +14,7 @@ const verifier = 'synthetic-code-verifier-for-native-oauth-tests-123456789';
 const ctx = { waitUntil: () => {} } as any;
 function fixture() {
   const kv = new Map<string, string>(); const authority: AdmissionState = { records: ['synthetic@example.test', 'first@example.test', 'second@example.test'].map((email, i) => ({ id: 'synthetic-' + i, email, status: 'approved', epoch: 0, createdAt: '2026-09-10T00:00:00.000Z' })) };
-  const env: any = { SIGNUP_ENABLED: 'true', CONSENT_SIGNING_SECRET: 'synthetic-signing-only',
+  const env: any = { BEE_ENVIRONMENT: 'staging', SIGNUP_ENABLED: 'true', CONSENT_SIGNING_SECRET: 'synthetic-signing-only',
     BEE_BRIDGE: { idFromName: (n: string) => n, get: () => ({ admission: async (op: any, args: any) => admissionTransition(authority, op, args), reserveValidationRequest: async () => true }) },
     OAUTH_KV: {
       get: async (k: string, type?: any) => { const v = kv.get(k); return v === undefined ? null : (type === 'json' || type?.type === 'json') ? JSON.parse(v) : v; },

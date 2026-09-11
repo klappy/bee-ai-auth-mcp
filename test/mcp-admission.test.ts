@@ -4,7 +4,7 @@ vi.mock('@cloudflare/containers', () => ({ getContainer: calls.container }));
 vi.mock('agents/mcp', () => ({ createMcpHandler: calls.handler }));
 import { McpApiHandler } from '../src/mcp-api';
 const request = new Request('https://staging.example.test/mcp', { method: 'POST', body: '{}' });
-function env(): any { return { SIGNUP_ENABLED: 'true', BEE_BRIDGE: { idFromName: (name: string) => name, get: () => ({ admission: calls.status, reserveValidationRequest: calls.reserve }) } }; }
+function env(): any { return { BEE_ENVIRONMENT: 'staging', SIGNUP_ENABLED: 'true', BEE_BRIDGE: { idFromName: (name: string) => name, get: () => ({ admission: calls.status, reserveValidationRequest: calls.reserve }) } }; }
 beforeEach(() => { vi.clearAllMocks(); calls.status.mockResolvedValue(null); calls.reserve.mockResolvedValue(false); });
 it.each([null, { status: 'pending', epoch: 0 }, { status: 'denied', epoch: 2 }, { status: 'approved', epoch: 3 }])('rejects existing grant unless current strong epoch matches: %j', async state => {
   calls.status.mockResolvedValue(state);

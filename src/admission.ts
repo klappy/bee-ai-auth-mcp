@@ -1,3 +1,4 @@
+import { isStaging } from './types';
 import type { Env } from './types';
 import { eligible, quotaPolicy } from './quota';
 
@@ -78,9 +79,18 @@ export async function enrollVerified(env: Env, email: string): Promise<Admission
   return await admissionStub(env).admission(policy ? 'enroll' : 'signup', { email }) as AdmissionRecord | null;
 }
 export async function runtimeAllowed(env: Env): Promise<boolean> {
-  if (env.SIGNUP_ENABLED !== 'true') return true;
+  if (!isStaging(env)) return true;
   try { return await admissionStub(env).reserveValidationRequest(); } catch { return false; }
 }
 export function runtimePaused(): Response {
   return new Response(JSON.stringify({ error: 'temporarily_unavailable', error_description: 'The bounded staging Bee test window is paused. Signup and approval remain available.' }), { status: 503, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+}
+
+/** Grant identity namespaces are disjoint; email admission never captures GitHub. */
+export async function grantIdentityAllowed(env: Env, login: string, epoch?: number): Promise<boolean> {
+  const email = login.includes('@');
+  if (isStaging(env) && !email) return false;
+  if (env.SIGNUP_ENABLED === 'true' && email) return Number.isInteger(epoch) && admissionAllowed(env, login, epoch);
+  const configured = email ? env.ALLOWED_EMAILS : env.ALLOWED_GITHUB_LOGIN;
+  return (configured ?? '').split(',').map(value => value.trim().toLowerCase()).filter(Boolean).includes(login.toLowerCase());
 }

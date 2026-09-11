@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 const calls = vi.hoisted(() => ({ tools: new Map<string, Function>(), container: vi.fn(), runtime: vi.fn() }));
 vi.mock('cloudflare:workers', () => ({ WorkerEntrypoint: class {} }));
-vi.mock('../src/validation', () => ({ BeeBridge: class {} }));
+vi.mock('../src/bridge', () => ({ BeeBridge: class {} }));
 vi.mock('@cloudflare/containers', () => ({ getContainer: calls.container }));
 vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({ McpServer: class { registerTool(name: string, _config: unknown, fn: Function) { calls.tools.set(name, fn); } } }));
 vi.mock('agents/mcp', () => ({ createMcpHandler: () => async () => new Response('ready') }));
@@ -15,7 +15,7 @@ function fixture() {
   const data = new Map<string, any>(); let tail = Promise.resolve();
   const txn = { get: async (key: string) => structuredClone(data.get(key)), put: async (key: string, value: unknown) => { data.set(key, structuredClone(value)); } };
   const bridge: any = Object.create(BeeBridge.prototype);
-  const env: any = { SIGNUP_ENABLED: 'true', OWNER_USAGE_ENABLED: 'true', STAGING_OWNER_EMAIL: owner, BEE_TELEMETRY: { writeDataPoint: vi.fn() }, BEE_BRIDGE: { idFromName: (n: string) => n, get: () => bridge } };
+  const env: any = { BEE_ENVIRONMENT: 'staging', SIGNUP_ENABLED: 'true', OWNER_USAGE_ENABLED: 'true', STAGING_OWNER_EMAIL: owner, BEE_TELEMETRY: { writeDataPoint: vi.fn() }, BEE_BRIDGE: { idFromName: (n: string) => n, get: () => bridge } };
   bridge.env = env; bridge.ctx = { storage: { transaction: (fn: Function) => { const p = tail.then(() => fn(txn)); tail = p.then(() => {}, () => {}); return p; } } }; bridge.reserveValidationRequest = calls.runtime;
   return { env, bridge, data };
 }
@@ -65,7 +65,7 @@ it('one wrapper preserves results, exact UTF8 bytes and thrown errors while isol
   expect(await withTelemetry(env, '', 'bee_docs', () => async () => result, observe)()).toBe(result); await Promise.all(pending);
 });
 it('production retains AE path and does not invoke staging RPC', async () => {
-  const { env, bridge } = fixture(); env.SIGNUP_ENABLED = undefined; const rpc = vi.spyOn(bridge, 'ownerUsage'); const result = { content: [{ text: 'test' }] };
+  const { env, bridge } = fixture(); env.SIGNUP_ENABLED = undefined; env.BEE_ENVIRONMENT = 'production'; const rpc = vi.spyOn(bridge, 'ownerUsage'); const result = { content: [{ text: 'test' }] };
   expect(await withTelemetry(env, 'synthetic-tenant', 'bee_docs', () => async () => result)()).toBe(result);
   expect(env.BEE_TELEMETRY.writeDataPoint).toHaveBeenCalledOnce(); expect(rpc).not.toHaveBeenCalled();
 });

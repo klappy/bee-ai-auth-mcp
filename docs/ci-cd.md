@@ -37,7 +37,8 @@ signup, owner approval, user Bee authorization and successful MCP retrieval rema
 separate evidence. Missing hosted evidence must not be reported as a pass.
 
 Production promotion requires its own approval and a reviewed `main` → `production`
-PR. Production uses `wrangler.production.jsonc`; its settings and secrets are not
+PR. Production uses `wrangler.production.jsonc`, now prepared with `src/hosted.ts`;
+this source change does not activate that entry. Its settings and secrets are not
 copied from staging. Verify the deployed production source/version after promotion.
 
 The production-only Builds trigger was read back on September 10, 2026 at
@@ -49,3 +50,13 @@ separate approval and deployed-version verification.
 
 The existing weekly production smoke check is a read-only health observation.
 It is not permission to deploy, to enroll users or to perform credentialed Bee work.
+
+The production entry shares OAuth/signup code with staging, not its runtime
+limits. `BEE_ENVIRONMENT` is set in each entry and in the staging/production DO
+constructor, rather than configured through a provider variable. Production
+owner admin uses `ADMIN_ACCESS_AUD` and `ADMIN_OWNER_EMAIL`; staging keeps
+`STAGING_PREVIEW_AUD` and `STAGING_OWNER_EMAIL`. Never copy secret values between
+these environments. The production assets, immutable Container image, privacy
+settings and deploy command require their separately reviewed release envelope.
+The historical command observation above is not approval to run it with a newly
+prepared configuration. See [the source contract](production-entry.md).

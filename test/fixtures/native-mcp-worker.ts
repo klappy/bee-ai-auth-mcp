@@ -21,7 +21,7 @@ export default {
       quota: async () => ({ ok: true, reservation: 'synthetic-reservation', used: 0, remaining: 5 }),
     };
     const env: any = {
-      SIGNUP_ENABLED: 'true',
+      BEE_ENVIRONMENT: 'staging', SIGNUP_ENABLED: 'true',
       BEE_BRIDGE: { idFromName: (name: string) => name, get: () => stub },
       OAUTH_KV: {
         get: async (key: string, type?: any) => { const value = kv.get(key); return value === undefined ? null : (type === 'json' || type?.type === 'json') ? JSON.parse(value) : value; },
@@ -34,7 +34,7 @@ export default {
     const entry = scenario.selfHost ? selfHost : staging;
     // Initialize the real provider's helper API, then create synthetic grant
     // custody via its maintained helper. This does not simulate email delivery.
-    await staging.fetch(new Request(origin + '/synthetic-helper-initialization'), env, ctx);
+    await selfHost.fetch(new Request(origin + '/synthetic-helper-initialization'), env, ctx);
     const helper = env.OAUTH_PROVIDER;
     const client = await helper.createClient({ redirectUris: [redirect], tokenEndpointAuthMethod: 'none', grantTypes: ['authorization_code', 'refresh_token'] });
     const verifier = 'synthetic-native-mcp-code-verifier-01234567890123456789';
@@ -57,7 +57,7 @@ export default {
       env.SELF_SERVICE_READ_LIMIT = scenario.policy === 'invalid' ? 'invalid' : '5';
       env.SELF_SERVICE_POLICY_VERSION = 'synthetic-only';
     }
-    if (scenario.selfHost) env.SIGNUP_ENABLED = 'false';
+    if (scenario.selfHost) { env.SIGNUP_ENABLED = 'false'; delete env.BEE_ENVIRONMENT; }
     if (scenario.auth === 'denied') record.status = 'denied';
     if (scenario.auth === 'stale') record.epoch = 1;
     const results = [];
