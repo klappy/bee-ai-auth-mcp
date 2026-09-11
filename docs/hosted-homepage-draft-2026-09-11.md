@@ -1,8 +1,8 @@
 # Homepage review draft — September 11, 2026
 
-Status: unapproved prelaunch copy, isolated protected preview only. Proposed review URL after reviewed staging deployment: https://bee-validation-20260909.klappy.workers.dev/preview/ . This source commit is not deployment evidence.
+Status: owner-approved visual presentation and exact copy on September 11, 2026 (kitchen verdict commit96e3b767). Shipment follows remaining technical and production-configuration gates. Protected preview: https://bee-validation-20260909.klappy.workers.dev/preview/ . This source commit is not deployment evidence.
 
-Source: src/hosted-homepage-preview.ts, based on unchanged public/index.html blob f52d03c26bfc4b928099f851313d0b4834723419 and current stylesheet. The preview substitutes the current staging origin for the production MCP URL. Production public/index.html and the embedded public asset map are unchanged. Numeric free/paid usage remain unset. Settled rates remain $5/month and $24/year; no purchase button or live sale. The following is every visible page string in reading order; UI markup and exact punctuation are in the source.
+Source: src/hosted-homepage.ts, consumed by src/hosted-homepage-preview.ts and the explicit release materializer, based on unchanged public/index.html blob f52d03c26bfc4b928099f851313d0b4834723419 and current stylesheet. The preview substitutes the current staging origin for the production MCP URL. Production public/index.html and the embedded public asset map are unchanged. Numeric free/paid usage remain unset. Settled rates remain $5/month and $24/year; no purchase button or live sale. The following is every visible page string in reading order; UI markup and exact punctuation are in the source.
 
 Skip to setup 
  Bee, connected 
@@ -47,3 +47,4 @@ Skip to setup
  The Bee link or QR code isn't working Make sure Bee is installed and signed in. Try the pairing screen's connect URL in Bee's Enter Bee ID field, or restart the connection so the hosted service can generate a fresh CLI approval. Use the link or QR from your own sign-in. 
  Connected, but Bee won't answer Enable Bee in the conversation and try once more. If the error persists, tell Klappy which AI app you used and the error message. Keep Bee tokens, pairing codes and private conversation text out of screenshots. 
  Bee · a klappy.dev service Privacy & access Source · MIT
+

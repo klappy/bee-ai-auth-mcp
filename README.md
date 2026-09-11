@@ -102,3 +102,20 @@ This is best-effort calibration, not a billing ledger. Coverage begins only afte
 ### Existing native catalog compatibility
 
 `bee_docs({ view: "observed_usage" })` exposes the same owner-only aggregate inspection when a client has not refreshed its tool catalog. It uses the authenticated grant identity and the same private RPC, reports the same coverage and retention caveats, and never counts itself or starts Bee. Nonowners and disabled observation receive unavailable without an aggregate or observation write. Unknown views reject. Missing `view` or `view: "reference"` returns the byte-identical canonical API reference with ordinary documentation observation. The standalone `bee_observed_usage` tool remains available to eligible owners in refreshed catalogs.
+
+
+## Approved hosted homepage artifact
+
+Klappy accepted the protected homepage on September 11, 2026. The exact approved
+HTML lives in `src/hosted-homepage.ts`; protected `/preview/` consumes that same
+source. The review notice remains because immediate free use and paid upgrades
+are not enabled. [Exact copy and provenance](docs/hosted-homepage-draft-2026-09-11.md).
+
+To prepare a separate asset directory for release review, run
+`node scripts/materialize-hosted-homepage.mjs /tmp/bee-homepage-release-assets`
+with a new destination outside this repository. The command refuses existing
+destinations, preserves `public/`, copies the other public assets unchanged and
+writes the exact approved homepage as the output's `index.html`. It prints the
+HTML hash and byte count. No build or deployment currently invokes it. Selecting
+this asset directory belongs to the reviewed production configuration; generating
+it does not publish it or establish hosted acceptance.
