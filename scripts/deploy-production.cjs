@@ -9,6 +9,8 @@ const TAG = '27b750389ea04ed1af1a6c50dc0e5e37';
 const CONTAINER = 'a0318e64-bcdf-4095-bbcc-3400033b3290';
 const IMAGE = 'registry.cloudflare.com/' + ACCOUNT + '/bee-validation-20260909-455501a57e820ab6c3eb927b699d02cb@sha256:5f732c594b2c5dbb1b06de2ff2ec81bfb45ca075eb6dcb9f71ea6c839ac09306';
 const FIELDS = ['cache_options','compatibility_date','compatibility_flags','containers','limits','main_module','package_dependencies','placement','usage_model'];
+// Cloudflare OpenAPI JSON Version POST, observed 2026-09-11; readOnly fields excluded.
+const VERSION_CREATE_WRITABLE = ['annotations','assets','bindings','cache_options','compatibility_date','compatibility_flags','containers','exports','limits','main_module','migrations','modules','package_dependencies','placement','usage_model'];
 class Refusal extends Error { constructor(code) { super(code); this.code = code; } }
 const check = (ok, code) => { if (!ok) throw new Refusal(code); };
 const ordered = x => Array.isArray(x) ? x.map(ordered) : x && typeof x === 'object' ? Object.fromEntries(Object.keys(x).sort().map(k => [k,ordered(x[k])])) : x;
@@ -85,13 +87,25 @@ function candidateBody(old, bytes, m) {
   const additions = desiredAdditions(m);
   check(canon(additions) === canon(m.desiredNonsecretBindings),'desired-binding-additions');
   check(!old.bindings.some(b=>Object.hasOwn(additions,b.name) || ['CONSENT_SIGNING_SECRET','ADMIN_OWNER_EMAIL'].includes(b.name)),'unexpected-active-hosted-binding');
-  body.modules = [{...old.modules[0],content_base64:Buffer.from(bytes).toString('base64')}];
+  body.modules = [{name:old.modules[0].name,content_type:old.modules[0].content_type,content_base64:Buffer.from(bytes).toString('base64')}];
   body.bindings = old.bindings.map(b => b.type === 'secret_text' ? {type:'inherit',name:b.name,version_id:old.id} : b);
   for (const [name,text] of Object.entries(additions)) body.bindings.push({name,type:'plain_text',text});
   for (const name of ['CONSENT_SIGNING_SECRET','ADMIN_OWNER_EMAIL']) body.bindings.push({name,type:'inherit',version_id:m.custodyVersion});
   verifyInheritance(body,old,m);
   body.annotations = {'workers/message':'Reviewed combined production source/config; preserve grants and private runtime.'};
+  assertVersionPayload(body);
   return body;
+}
+function assertVersionPayload(body) {
+  check(Object.keys(body).every(key => VERSION_CREATE_WRITABLE.includes(key)),'unsupported-version-payload-key');
+  check(Object.keys(body.annotations || {}).every(key=>key === 'workers/message'),'unsupported-version-annotation');
+  // Bounded same-endpoint empirical exception: successful staging Build87255a3e
+  // and versiond473a11e preserve this exact named Container/export linkage.
+  check(Array.isArray(body.containers) && body.containers.length === 1 && body.containers.every(c=>Object.keys(c).every(k=>['class_name','name'].includes(k)) && c.class_name === 'BeeBridge' && c.name === 'BeeBridge'),'unsupported-container-payload');
+  // The provider supports these operations, but this accepted transaction does not.
+  check(body.assets === undefined && body.migrations === undefined && body.exports_reconciliation === undefined,'unapproved-version-operation');
+  check(Array.isArray(body.modules) && body.modules.length === 1 && body.modules.every(module => Object.keys(module).every(k=>['name','content_type','content_base64'].includes(k)) && ['name','content_type','content_base64'].every(k=>typeof module[k] === 'string')),'unsupported-module-payload');
+  for (const binding of body.bindings.filter(b=>b.type === 'inherit')) check(Object.keys(binding).every(k=>['name','type','version_id'].includes(k)) && /^[a-f0-9-]{36}$/.test(binding.version_id || ''),'unsupported-inheritance-payload');
 }
 function verifyInheritance(body,old,m) {
   const expected = old.bindings.filter(b=>b.type === 'secret_text').map(b=>({type:'inherit',name:b.name,version_id:old.id}));
@@ -167,6 +181,7 @@ async function run({env, manifest, stamp, bundle, api, publicCheck}) {
     const staging = await api('GET','/workers/scripts/bee-validation-20260909/deployments');
     const body = candidateBody(old,bytes,manifest);
     const expectedBindings = bindingShape(body.bindings.map(b=>b.type === 'inherit' ? {name:b.name,type:'secret_text'} : b));
+    assertVersionPayload(body);
     phase = 'upload';
     candidate = (await api('POST','/workers/workers/' + TAG + '/versions?deploy=false',body)).id;
     check(/^[a-f0-9-]{36}$/.test(candidate || ''),'candidate-id');
@@ -294,5 +309,5 @@ async function main() {
   const receipt = await run({env:process.env,manifest,stamp,bundle,api,publicCheck:(source)=>publicCheck(source,expectedAssets)});
   console.log(JSON.stringify(receipt)); if (!receipt.accepted) process.exitCode = 1;
 }
-module.exports = {validateEffectiveLogging,desiredAdditions,candidateMetadata,validateCustody,verifyInheritance,ensureAncestry,releaseHtml,releaseAssetSource,run,validateManifest,validateVersion,validatePrivacy,candidateBody,verifyCandidate,canon,digest,bindingShape,IMAGE};
+module.exports = {assertVersionPayload,validateEffectiveLogging,desiredAdditions,candidateMetadata,validateCustody,verifyInheritance,ensureAncestry,releaseHtml,releaseAssetSource,run,validateManifest,validateVersion,validatePrivacy,candidateBody,verifyCandidate,canon,digest,bindingShape,IMAGE};
 if (require.main === module) main().catch(() => {console.error(JSON.stringify({accepted:false,phase:'initialization',candidate:null,source_deployed:false,error:'configuration-unavailable'}));process.exitCode=1;});
