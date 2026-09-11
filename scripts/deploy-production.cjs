@@ -8,7 +8,7 @@ const WORKER = 'bee-ai-auth-mcp';
 const TAG = '27b750389ea04ed1af1a6c50dc0e5e37';
 const CONTAINER = 'a0318e64-bcdf-4095-bbcc-3400033b3290';
 const IMAGE = 'registry.cloudflare.com/' + ACCOUNT + '/bee-validation-20260909-455501a57e820ab6c3eb927b699d02cb@sha256:5f732c594b2c5dbb1b06de2ff2ec81bfb45ca075eb6dcb9f71ea6c839ac09306';
-const FIELDS = ['cache_options','compatibility_date','compatibility_flags','containers','limits','main_module','package_dependencies','placement','usage_model','urls'];
+const FIELDS = ['cache_options','compatibility_date','compatibility_flags','containers','limits','main_module','package_dependencies','placement','usage_model'];
 class Refusal extends Error { constructor(code) { super(code); this.code = code; } }
 const check = (ok, code) => { if (!ok) throw new Refusal(code); };
 const ordered = x => Array.isArray(x) ? x.map(ordered) : x && typeof x === 'object' ? Object.fromEntries(Object.keys(x).sort().map(k => [k,ordered(x[k])])) : x;
