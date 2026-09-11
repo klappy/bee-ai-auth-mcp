@@ -23,7 +23,7 @@ function validateManifest(m, env, stamp) {
   check(/^[a-f0-9]{40}$/.test(env.WORKERS_CI_COMMIT_SHA || '') && stamp === env.WORKERS_CI_COMMIT_SHA,'source-stamp');
   check(env.CLOUDFLARE_API_TOKEN && (!env.CLOUDFLARE_ACCOUNT_ID || env.CLOUDFLARE_ACCOUNT_ID === ACCOUNT),'ci-credentials');
   check(m?.schemaVersion === 1 && m.accepted === true && /^https:\/\/github.com\/klappy\/kitchen\//.test(m.acceptanceReceipt || ''),'unaccepted-prerequisites');
-  for (const key of ['configurationVersion','previousDeployment','emailAccessAppId','adminAccessAppId','emailPolicyId','adminPolicyId']) check(/^[a-f0-9-]{36}$/.test(m[key] || ''),'missing-prerequisite');
+  for (const key of ['configurationVersion','previousDeployment','emailAccessAppId','adminAccessAppId','emailPolicyId','adminPolicyId','ownerReferencePolicyId']) check(/^[a-f0-9-]{36}$/.test(m[key] || ''),'missing-prerequisite');
   check(/^[a-f0-9]{40}$/.test(m.reviewedMain || ''),'reviewed-main');
   check(m.ownerPolicyMatched === true,'owner-policy-acceptance');
   check(m.emailAccessAppId !== m.adminAccessAppId,'access-separation');
@@ -58,13 +58,14 @@ function candidateBody(old, bytes) {
   return body;
 }
 function verifyCandidate(v, body, hash, expectedBindings) {
+  check(v.migration_tag === 'v1','candidate-migration');
   check(v.modules?.length === 1 && digest(Buffer.from(v.modules[0].content_base64,'base64')) === hash,'candidate-source');
   check(bindingShape(v.bindings) === expectedBindings,'candidate-bindings');
   for (const key of FIELDS) check(canon(v[key]) === canon(body[key]),'candidate-metadata');
   check(canon(v.exports) === canon(body.exports),'candidate-exports');
 }
 async function run({env, manifest, stamp, bundle, api, publicCheck}) {
-  let phase = 'preflight', candidate = null, deployed = false;
+  let phase = 'preflight', candidate = null, deployed = false, deploymentAttempted = false;
   try {
     validateManifest(manifest, env, stamp);
     const bytes = await bundle(), hash = digest(bytes);
@@ -81,6 +82,11 @@ async function run({env, manifest, stamp, bundle, api, publicCheck}) {
     const container = await api('GET','/containers/applications/' + CONTAINER);
     validatePrivacy(owner,ingress,container);
     const accessSnapshots = [];
+    const ownerReferenceId = '8fc54e03-24c8-4c02-9376-7c639a3ca94e';
+    const referencePolicies = await api('GET','/access/apps/' + ownerReferenceId + '/policies');
+    check(Array.isArray(referencePolicies) && referencePolicies.length === 1,'owner-reference-count');
+    const rp = referencePolicies[0];
+    check(rp.id === manifest.ownerReferencePolicyId && rp.decision === 'allow' && rp.require?.length === 0 && rp.exclude?.length === 0 && rp.include?.length === 1 && Object.keys(rp.include[0]).length === 1 && typeof rp.include[0].email?.email === 'string' && rp.include[0].email.email.length > 0,'owner-reference-shape');
     const otpId = 'c47d1caf-ecad-4abc-8c66-17c96c9ff5fd';
     for (const [id,aud,policyId,isAdmin] of [[manifest.emailAccessAppId,manifest.accessAud,manifest.emailPolicyId,false],[manifest.adminAccessAppId,manifest.adminAccessAud,manifest.adminPolicyId,true]]) {
       const app = await api('GET','/access/apps/' + id);
@@ -92,7 +98,10 @@ async function run({env, manifest, stamp, bundle, api, publicCheck}) {
       check(Array.isArray(policies) && policies.length === 1,'access-policy-count');
       const p = policies[0];
       check(p.id === policyId && p.decision === 'allow' && p.require?.length === 0 && p.exclude?.length === 0 && p.include?.length === 1,'access-policy-shape');
-      if (isAdmin) check(Object.keys(p.include[0]).length === 1 && typeof p.include[0].email?.email === 'string' && p.include[0].email.email.length > 0,'admin-policy-shape');
+      if (isAdmin) {
+        check(Object.keys(p.include[0]).length === 1 && typeof p.include[0].email?.email === 'string' && p.include[0].email.email.length > 0,'admin-policy-shape');
+        check(p.include[0].email.email.trim().toLowerCase() === rp.include[0].email.email.trim().toLowerCase(),'owner-policy-mismatch');
+      }
       else check(canon(p.include) === canon([{everyone:{}}]),'email-policy-shape');
       // Private policy content stays solely in this process. No hash or identity in receipts.
       accessSnapshots.push({id,app,policies});
@@ -113,7 +122,9 @@ async function run({env, manifest, stamp, bundle, api, publicCheck}) {
       check(canon(await api('GET','/access/apps/' + snapshot.id)) === canon(snapshot.app),'access-app-drift');
       check(canon(await api('GET','/access/apps/' + snapshot.id + '/policies')) === canon(snapshot.policies),'access-policy-drift');
     }
+    check(canon(await api('GET','/access/apps/' + ownerReferenceId + '/policies')) === canon(referencePolicies),'owner-reference-drift');
     phase = 'deploy';
+    deploymentAttempted = true; deployed = 'unknown';
     await api('POST',script + '/deployments',{strategy:'percentage',versions:[{version_id:candidate,percentage:100}],annotations:body.annotations});
     deployed = true; phase = 'readback';
     const after = await api('GET',script + '/deployments');
@@ -139,8 +150,12 @@ async function run({env, manifest, stamp, bundle, api, publicCheck}) {
     await publicCheck(stamp);
     return {accepted:true,observed:new Date().toISOString(),source:stamp,version:candidate,deployment:after.deployments[0].id,module_sha256:hash,previous_version:oldId,secrets_inherited:true,storage_preserved:true,staging_unchanged:true};
   } catch (error) {
+    if (deploymentAttempted && deployed !== true) {
+      try { deployed = activeId(await api('GET',script + '/deployments')) === candidate; }
+      catch { deployed = 'unknown'; }
+    }
     // Never render a provider body, exception message, binding value or private identity.
-    return {accepted:false,phase,candidate,source_deployed:deployed,error:error instanceof Refusal ? error.code : 'operation-failed'};
+    return {accepted:false,phase,candidate,source_deployed:deployed,deployment_attempted:deploymentAttempted,error:error instanceof Refusal ? error.code : 'operation-failed'};
   }
 }
 async function publicCheck(stamp, expectedAssets) {
