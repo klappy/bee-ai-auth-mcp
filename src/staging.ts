@@ -3,17 +3,29 @@ import OAuthProvider, { OAuthError } from '@cloudflare/workers-oauth-provider';
 import { BeeBridge as ValidationBridge } from './validation';
 import { BeeAuthHandler } from './bee-auth';
 import { McpApiHandler } from './mcp-api';
-import { embeddedAssets } from './embedded-assets';
-import { verifyAccessJwt } from './access';
+import { preview } from './hosted-homepage-preview';
 import { isOriginAllowed } from './origin';
 import { admissionAllowed, admissionStub, admissionTransition, type AdmissionOperation, type AdmissionState } from './admission';
 import { boundedBody, privatePage, signupHandler } from './signup';
 import { validationExpiry, VALIDATION_REQUEST_LIMIT, type ValidationWindow } from './validation-window';
 import type { Env } from './types';
+import { ownerUsageEnabled, ownerUsageTransition, OWNER_USAGE_KEY, unavailable, type OwnerObservation, type OwnerUsageState, type OwnerUsageResult } from './owner-usage';
 import { quotaPolicy, quotaTransition, type QuotaOperation, type QuotaInput, type QuotaState, type QuotaResult } from './quota';
 
 type StagingEnv = Env & ValidationWindow;
 export class BeeBridge extends ValidationBridge {
+  async ownerUsage(op: 'record' | 'read', login: string, event?: OwnerObservation): Promise<OwnerUsageResult> {
+    if (!ownerUsageEnabled(this.env, login) || !['record', 'read'].includes(op) || (op === 'record' && !event)) return unavailable();
+    return this.ctx.storage.transaction(async txn => {
+      const count = (await txn.get<number>('signup:operations')) ?? 0;
+      if (!Number.isSafeInteger(count) || count < 0 || count >= 100_000) return unavailable();
+      await txn.put('signup:operations', count + 1);
+      const state = (await txn.get<OwnerUsageState>(OWNER_USAGE_KEY)) ?? { days: {} };
+      const next = ownerUsageTransition(state, op === 'record' ? event : undefined);
+      await txn.put(OWNER_USAGE_KEY, next);
+      return op === 'read' ? { ok: true, days: next.days } : { ok: true };
+    });
+  }
   async admission(op: AdmissionOperation, input: Record<string, string>): Promise<unknown> {
     if (op === 'enroll' && (!quotaPolicy(this.env) || quotaPolicy(this.env) === 'invalid')) return null;
     return this.ctx.storage.transaction(async txn => {
@@ -80,25 +92,6 @@ export function registrationValid(value: unknown): boolean {
 }
 function oauthError(error: string, status = 400): Response { return Response.json({ error }, { status, headers: { 'Cache-Control': 'no-store' } }); }
 
-async function preview(request: Request, env: StagingEnv): Promise<Response> {
-  if (!['GET', 'HEAD'].includes(request.method)) return privatePage('Method not allowed', 405);
-  if (!(await verifyAccessJwt(request, env))) return privatePage('Email verification required', 403);
-  const url = new URL(request.url); url.pathname = url.pathname.slice('/preview'.length) || '/';
-  const headers = new Headers(request.headers); headers.delete('If-None-Match');
-  const response = await embeddedAssets.fetch(new Request(url, { method: request.method, headers }));
-  const outHeaders = new Headers(response.headers);
-  outHeaders.set('Cache-Control', 'private, no-store'); outHeaders.set('Referrer-Policy', 'no-referrer'); outHeaders.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
-  if (outHeaders.has('Location')) outHeaders.set('Location', '/preview' + outHeaders.get('Location'));
-  if (response.status === 200 && request.method === 'GET' && outHeaders.get('Content-Type')?.includes('text/html')) {
-    let body = (await response.text()).replaceAll('https://bee.klappy.dev', url.origin);
-    // Frozen homepage keeps its copy. Absolute local asset/page paths live under the verified preview namespace.
-    body = body.replace(/(href|src)=(['"])\/(?!\/)([^'"\s]*)\2/g, (_m, attr, quote, path) => `${attr}=${quote}/preview/${path}${quote}`);
-    body = body.replace('<head>', '<head><base href="/preview/">');
-    outHeaders.delete('Content-Length'); outHeaders.delete('ETag');
-    return new Response(body, { status: response.status, headers: outHeaders });
-  }
-  return new Response(response.body, { status: response.status, headers: outHeaders });
-}
 
 export default {
   async fetch(request: Request, env: StagingEnv, ctx: ExecutionContext): Promise<Response> {
