@@ -226,3 +226,7 @@ Per `klappy://canon/definition-of-done` and the telemetry-validation-gate:
 - On acceptance: assign a `D00xx` decision and add a DOLCHEO ledger entry (`odd/ledger/`), then graduate from `stability: draft`.
 - Implementation is a **separate execution pass** gated by this governance — docs-first holds. The git-repo-auth adoption is a follow-on, not in scope for the bee implementation pass.
 
+
+### Existing native catalog compatibility
+
+`bee_docs({ view: "observed_usage" })` exposes the same owner-only aggregate inspection when a client has not refreshed its tool catalog. It uses the authenticated grant identity and the same private RPC, reports the same coverage and retention caveats, and never counts itself or starts Bee. Nonowners and disabled observation receive unavailable without an aggregate or observation write. Unknown views reject. Missing `view` or `view: "reference"` returns the byte-identical canonical API reference with ordinary documentation observation. The standalone `bee_observed_usage` tool remains available to eligible owners in refreshed catalogs.

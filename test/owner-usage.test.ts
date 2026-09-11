@@ -91,3 +91,24 @@ it('nonowner cannot select owner through request or tool args, no inspection too
   const { env, bridge, data } = fixture(); const pending = await connect(env, bridge, 'other@example.test');
   expect(calls.tools.has('bee_observed_usage')).toBe(false); await calls.tools.get('bee_docs')!({ login: owner }); await Promise.all(pending); expect(data.size).toBe(0); expect(env.BEE_TELEMETRY.writeDataPoint).not.toHaveBeenCalled();
 });
+it('existing bee_docs compatibility keeps exact reference and inspection never counts itself or starts Bee', async () => {
+  const { env, bridge, data } = fixture(); const pending = await connect(env, bridge);
+  const docs = calls.tools.get('bee_docs')!;
+  const { BEE_API_USAGE_DOC } = await import('../src/bee-api-usage-doc');
+  expect((await docs({})).content[0].text).toBe(BEE_API_USAGE_DOC);
+  expect((await docs({ view: 'reference' })).content[0].text).toBe(BEE_API_USAGE_DOC);
+  await Promise.all(pending); const before = structuredClone(data.get(OWNER_USAGE_KEY));
+  const usage = JSON.parse((await docs({ view: 'observed_usage' })).content[0].text);
+  expect(usage.ok).toBe(true); expect(usage.days).toEqual(before.days);
+  expect(data.get(OWNER_USAGE_KEY)).toEqual(before); expect(pending).toHaveLength(2);
+  expect(calls.container).not.toHaveBeenCalled(); expect(calls.runtime).not.toHaveBeenCalled();
+  expect((await docs({ view: 'unknown' })).isError).toBe(true); expect(pending).toHaveLength(2);
+});
+it.each(['nonowner', 'disabled'])('existing docs inspection denies %s without aggregate or writes', async mode => {
+  const { env, bridge, data } = fixture();
+  if (mode === 'disabled') env.OWNER_USAGE_ENABLED = 'false';
+  const pending = await connect(env, bridge, mode === 'nonowner' ? 'other@example.test' : owner);
+  const result = await calls.tools.get('bee_docs')!({ view: 'observed_usage', login: owner });
+  expect(result.isError).toBe(true); expect(JSON.parse(result.content[0].text).days).toBeUndefined();
+  expect(data.size).toBe(0); expect(pending).toHaveLength(0); expect(calls.container).not.toHaveBeenCalled(); expect(calls.runtime).not.toHaveBeenCalled();
+});
