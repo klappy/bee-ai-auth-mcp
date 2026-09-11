@@ -3,8 +3,7 @@ import OAuthProvider, { OAuthError } from '@cloudflare/workers-oauth-provider';
 import { BeeBridge as ValidationBridge } from './validation';
 import { BeeAuthHandler } from './bee-auth';
 import { McpApiHandler } from './mcp-api';
-import { embeddedAssets } from './embedded-assets';
-import { verifyAccessJwt } from './access';
+import { preview } from './hosted-homepage-preview';
 import { isOriginAllowed } from './origin';
 import { admissionAllowed, admissionStub, admissionTransition, type AdmissionOperation, type AdmissionState } from './admission';
 import { boundedBody, privatePage, signupHandler } from './signup';
@@ -80,25 +79,6 @@ export function registrationValid(value: unknown): boolean {
 }
 function oauthError(error: string, status = 400): Response { return Response.json({ error }, { status, headers: { 'Cache-Control': 'no-store' } }); }
 
-async function preview(request: Request, env: StagingEnv): Promise<Response> {
-  if (!['GET', 'HEAD'].includes(request.method)) return privatePage('Method not allowed', 405);
-  if (!(await verifyAccessJwt(request, env))) return privatePage('Email verification required', 403);
-  const url = new URL(request.url); url.pathname = url.pathname.slice('/preview'.length) || '/';
-  const headers = new Headers(request.headers); headers.delete('If-None-Match');
-  const response = await embeddedAssets.fetch(new Request(url, { method: request.method, headers }));
-  const outHeaders = new Headers(response.headers);
-  outHeaders.set('Cache-Control', 'private, no-store'); outHeaders.set('Referrer-Policy', 'no-referrer'); outHeaders.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
-  if (outHeaders.has('Location')) outHeaders.set('Location', '/preview' + outHeaders.get('Location'));
-  if (response.status === 200 && request.method === 'GET' && outHeaders.get('Content-Type')?.includes('text/html')) {
-    let body = (await response.text()).replaceAll('https://bee.klappy.dev', url.origin);
-    // Frozen homepage keeps its copy. Absolute local asset/page paths live under the verified preview namespace.
-    body = body.replace(/(href|src)=(['"])\/(?!\/)([^'"\s]*)\2/g, (_m, attr, quote, path) => `${attr}=${quote}/preview/${path}${quote}`);
-    body = body.replace('<head>', '<head><base href="/preview/">');
-    outHeaders.delete('Content-Length'); outHeaders.delete('ETag');
-    return new Response(body, { status: response.status, headers: outHeaders });
-  }
-  return new Response(response.body, { status: response.status, headers: outHeaders });
-}
 
 export default {
   async fetch(request: Request, env: StagingEnv, ctx: ExecutionContext): Promise<Response> {
