@@ -58,7 +58,13 @@ function candidateBody(old, bytes) {
   return body;
 }
 function verifyCandidate(v, body, hash, expectedBindings) {
-  check(v.migration_tag === 'v1','candidate-migration');
+  // Cloudflare omits migration_tag on undeployed versions (PR63 provider receipt).
+  // Absence is accepted only with the complete unchanged binding/export/container
+  // comparisons below and no migration payload. A contrary tag always refuses.
+  check(v.migration_tag === undefined || v.migration_tag === 'v1','candidate-migration');
+  check(body.migrations === undefined && v.migrations === undefined,'candidate-migration-payload');
+  check(body.exports?.BeeBridge?.type === 'durable-object' && body.exports.BeeBridge.storage === 'sqlite' && body.exports.BeeBridge.container === 'BeeBridge','candidate-lineage');
+  check(Array.isArray(body.containers) && body.containers.some(c => c.class_name === 'BeeBridge' && c.name === 'BeeBridge'),'candidate-container-linkage');
   check(v.modules?.length === 1 && digest(Buffer.from(v.modules[0].content_base64,'base64')) === hash,'candidate-source');
   check(bindingShape(v.bindings) === expectedBindings,'candidate-bindings');
   for (const key of FIELDS) check(canon(v[key]) === canon(body[key]),'candidate-metadata');
