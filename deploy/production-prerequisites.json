@@ -2,7 +2,6 @@
   "schemaVersion": 1,
   "accepted": false,
   "acceptanceReceipt": null,
-  "configurationVersion": null,
   "previousDeployment": null,
   "emailAccessAppId": null,
   "adminAccessAppId": null,
@@ -15,5 +14,14 @@
   "emailPolicyId": null,
   "adminPolicyId": null,
   "ownerPolicyMatched": false,
-  "ownerReferencePolicyId": null
+  "ownerReferencePolicyId": null,
+  "activeVersion": null,
+  "custodyVersion": null,
+  "custodyAcceptanceReceipt": null,
+  "custodyModuleSha256": null,
+  "desiredMetadata": null,
+  "desiredMetadataSha256": null,
+  "desiredNonsecretBindings": null,
+  "desiredLogging": null,
+  "loggingAcceptanceReceipt": null
 }

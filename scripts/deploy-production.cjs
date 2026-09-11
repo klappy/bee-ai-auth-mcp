@@ -8,7 +8,7 @@ const WORKER = 'bee-ai-auth-mcp';
 const TAG = '27b750389ea04ed1af1a6c50dc0e5e37';
 const CONTAINER = 'a0318e64-bcdf-4095-bbcc-3400033b3290';
 const IMAGE = 'registry.cloudflare.com/' + ACCOUNT + '/bee-validation-20260909-455501a57e820ab6c3eb927b699d02cb@sha256:5f732c594b2c5dbb1b06de2ff2ec81bfb45ca075eb6dcb9f71ea6c839ac09306';
-const FIELDS = ['cache_options','compatibility_date','compatibility_flags','containers','limits','main_module','package_dependencies','placement','usage_model'];
+const FIELDS = ['cache_options','compatibility_date','compatibility_flags','containers','limits','main_module','package_dependencies','placement','usage_model','urls'];
 class Refusal extends Error { constructor(code) { super(code); this.code = code; } }
 const check = (ok, code) => { if (!ok) throw new Refusal(code); };
 const ordered = x => Array.isArray(x) ? x.map(ordered) : x && typeof x === 'object' ? Object.fromEntries(Object.keys(x).sort().map(k => [k,ordered(x[k])])) : x;
@@ -23,9 +23,15 @@ function validateManifest(m, env, stamp) {
   check(/^[a-f0-9]{40}$/.test(env.WORKERS_CI_COMMIT_SHA || '') && stamp === env.WORKERS_CI_COMMIT_SHA,'source-stamp');
   check(env.CLOUDFLARE_API_TOKEN && (!env.CLOUDFLARE_ACCOUNT_ID || env.CLOUDFLARE_ACCOUNT_ID === ACCOUNT),'ci-credentials');
   check(m?.schemaVersion === 1 && m.accepted === true && /^https:\/\/github.com\/klappy\/kitchen\//.test(m.acceptanceReceipt || ''),'unaccepted-prerequisites');
-  for (const key of ['configurationVersion','previousDeployment','emailAccessAppId','adminAccessAppId','emailPolicyId','adminPolicyId','ownerReferencePolicyId']) check(/^[a-f0-9-]{36}$/.test(m[key] || ''),'missing-prerequisite');
+  for (const key of ['activeVersion','previousDeployment','emailAccessAppId','adminAccessAppId','emailPolicyId','adminPolicyId','ownerReferencePolicyId','custodyVersion']) check(/^[a-f0-9-]{36}$/.test(m[key] || ''),'missing-prerequisite');
   check(/^[a-f0-9]{40}$/.test(m.reviewedMain || ''),'reviewed-main');
   check(m.ownerPolicyMatched === true,'owner-policy-acceptance');
+  check(m.custodyVersion !== m.activeVersion && /^https:\/\/github.com\/klappy\/kitchen\//.test(m.custodyAcceptanceReceipt || ''),'custody-acceptance');
+  check(/^[a-f0-9]{64}$/.test(m.custodyModuleSha256 || '') && m.desiredMetadata && typeof m.desiredMetadata === 'object' && !Array.isArray(m.desiredMetadata) && m.desiredNonsecretBindings && typeof m.desiredNonsecretBindings === 'object','desired-configuration');
+  check(Object.keys(m.desiredMetadata).every(k => [...FIELDS,'exports'].includes(k)),'unsupported-version-metadata');
+  check(/^https:\/\/github.com\/klappy\/kitchen\//.test(m.loggingAcceptanceReceipt || ''),'logging-acceptance');
+  check(m.desiredLogging?.logpush === false && m.desiredLogging?.observability?.redact_query_string === false,'logging-prerequisite');
+  check(digest(canon(m.desiredMetadata)) === m.desiredMetadataSha256,'desired-metadata-hash');
   check(m.emailAccessAppId !== m.adminAccessAppId,'access-separation');
   check(m.accessTeamDomain === 'klappy.cloudflareaccess.com' && /^[a-f0-9]{64}$/.test(m.accessAud || '') && /^[a-f0-9]{64}$/.test(m.adminAccessAud || '') && m.accessAud !== m.adminAccessAud,'access-audiences');
   check(Number.isSafeInteger(m.monthlyLimit) && m.monthlyLimit > 0 && typeof m.policyVersion === 'string' && /^[a-zA-Z0-9._-]{1,80}$/.test(m.policyVersion),'monthly-policy');
@@ -34,9 +40,7 @@ function validateVersion(v, m) {
   check(v.modules?.length === 1 && v.migration_tag === 'v1','version-shape');
   const byName = Object.fromEntries(v.bindings.map(b => [b.name,b]));
   check(byName.OAUTH_KV?.namespace_id === '8f260f3c8ab6476dbea2b17926bf38bf' && byName.BEE_BRIDGE?.namespace_id === '22228994536c4bb3808aa281c53e9727','storage-linkage');
-  for (const key of ['GITHUB_CLIENT_ID','GITHUB_CLIENT_SECRET','CONSENT_SIGNING_SECRET','ADMIN_OWNER_EMAIL']) check(byName[key]?.type === 'secret_text','required-secret');
-  const required = {ACCESS_TEAM_DOMAIN:m.accessTeamDomain,ACCESS_AUD:m.accessAud,ADMIN_ACCESS_AUD:m.adminAccessAud,SIGNUP_ENABLED:'true',SELF_SERVICE_ENABLED:'true',SELF_SERVICE_READ_LIMIT:String(m.monthlyLimit),SELF_SERVICE_POLICY_VERSION:m.policyVersion};
-  for (const [key,value] of Object.entries(required)) check(byName[key]?.type === 'plain_text' && byName[key]?.text === value,'hosted-policy-binding');
+  for (const key of ['GITHUB_CLIENT_ID','GITHUB_CLIENT_SECRET']) check(byName[key]?.type === 'secret_text','required-secret');
   check(!v.bindings.some(b => /^(STAGING_|VALIDATION_|OWNER_USAGE_)/.test(b.name)),'staging-binding-in-production');
 }
 function validatePrivacy(owner, ingress, container) {
@@ -46,18 +50,54 @@ function validatePrivacy(owner, ingress, container) {
   check(container.max_instances === 1 && c?.vcpu === 0.25 && c?.memory_mib === 1024 && c?.disk?.size_mb === 4000,'container-allocation');
   check(c?.image === IMAGE && c?.network?.mode === 'private' && c?.observability?.logs?.enabled === false,'container-privacy-image');
 }
-function candidateBody(old, bytes) {
+function desiredAdditions(m) {
+  return {ACCESS_TEAM_DOMAIN:m.accessTeamDomain,ACCESS_AUD:m.accessAud,ADMIN_ACCESS_AUD:m.adminAccessAud,SIGNUP_ENABLED:'true',SELF_SERVICE_ENABLED:'true',SELF_SERVICE_READ_LIMIT:String(m.monthlyLimit),SELF_SERVICE_POLICY_VERSION:m.policyVersion};
+}
+function validateEffectiveLogging(owner, settings, m) {
+  check(canon({logpush:owner.logpush,observability:owner.observability}) === canon(m.desiredLogging),'effective-logging-prerequisite');
+  check(owner.logpush === false && owner.observability?.enabled === false && owner.observability?.logs?.enabled === false && owner.observability?.traces?.enabled === false && owner.observability?.redact_query_string === false,'effective-logging-enabled');
+  check(settings.logpush === false,'logging-export');
+  for (const tails of [settings.tail_consumers,owner.tail_consumers]) check(tails == null || (Array.isArray(tails) && tails.length === 0),'logging-export');
+  for (const destinations of [owner.observability.destinations,owner.observability.logs?.destinations,owner.observability.traces?.destinations]) check(destinations == null || (Array.isArray(destinations) && destinations.length === 0),'logging-destinations');
+  // The provider normalizes disabled script-settings observability to null.
+  // Null alone proves nothing: authoritative Worker enable gates above must pass.
+  check(settings.observability === null || (settings.observability?.enabled === false && settings.observability?.logs?.enabled === false && settings.observability?.traces?.enabled === false),'script-logging-projection');
+}
+function candidateMetadata(old) {
   const body = Object.fromEntries(FIELDS.filter(k => old[k] !== undefined).map(k => [k,structuredClone(old[k])]));
-  // The accepted Worker-owned asset contract intentionally detaches the old
-  // external asset router. Configuration-only uploads do not preserve it.
   check(Array.isArray(body.containers),'container-shape');
   check(!old.bindings.some(b => b.type === 'assets' || b.name === 'ASSETS'),'unexpected-asset-binding');
   body.exports = {...old.exports,BeeBridge:{type:'durable-object',storage:'sqlite',container:'BeeBridge'}};
   body.containers = body.containers.map(c => c.class_name === 'BeeBridge' ? {...c,name:'BeeBridge'} : c);
+  return body;
+}
+function validateCustody(custody, old, m) {
+  check(custody.id === m.custodyVersion && canon(custody.modules) === canon(old.modules),'custody-source');
+  check(digest(Buffer.from(custody.modules[0].content_base64,'base64')) === m.custodyModuleSha256,'custody-module-hash');
+  for (const key of FIELDS) check(canon(custody[key]) === canon(old[key]),'custody-metadata');
+  const expected = [...old.bindings,...['CONSENT_SIGNING_SECRET','ADMIN_OWNER_EMAIL'].map(name=>({name,type:'secret_text'}))];
+  check(bindingShape(custody.bindings) === bindingShape(expected),'custody-binding-shape');
+  check(custody.assets === undefined,'custody-not-release');
+}
+function candidateBody(old, bytes, m) {
+  const body = candidateMetadata(old);
+  check(canon(body) === canon(m.desiredMetadata),'desired-metadata-mismatch');
+  const additions = desiredAdditions(m);
+  check(canon(additions) === canon(m.desiredNonsecretBindings),'desired-binding-additions');
+  check(!old.bindings.some(b=>Object.hasOwn(additions,b.name) || ['CONSENT_SIGNING_SECRET','ADMIN_OWNER_EMAIL'].includes(b.name)),'unexpected-active-hosted-binding');
   body.modules = [{...old.modules[0],content_base64:Buffer.from(bytes).toString('base64')}];
   body.bindings = old.bindings.map(b => b.type === 'secret_text' ? {type:'inherit',name:b.name,version_id:old.id} : b);
-  body.annotations = {'workers/message':'Reviewed production Git source; preserve grants, storage and private runtime.'};
+  for (const [name,text] of Object.entries(additions)) body.bindings.push({name,type:'plain_text',text});
+  for (const name of ['CONSENT_SIGNING_SECRET','ADMIN_OWNER_EMAIL']) body.bindings.push({name,type:'inherit',version_id:m.custodyVersion});
+  verifyInheritance(body,old,m);
+  body.annotations = {'workers/message':'Reviewed combined production source/config; preserve grants and private runtime.'};
   return body;
+}
+function verifyInheritance(body,old,m) {
+  const expected = old.bindings.filter(b=>b.type === 'secret_text').map(b=>({type:'inherit',name:b.name,version_id:old.id}));
+  for (const name of ['CONSENT_SIGNING_SECRET','ADMIN_OWNER_EMAIL']) expected.push({type:'inherit',name,version_id:m.custodyVersion});
+  check(canon(body.bindings.filter(b=>b.type === 'inherit').sort((a,b)=>a.name.localeCompare(b.name))) === canon(expected.sort((a,b)=>a.name.localeCompare(b.name))),'inheritance-source');
+  check(!body.bindings.some(b=>b.type === 'secret_text'),'secret-value-payload');
 }
 function verifyCandidate(v, body, hash, expectedBindings) {
   check(v.assets === undefined && body.assets === undefined,'external-assets-present');
@@ -65,7 +105,7 @@ function verifyCandidate(v, body, hash, expectedBindings) {
   // Absence is accepted only with the complete unchanged binding/export/container
   // comparisons below and no migration payload. A contrary tag always refuses.
   check(v.migration_tag === undefined || v.migration_tag === 'v1','candidate-migration');
-  check(body.migrations === undefined && v.migrations === undefined,'candidate-migration-payload');
+  check(body.migrations === undefined && body.migration === undefined && v.migrations === undefined && v.migration === undefined,'candidate-migration-payload');
   check(body.exports?.BeeBridge?.type === 'durable-object' && body.exports.BeeBridge.storage === 'sqlite' && body.exports.BeeBridge.container === 'BeeBridge','candidate-lineage');
   check(Array.isArray(body.containers) && body.containers.some(c => c.class_name === 'BeeBridge' && c.name === 'BeeBridge'),'candidate-container-linkage');
   check(v.modules?.length === 1 && digest(Buffer.from(v.modules[0].content_base64,'base64')) === hash,'candidate-source');
@@ -81,14 +121,18 @@ async function run({env, manifest, stamp, bundle, api, publicCheck}) {
     check(Buffer.from(bytes).includes(Buffer.from(stamp)),'bundled-stamp');
     const active = await api('GET',script + '/deployments');
     const oldId = activeId(active);
-    check(oldId === manifest.configurationVersion && active.deployments[0].id === manifest.previousDeployment,'accepted-configuration-drift');
+    check(oldId === manifest.activeVersion && active.deployments[0].id === manifest.previousDeployment,'accepted-configuration-drift');
     const old = await api('GET',version(oldId)); old.id = oldId;
     validateVersion(old,manifest);
+    const custody = await api('GET',version(manifest.custodyVersion));
+    validateCustody(custody,old,manifest);
     // Legacy settings may project the newest undeployed candidate. Active
     // bindings come exclusively from deployments -> exact immutable version.
     const settings = await api('GET',script + '/settings');
     const legacySettingsMatchActive = bindingShape(settings.bindings) === bindingShape(old.bindings);
     const owner = await api('GET','/workers/workers/' + TAG);
+    const logging = await api('GET',script + '/script-settings');
+    validateEffectiveLogging(owner,logging,manifest);
     const ingress = await api('GET',script + '/subdomain');
     const container = await api('GET','/containers/applications/' + CONTAINER);
     validatePrivacy(owner,ingress,container);
@@ -121,7 +165,8 @@ async function run({env, manifest, stamp, bundle, api, publicCheck}) {
     const domain = await api('GET','/workers/domains');
     check(Array.isArray(domain) && domain.some(d => d.id === 'd1949a5b447e9deff5652e7be227fd10d787957a' && d.hostname === 'bee.klappy.dev' && d.service === WORKER),'custom-domain');
     const staging = await api('GET','/workers/scripts/bee-validation-20260909/deployments');
-    const body = candidateBody(old,bytes), expectedBindings = bindingShape(old.bindings);
+    const body = candidateBody(old,bytes,manifest);
+    const expectedBindings = bindingShape(body.bindings.map(b=>b.type === 'inherit' ? {name:b.name,type:'secret_text'} : b));
     phase = 'upload';
     candidate = (await api('POST','/workers/workers/' + TAG + '/versions?deploy=false',body)).id;
     check(/^[a-f0-9-]{36}$/.test(candidate || ''),'candidate-id');
@@ -135,6 +180,10 @@ async function run({env, manifest, stamp, bundle, api, publicCheck}) {
       check(canon(await api('GET','/access/apps/' + snapshot.id + '/policies')) === canon(snapshot.policies),'access-policy-drift');
     }
     check(canon(await api('GET','/access/apps/' + ownerReferenceId + '/policies')) === canon(referencePolicies),'owner-reference-drift');
+    const beforeDeployLogging = await api('GET',script + '/script-settings');
+    check(canon(beforeDeployLogging) === canon(logging),'logging-prerequisite-drift');
+    validateEffectiveLogging(await api('GET','/workers/workers/' + TAG),beforeDeployLogging,manifest);
+    check(canon(await api('GET',script + '/subdomain')) === canon(ingress),'ingress-prerequisite-drift');
     phase = 'deploy';
     deploymentAttempted = true; deployed = 'unknown';
     await api('POST',script + '/deployments',{strategy:'percentage',versions:[{version_id:candidate,percentage:100}],annotations:body.annotations});
@@ -146,7 +195,10 @@ async function run({env, manifest, stamp, bundle, api, publicCheck}) {
     check(actual.migration_tag === 'v1','migration-linkage');
     // actual is the version selected by the observed active deployment.
     check(bindingShape(actual.bindings) === expectedBindings,'effective-bindings');
+    const finalLogging = await api('GET',script + '/script-settings');
+    check(canon(finalLogging) === canon(logging),'effective-logging-drift');
     const finalOwner = await api('GET','/workers/workers/' + TAG);
+    validateEffectiveLogging(finalOwner,finalLogging,manifest);
     check(canon(finalOwner.observability) === canon(owner.observability) && finalOwner.logpush === owner.logpush,'logging-drift');
     check(canon(await api('GET',script + '/subdomain')) === canon(ingress),'ingress-drift');
     const finalContainer = await api('GET','/containers/applications/' + CONTAINER);
@@ -161,7 +213,7 @@ async function run({env, manifest, stamp, bundle, api, publicCheck}) {
       check(canon(await api('GET','/access/apps/' + snapshot.id + '/policies')) === canon(snapshot.policies),'access-policy-drift');
     }
     await publicCheck(stamp);
-    return {accepted:true,observed:new Date().toISOString(),source:stamp,version:candidate,deployment:after.deployments[0].id,module_sha256:hash,previous_version:oldId,secrets_inherited:true,storage_preserved:true,staging_unchanged:true,external_assets_absent:true,legacy_settings_matched_active_at_start:legacySettingsMatchActive};
+    return {accepted:true,observed:new Date().toISOString(),source:stamp,version:candidate,deployment:after.deployments[0].id,module_sha256:hash,previous_version:oldId,secrets_inherited:true,secret_sources:body.bindings.filter(b=>b.type === 'inherit').map(({name,version_id})=>({name,version_id})),storage_preserved:true,staging_unchanged:true,external_assets_absent:true,legacy_settings_matched_active_at_start:legacySettingsMatchActive};
   } catch (error) {
     if (deploymentAttempted && deployed !== true) {
       try { deployed = activeId(await api('GET',script + '/deployments')) === candidate; }
@@ -209,13 +261,24 @@ async function releaseAssetSource(root) {
   return 'export const assets = ' + JSON.stringify(assets) + ';';
 }
 
+
+function ensureAncestry(root, sha, reviewed, exec = require('node:child_process').execFileSync) {
+  check(/^[a-f0-9]{40}$/.test(sha || '') && /^[a-f0-9]{40}$/.test(reviewed || ''),'ancestry-input');
+  const env = {PATH:process.env.PATH,GIT_TERMINAL_PROMPT:'0',GIT_CONFIG_NOSYSTEM:'1',GIT_CONFIG_GLOBAL:'/dev/null'};
+  const git = args => exec('git',['-c','credential.helper=',...args],{cwd:root,env,encoding:'utf8',timeout:60000,stdio:['ignore','pipe','pipe']}).trim();
+  check(git(['rev-parse','HEAD']) === sha,'checkout-head');
+  const remote = 'https://github.com/klappy/bee-ai-auth-mcp.git';
+  if (git(['rev-parse','--is-shallow-repository']) === 'true') git(['fetch','--unshallow','--no-tags',remote,sha]);
+  try { git(['merge-base','--is-ancestor',reviewed,sha]); }
+  catch { git(['fetch','--no-tags',remote,sha,reviewed]); git(['merge-base','--is-ancestor',reviewed,sha]); }
+  check(git(['rev-parse','HEAD']) === sha,'checkout-head-changed');
+}
+
 async function main() {
   const manifest = JSON.parse(fs.readFileSync(path.join(ROOT,'deploy/production-prerequisites.json'),'utf8'));
   const stamp = fs.readFileSync(path.join(ROOT,'src/version.ts'),'utf8').match(/COMMIT_SHA = "([a-f0-9]{40})"/)?.[1];
   validateManifest(manifest,process.env,stamp);
-  const {execFileSync} = require('node:child_process');
-  // Missing shallow-history ancestry fails closed; release preparation must supply history.
-  execFileSync('git',['merge-base','--is-ancestor',manifest.reviewedMain,stamp],{cwd:ROOT,stdio:'ignore'});
+  ensureAncestry(ROOT,stamp,manifest.reviewedMain);
   const api = async (method, route, body) => {
     const r = await fetch('https://api.cloudflare.com/client/v4/accounts/' + ACCOUNT + route,{method,redirect:'error',headers:{Authorization:'Bearer ' + process.env.CLOUDFLARE_API_TOKEN,...(body ? {'Content-Type':'application/json'} : {})},body:body ? JSON.stringify(body) : undefined});
     check(r.ok,'provider-http-' + r.status);
@@ -231,5 +294,5 @@ async function main() {
   const receipt = await run({env:process.env,manifest,stamp,bundle,api,publicCheck:(source)=>publicCheck(source,expectedAssets)});
   console.log(JSON.stringify(receipt)); if (!receipt.accepted) process.exitCode = 1;
 }
-module.exports = {releaseHtml,releaseAssetSource,run,validateManifest,validateVersion,validatePrivacy,candidateBody,verifyCandidate,canon,digest,bindingShape,IMAGE};
+module.exports = {validateEffectiveLogging,desiredAdditions,candidateMetadata,validateCustody,verifyInheritance,ensureAncestry,releaseHtml,releaseAssetSource,run,validateManifest,validateVersion,validatePrivacy,candidateBody,verifyCandidate,canon,digest,bindingShape,IMAGE};
 if (require.main === module) main().catch(() => {console.error(JSON.stringify({accepted:false,phase:'initialization',candidate:null,source_deployed:false,error:'configuration-unavailable'}));process.exitCode=1;});
