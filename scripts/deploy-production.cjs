@@ -27,7 +27,7 @@ function validateManifest(m, env, stamp) {
   check(/^[a-f0-9]{40}$/.test(m.reviewedMain || ''),'reviewed-main');
   check(m.ownerPolicyMatched === true,'owner-policy-acceptance');
   check(m.emailAccessAppId !== m.adminAccessAppId,'access-separation');
-  check(m.accessTeamDomain === 'https://klappy.cloudflareaccess.com' && /^[a-f0-9]{64}$/.test(m.accessAud || '') && /^[a-f0-9]{64}$/.test(m.adminAccessAud || '') && m.accessAud !== m.adminAccessAud,'access-audiences');
+  check(m.accessTeamDomain === 'klappy.cloudflareaccess.com' && /^[a-f0-9]{64}$/.test(m.accessAud || '') && /^[a-f0-9]{64}$/.test(m.adminAccessAud || '') && m.accessAud !== m.adminAccessAud,'access-audiences');
   check(Number.isSafeInteger(m.monthlyLimit) && m.monthlyLimit > 0 && typeof m.policyVersion === 'string' && /^[a-zA-Z0-9._-]{1,80}$/.test(m.policyVersion),'monthly-policy');
 }
 function validateVersion(v, m) {

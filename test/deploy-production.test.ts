@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 const {run, releaseHtml, IMAGE, digest, candidateBody, verifyCandidate, bindingShape} = createRequire(import.meta.url)('../scripts/deploy-production.cjs');
 const id = (n: number) => `00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
 const sha = 'a'.repeat(40);
-const manifest = {schemaVersion:1,accepted:true,reviewedMain:sha,emailPolicyId:id(11),adminPolicyId:id(12),ownerPolicyMatched:true,ownerReferencePolicyId:id(13),acceptanceReceipt:'https://github.com/klappy/kitchen/blob/main/receipt.md',configurationVersion:id(1),previousDeployment:id(2),emailAccessAppId:id(3),adminAccessAppId:id(4),accessTeamDomain:'https://klappy.cloudflareaccess.com',accessAud:'a'.repeat(64),adminAccessAud:'b'.repeat(64),monthlyLimit:500,policyVersion:'monthly-test'};
+const manifest = {schemaVersion:1,accepted:true,reviewedMain:sha,emailPolicyId:id(11),adminPolicyId:id(12),ownerPolicyMatched:true,ownerReferencePolicyId:id(13),acceptanceReceipt:'https://github.com/klappy/kitchen/blob/main/receipt.md',configurationVersion:id(1),previousDeployment:id(2),emailAccessAppId:id(3),adminAccessAppId:id(4),accessTeamDomain:'klappy.cloudflareaccess.com',accessAud:'a'.repeat(64),adminAccessAud:'b'.repeat(64),monthlyLimit:500,policyVersion:'monthly-test'};
 const bindings = [
   {name:'OAUTH_KV',type:'kv_namespace',namespace_id:'8f260f3c8ab6476dbea2b17926bf38bf'},
   {name:'BEE_BRIDGE',type:'durable_object_namespace',namespace_id:'22228994536c4bb3808aa281c53e9727'},
