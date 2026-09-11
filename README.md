@@ -98,3 +98,7 @@ Owner-only `bee_observed_usage` reads the aggregate without calling Bee, startin
 
 This is best-effort calibration, not a billing ledger. Coverage begins only after separately reviewed activation and actual hosted readback; enqueueing work with `waitUntil` is not persistence proof. Heavy owner usage is a useful upper-use observation, not a representative free-user distribution. No numeric allowance, self-service activation, production change or new telemetry service is selected here.
 
+
+### Existing native catalog compatibility
+
+`bee_docs({ view: "observed_usage" })` exposes the same owner-only aggregate inspection when a client has not refreshed its tool catalog. It uses the authenticated grant identity and the same private RPC, reports the same coverage and retention caveats, and never counts itself or starts Bee. Nonowners and disabled observation receive unavailable without an aggregate or observation write. Unknown views reject. Missing `view` or `view: "reference"` returns the byte-identical canonical API reference with ordinary documentation observation. The standalone `bee_observed_usage` tool remains available to eligible owners in refreshed catalogs.

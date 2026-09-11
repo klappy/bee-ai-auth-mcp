@@ -27,6 +27,16 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string, ctx: Execut
   const observe = <Args extends unknown[], R>(tool: string, build: (tele: ToolTelemetry) => (...args: Args) => Promise<R>) =>
     withTelemetry(env, tenantKey, tool, build, { login: props.login, waitUntil: promise => ctx.waitUntil(promise) });
   const server = new McpServer({ name: "bee-ai-auth-mcp", version: "0.1.0" });
+  const observedUsage = async () => {
+    // Trusted grant identity only; the private RPC independently rechecks owner.
+    const result = await readOwnerUsage(env, props.login);
+    return { content: [{ type: 'text' as const, text: JSON.stringify({ ...result, coverage: 'best_effort_not_billing', scope: 'owner_staging', retention: '31 UTC dates; pruned on read or write, not timed deletion while idle' }) }], ...(result.ok ? {} : { isError: true }) };
+  };
+  const reference = observe('bee_docs', tele => async () => {
+    tele.statusClass = '2xx';
+    return { content: [{ type: 'text' as const, text: BEE_API_USAGE_DOC }] };
+  });
+
 
   server.registerTool(
     "whoami",
@@ -85,15 +95,15 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string, ctx: Execut
         openWorldHint: false,
       },
       description:
-        "Return the Bee API usage reference: which /v1/* read endpoints exist, how to shape paths and the search body, pagination/cursors, and what is excluded. Read this before calling bee_read.",
-      inputSchema: {},
+        "Return the Bee API usage reference. Read this before bee_read. Optional view=observed_usage inspects owner-only staging aggregates without calling Bee or counting the inspection; unavailable for other users. Missing view or reference returns the unchanged API reference.",
+      inputSchema: { view: z.enum(['reference', 'observed_usage']).optional() },
     },
-    observe("bee_docs", (tele) => async () => {
-      tele.statusClass = "2xx"; // local doc, no network leg
-      return {
-        content: [{ type: "text" as const, text: BEE_API_USAGE_DOC }],
-      };
-    })
+    async ({ view }: { view?: 'reference' | 'observed_usage' }) => {
+      // Keep inspection outside the observation wrapper, including denials.
+      if (view === 'observed_usage') return observedUsage();
+      if (view !== undefined && view !== 'reference') return { content: [{ type: 'text' as const, text: 'Unknown documentation view.' }], isError: true };
+      return reference();
+    }
   );
 
   server.registerTool(
@@ -185,10 +195,7 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string, ctx: Execut
     title: 'Your observed Bee usage',
     description: 'Inspect owner-only staging daily aggregates for the last 31 UTC dates. Successful read pages are separate from docs, blocked calls and failures. Best-effort calibration only, not a billing ledger or proof of complete usage. This inspection does not call Bee or count itself.',
     inputSchema: {}, annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  }, async () => {
-    const result = await readOwnerUsage(env, props.login);
-    return { content: [{ type: 'text' as const, text: JSON.stringify({ ...result, coverage: 'best_effort_not_billing', scope: 'owner_staging', retention: '31 UTC dates; pruned on read or write, not timed deletion while idle' }) }], ...(result.ok ? {} : { isError: true }) };
-  });
+  }, observedUsage);
   if (quotaPolicy(env) && props.login.includes('@')) server.registerTool('bee_usage', {
     title: 'Your read allowance', description: 'Inspect your own monthly successful bee_read allowance, reserved reads, remaining reads and exact UTC renewal time. Each returned page consumes one read. Does not retrieve Bee data or consume a read.',
     inputSchema: {}, annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
@@ -219,3 +226,4 @@ export const McpApiHandler = {
     return handler(request, env, ctx);
   },
 };
+
