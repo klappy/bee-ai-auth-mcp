@@ -8,7 +8,7 @@ const WORKER = 'bee-ai-auth-mcp';
 const TAG = '27b750389ea04ed1af1a6c50dc0e5e37';
 const CONTAINER = 'a0318e64-bcdf-4095-bbcc-3400033b3290';
 const IMAGE = 'registry.cloudflare.com/' + ACCOUNT + '/bee-validation-20260909-455501a57e820ab6c3eb927b699d02cb@sha256:5f732c594b2c5dbb1b06de2ff2ec81bfb45ca075eb6dcb9f71ea6c839ac09306';
-const FIELDS = ['assets','cache_options','compatibility_date','compatibility_flags','containers','limits','main_module','package_dependencies','placement','usage_model'];
+const FIELDS = ['cache_options','compatibility_date','compatibility_flags','containers','limits','main_module','package_dependencies','placement','usage_model'];
 class Refusal extends Error { constructor(code) { super(code); this.code = code; } }
 const check = (ok, code) => { if (!ok) throw new Refusal(code); };
 const ordered = x => Array.isArray(x) ? x.map(ordered) : x && typeof x === 'object' ? Object.fromEntries(Object.keys(x).sort().map(k => [k,ordered(x[k])])) : x;
@@ -48,8 +48,10 @@ function validatePrivacy(owner, ingress, container) {
 }
 function candidateBody(old, bytes) {
   const body = Object.fromEntries(FIELDS.filter(k => old[k] !== undefined).map(k => [k,structuredClone(old[k])]));
-  check(body.assets && body.assets.config && Array.isArray(body.containers),'asset-container-shape');
-  body.assets.config.run_worker_first = true;
+  // The accepted Worker-owned asset contract intentionally detaches the old
+  // external asset router. Configuration-only uploads do not preserve it.
+  check(Array.isArray(body.containers),'container-shape');
+  check(!old.bindings.some(b => b.type === 'assets' || b.name === 'ASSETS'),'unexpected-asset-binding');
   body.exports = {...old.exports,BeeBridge:{type:'durable-object',storage:'sqlite',container:'BeeBridge'}};
   body.containers = body.containers.map(c => c.class_name === 'BeeBridge' ? {...c,name:'BeeBridge'} : c);
   body.modules = [{...old.modules[0],content_base64:Buffer.from(bytes).toString('base64')}];
@@ -58,6 +60,7 @@ function candidateBody(old, bytes) {
   return body;
 }
 function verifyCandidate(v, body, hash, expectedBindings) {
+  check(v.assets === undefined && body.assets === undefined,'external-assets-present');
   // Cloudflare omits migration_tag on undeployed versions (PR63 provider receipt).
   // Absence is accepted only with the complete unchanged binding/export/container
   // comparisons below and no migration payload. A contrary tag always refuses.
@@ -81,8 +84,10 @@ async function run({env, manifest, stamp, bundle, api, publicCheck}) {
     check(oldId === manifest.configurationVersion && active.deployments[0].id === manifest.previousDeployment,'accepted-configuration-drift');
     const old = await api('GET',version(oldId)); old.id = oldId;
     validateVersion(old,manifest);
+    // Legacy settings may project the newest undeployed candidate. Active
+    // bindings come exclusively from deployments -> exact immutable version.
     const settings = await api('GET',script + '/settings');
-    check(bindingShape(settings.bindings) === bindingShape(old.bindings),'settings-drift');
+    const legacySettingsMatchActive = bindingShape(settings.bindings) === bindingShape(old.bindings);
     const owner = await api('GET','/workers/workers/' + TAG);
     const ingress = await api('GET',script + '/subdomain');
     const container = await api('GET','/containers/applications/' + CONTAINER);
@@ -123,7 +128,8 @@ async function run({env, manifest, stamp, bundle, api, publicCheck}) {
     phase = 'candidate-verification';
     verifyCandidate(await api('GET',version(candidate)),body,hash,expectedBindings);
     check(canon(await api('GET',script + '/deployments')) === canon(active),'upload-deployment-side-effect');
-    check(canon(await api('GET',script + '/settings')) === canon(settings),'upload-settings-side-effect');
+    const stillActive = await api('GET',version(oldId));
+    check(canon(stillActive) === canon(old),'active-version-drift');
     for (const snapshot of accessSnapshots) {
       check(canon(await api('GET','/access/apps/' + snapshot.id)) === canon(snapshot.app),'access-app-drift');
       check(canon(await api('GET','/access/apps/' + snapshot.id + '/policies')) === canon(snapshot.policies),'access-policy-drift');
@@ -138,7 +144,8 @@ async function run({env, manifest, stamp, bundle, api, publicCheck}) {
     const actual = await api('GET',version(candidate));
     verifyCandidate(actual,body,hash,expectedBindings);
     check(actual.migration_tag === 'v1','migration-linkage');
-    check(bindingShape((await api('GET',script + '/settings')).bindings) === expectedBindings,'effective-bindings');
+    // actual is the version selected by the observed active deployment.
+    check(bindingShape(actual.bindings) === expectedBindings,'effective-bindings');
     const finalOwner = await api('GET','/workers/workers/' + TAG);
     check(canon(finalOwner.observability) === canon(owner.observability) && finalOwner.logpush === owner.logpush,'logging-drift');
     check(canon(await api('GET',script + '/subdomain')) === canon(ingress),'ingress-drift');
@@ -154,7 +161,7 @@ async function run({env, manifest, stamp, bundle, api, publicCheck}) {
       check(canon(await api('GET','/access/apps/' + snapshot.id + '/policies')) === canon(snapshot.policies),'access-policy-drift');
     }
     await publicCheck(stamp);
-    return {accepted:true,observed:new Date().toISOString(),source:stamp,version:candidate,deployment:after.deployments[0].id,module_sha256:hash,previous_version:oldId,secrets_inherited:true,storage_preserved:true,staging_unchanged:true};
+    return {accepted:true,observed:new Date().toISOString(),source:stamp,version:candidate,deployment:after.deployments[0].id,module_sha256:hash,previous_version:oldId,secrets_inherited:true,storage_preserved:true,staging_unchanged:true,external_assets_absent:true,legacy_settings_matched_active_at_start:legacySettingsMatchActive};
   } catch (error) {
     if (deploymentAttempted && deployed !== true) {
       try { deployed = activeId(await api('GET',script + '/deployments')) === candidate; }

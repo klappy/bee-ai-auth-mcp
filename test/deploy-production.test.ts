@@ -45,7 +45,7 @@ describe('production Git Build preservation transaction',()=>{
   it('uploads without deploying, verifies, explicitly deploys, reads back',async()=>{
     const f=fixture();const receipt=await run(f.options);expect(receipt.accepted).toBe(true);
     const writes=f.calls.filter(c=>c.method==='POST');expect(writes).toHaveLength(2);expect(writes[0].route).toContain('?deploy=false');expect(writes[1].route).toMatch(/\/deployments$/);
-    expect(writes[0].body.assets.config).toEqual({...f.old.assets.config,run_worker_first:true});
+    expect(writes[0].body.assets).toBeUndefined();
     expect(writes[0].body.bindings.find((b:any)=>b.name==='GITHUB_CLIENT_SECRET')).toEqual({name:'GITHUB_CLIENT_SECRET',type:'inherit',version_id:id(1)});
     expect(JSON.stringify(receipt)).not.toContain('NEVER_PRINT');
   });
@@ -73,3 +73,23 @@ it('rejects changed production owner identity before upload without revealing it
 
 it('permits observed undeployed migration omission only with unchanged complete lineage',async()=>{const f=fixture();const api=f.options.api;let sourceDeployed=false;f.options.api=async(m,r,b)=>{const v=await api(m,r,b);if(m==='POST'&&r.endsWith('/deployments'))sourceDeployed=true;if(r.includes('/versions/'+id(9))&&!sourceDeployed)delete v.migration_tag;return v;};expect((await run(f.options)).accepted).toBe(true);});
 it('refuses migration omission with changed DO lineage before deploy',async()=>{const f=fixture();const api=f.options.api;f.options.api=async(m,r,b)=>{const v=await api(m,r,b);if(r.includes('/versions/'+id(9))){delete v.migration_tag;v.exports.BeeBridge.storage='kv';}return v;};const r=await run(f.options);expect(r.accepted).toBe(false);expect(f.calls.filter(c=>c.method==='POST')).toHaveLength(1);});
+
+it('uses active immutable bindings even when legacy settings project an undeployed custody candidate',async()=>{const f=fixture();const api=f.options.api;f.options.api=async(m,r,b)=>{const v=await api(m,r,b);if(r.endsWith('/settings'))return {bindings:[...bindings,{type:'secret_text',name:'UNDEPLOYED_ONLY',text:'PRIVATE'}]};return v;};const r=await run(f.options);expect(r.accepted).toBe(true);expect(r.legacy_settings_matched_active_at_start).toBe(false);const upload=f.calls.find(c=>c.route.includes('deploy=false'));expect(upload?.body.bindings.some((b:any)=>b.name==='UNDEPLOYED_ONLY')).toBe(false);});
+it('refuses an unexpected external assets router on candidate readback',async()=>{const f=fixture();const api=f.options.api;f.options.api=async(m,r,b)=>{const v=await api(m,r,b);if(r.includes('/versions/'+id(9)))v.assets={config:{run_worker_first:false}};return v;};const r=await run(f.options);expect(r.error).toBe('external-assets-present');expect(f.calls.filter(c=>c.method==='POST')).toHaveLength(1);});
+it('refuses active immutable version drift after upload',async()=>{const f=fixture();const api=f.options.api;let uploaded=false;f.options.api=async(m,r,b)=>{const v=await api(m,r,b);if(m==='POST'&&r.includes('deploy=false'))uploaded=true;if(uploaded&&r.includes('/versions/'+id(1)))v.modules[0].content_base64='ZHJpZnQ=';return v;};const r=await run(f.options);expect(r.error).toBe('active-version-drift');expect(f.calls.filter(c=>c.method==='POST')).toHaveLength(1);});
+it('generates the complete public asset set from canonical files with no competing router',async()=>{
+  const {releaseAssetSource}=createRequire(import.meta.url)('../scripts/deploy-production.cjs');
+  const {readFileSync}=await import('node:fs');
+  const {resolve}=await import('node:path');
+  const root=resolve(import.meta.dirname,'..');
+  const generated=await releaseAssetSource(root);
+  const assets=JSON.parse(generated.slice('export const assets = '.length,-1));
+  expect(Object.keys(assets).sort()).toEqual(['/apple-touch-icon.png','/favicon-16.png','/favicon-32.png','/favicon-48.png','/favicon.ico','/favicon.svg','/icon-192.png','/icon-512.png','/index.html','/og-image.png','/roadmap.html','/security.html','/setup.html','/site.webmanifest','/style.css','/under-the-hood.html'].sort());
+  for(const [key,asset] of Object.entries(assets) as [string,any][]){
+    const bytes=Buffer.from(asset.base64,'base64');
+    expect(digest(bytes)).toBe(asset.sha256);expect(bytes.length).toBe(asset.size);
+    if(key!=='/index.html')expect(bytes.equals(readFileSync(resolve(root,'public',key.slice(1))))).toBe(true);
+    else {expect(bytes.toString()).toContain('Paid signup is not open yet');expect(bytes.toString()).not.toContain('Homepage draft — review only.');}
+  }
+  const config=readFileSync(resolve(root,'wrangler.production.jsonc'),'utf8');expect(config).not.toMatch(/"assets"\s*:/);
+});

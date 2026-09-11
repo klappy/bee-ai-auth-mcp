@@ -1,6 +1,6 @@
 /** Separate entry point: preserves the real OAuth, MCP and CLI broker paths. */
 import production from "./index";
-import { BeeBridge as BaseBridge } from "./bridge";
+import { BeeBridge as BaseBridge } from "./hosted-bridge";
 import { getContainer } from "@cloudflare/containers";
 import type { Env } from "./types";
 import { validationClosed, validationExpiry, VALIDATION_REQUEST_LIMIT, type ValidationWindow } from "./validation-window";
@@ -11,6 +11,9 @@ type ValidationEnv = Env & ValidationWindow;
 // Same single bound class, but only this isolated config exports this subclass.
 // Durable quota survives isolate eviction and serializes concurrent admissions.
 export class BeeBridge extends BaseBridge {
+  constructor(ctx: DurableObjectState<{}>, env: ValidationEnv) {
+    super(ctx, { ...env, BEE_ENVIRONMENT: "staging" });
+  }
   override async fetch(request: Request): Promise<Response> {
     if (validationExpiry(this.env as ValidationEnv) === null) return validationClosed();
     return super.fetch(request);

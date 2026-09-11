@@ -1,14 +1,17 @@
+vi.mock('@cloudflare/containers', () => ({ getContainer: vi.fn() }));
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 vi.mock('cloudflare:workers', () => ({ WorkerEntrypoint: class {} }));
-vi.mock('../src/validation', () => ({ BeeBridge: class {} }));
+vi.mock('../src/bridge', () => ({ BeeBridge: class {} }));
 vi.mock('../src/mcp-api', () => ({ McpApiHandler: { fetch: vi.fn() } }));
 vi.mock('../src/bee-auth', () => ({ BeeAuthHandler: { fetch: vi.fn() } }));
-import entry, { BeeBridge } from '../src/staging';
+import staging, { BeeBridge } from '../src/staging';
+import production from '../src/hosted';
 import { __resetJwksCacheForTests } from '../src/access';
 
 const origin = 'https://staging.example.test', owner = 'owner@example.test';
 let env: any, bridge: any, jwt: string, visitorJwt: string;
+let entry = staging;
 const ctx = { waitUntil: () => {} } as unknown as ExecutionContext;
 beforeEach(async () => {
   const keys = await generateKeyPair('RS256');
@@ -23,8 +26,9 @@ beforeEach(async () => {
   const storage = { get: async (key: string) => structuredClone(values.get(key)), put: async (key: string, value: unknown) => { values.set(key, structuredClone(value)); } };
   bridge = Object.create(BeeBridge.prototype);
   bridge.ctx = { storage: { ...storage, transaction: async (fn: any) => fn(storage) } };
-  env = { SIGNUP_ENABLED: 'true', ACCESS_TEAM_DOMAIN: 'team.example.test', ACCESS_AUD: 'signup-aud', STAGING_PREVIEW_AUD: 'owner-aud', STAGING_OWNER_EMAIL: owner,
+  env = { BEE_ENVIRONMENT: 'staging', SIGNUP_ENABLED: 'true', ACCESS_TEAM_DOMAIN: 'team.example.test', ACCESS_AUD: 'signup-aud', STAGING_PREVIEW_AUD: 'owner-aud', STAGING_OWNER_EMAIL: owner,
     BEE_BRIDGE: { idFromName: (name: string) => name, get: () => bridge } };
+  bridge.env = env;
   await bridge.admission('signup', { email: 'visitor@example.test' });
 });
 afterEach(() => { vi.unstubAllGlobals(); __resetJwksCacheForTests(); });
@@ -37,7 +41,12 @@ async function pageForms() {
 }
 const post = (form: URLSearchParams, originHeader = origin, token = jwt) => request('/admin/decision', { method: 'POST', headers: { Origin: originHeader, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() }, token);
 
-describe('rendered owner form through real JWT verifier, route and admission transaction', () => {
+describe.each(['staging', 'production'])('rendered owner form with real JWT in %s', runtime => {
+  beforeEach(() => {
+    entry = runtime === 'staging' ? staging : production;
+    env.BEE_ENVIRONMENT = runtime;
+    if (runtime === 'production') { env.ADMIN_ACCESS_AUD = env.STAGING_PREVIEW_AUD; env.ADMIN_OWNER_EMAIL = env.STAGING_OWNER_EMAIL; delete env.STAGING_PREVIEW_AUD; delete env.STAGING_OWNER_EMAIL; }
+  });
   it('preserves a same-origin browser POST Origin without cross-origin referrer disclosure', async () => {
     const { response, forms } = await pageForms();
     // Fetch §3.2 serializes a navigation POST Origin as null under no-referrer.

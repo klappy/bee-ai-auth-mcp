@@ -1,14 +1,13 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "bee-ai-auth-mcp",
-  "main": "src/index.ts",
+  "main": "src/hosted.ts",
   "compatibility_date": "2026-06-01",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
   // Bakes the commit SHA into src/version.ts before bundling, so each immutable
   // version carries its own SHA (served at /version). No deploy-time --var.
   "build": { "command": "node scripts/gen-version.mjs" },
-  "assets": { "directory": "./public" },
   "kv_namespaces": [
     // Create your own: `wrangler kv namespace create OAUTH_KV`, then paste the id here.
     { "binding": "OAUTH_KV", "id": "8f260f3c8ab6476dbea2b17926bf38bf" }
@@ -70,3 +69,4 @@
   // (per-grant custody; ledger E0012). The relay reaches Bee only through the
   // bound BEE_BRIDGE container above (see bridge/), never a public URL.
 }
+

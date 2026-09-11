@@ -1,3 +1,4 @@
+import { isStaging } from './types';
 /**
  * Telemetry — minimal, optional, privacy-first observability for the read surface.
  *
@@ -56,7 +57,7 @@ export interface ToolTelemetry {
  *  a constant on any crypto failure — telemetry must never break a request. */
 export async function deriveTenantKey(env: Env, login: string): Promise<string> {
   // Staging uses no tenant key or AE row, even if an AE binding is accidentally present.
-  if (env.SIGNUP_ENABLED === 'true') return '';
+  if (isStaging(env)) return '';
   try {
     const key = await crypto.subtle.importKey(
       "raw",
@@ -135,8 +136,8 @@ export function withTelemetry<Args extends unknown[], R>(
     };
     let result: R;
     try { result = await build(tele)(...args); }
-    catch (error) { if (env.SIGNUP_ENABLED === 'true') emitOwner(undefined, true); throw error; }
-    if (env.SIGNUP_ENABLED === 'true') { emitOwner(result); return result; }
+    catch (error) { if (isStaging(env)) emitOwner(undefined, true); throw error; }
+    if (isStaging(env)) { emitOwner(result); return result; }
     const durationMs = Date.now() - t0;
     try {
       const ds = env.BEE_TELEMETRY;
