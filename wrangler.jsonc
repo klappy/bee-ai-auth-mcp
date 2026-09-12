@@ -1,72 +1,30 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "bee-ai-auth-mcp",
-  "main": "src/index.ts",
+  "name": "bee-validation-20260909",
+  "main": "src/staging.ts",
   "compatibility_date": "2026-06-01",
   "compatibility_flags": ["nodejs_compat"],
-  "observability": { "enabled": true },
-  // Bakes the commit SHA into src/version.ts before bundling, so each immutable
-  // version carries its own SHA (served at /version). No deploy-time --var.
+  "workers_dev": true,
+  "preview_urls": false,
+  "keep_vars": true,
+  "logpush": false,
+  "observability": { "enabled": false },
   "build": { "command": "node scripts/gen-version.mjs" },
-  "assets": { "directory": "./public" },
-  "kv_namespaces": [
-    // Create your own: `wrangler kv namespace create OAUTH_KV`, then paste the id here.
-    { "binding": "OAUTH_KV", "id": "8f260f3c8ab6476dbea2b17926bf38bf" }
-  ],
-  // ---- OPTIONAL telemetry sink (Analytics Engine) — observability, not custody ----
-  // Records shape, never substance (see src/telemetry.ts, docs/telemetry-governance.md).
-  // OPTIONAL by design: remove this block to run with telemetry as a silent no-op.
-  // The dataset name is STICKY (renaming forfeits history) — chosen deliberately.
-  "analytics_engine_datasets": [
-    { "binding": "BEE_TELEMETRY", "dataset": "bee_telemetry" }
-  ],
+  "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "d57ff6004e48496893132f343a8f4a81" }],
   "vars": {
-    // Comma-separated GitHub login(s) allowed to use this self-host instance.
-    // REQUIRED — the instance denies all logins until this is set.
-    "ALLOWED_GITHUB_LOGIN": "klappy,tatacurly",
-    // Bee's direct-API endpoint, read by BeeBridge (src/bridge.ts) and passed to
-    // the container as caddy's {$BEE_UPSTREAM}/{$BEE_SNI}. Not a credential — the
-    // Bee API still requires a per-user bearer — and the same for every self-host
-    // instance, so it lives here as plain config rather than a secret.
-    //
-    // REAL host confirmed 2026-06-15 from `bee status` (CLI prod base
-    // https://app-api-developer.ce.bee.amazon.dev/) and verified: it resolves and
-    // its cert chains to bridge/bee-ca.pem. The prior value `api.bee.computer` was
-    // a placeholder guess that does NOT resolve (NXDOMAIN), so caddy's reverse_proxy
-    // failed to dial it and returned 502 — the observed "Bee returned an unexpected
-    // status (502)" at the consent step. (Supersedes the D0032 placeholder.)
+    "SIGNUP_ENABLED": "true",
+    "ACCESS_TEAM_DOMAIN": "klappy.cloudflareaccess.com",
+    "ACCESS_AUD": "cbc44d12c66df7597756991c1b1fb94e82ec11aab21d79866d8c415850f81f0b",
+    "STAGING_PREVIEW_AUD": "11479aab4d4f4d70aec0d82b1c04bbc1972e179a9cadee257c483f5fbebb2a75",
     "BEE_UPSTREAM": "app-api-developer.ce.bee.amazon.dev:443",
     "BEE_SNI": "app-api-developer.ce.bee.amazon.dev"
   },
-  // ---- private-CA bridge as a bound Cloudflare Container (D0028 / ledger E0014) ----
-  // The relay reaches Bee via an INTERNAL Worker->container call
-  // (getContainer(env.BEE_BRIDGE) in src/bee.ts) — there is NO public bridge
-  // hostname and NO BEE_API_BASE URL. The image is bridge/Dockerfile (caddy; see
-  // bridge/Caddyfile + bridge/README.md). Confirm this block against current
-  // Cloudflare Containers docs before deploy: the image is the stable part, this
-  // binding config is version-sensitive. Workers Builds builds the image on push
-  // once the build command is set to `wrangler containers build --push` (a
-  // one-time dashboard setting — operator).
-  "containers": [
-    {
-      "class_name": "BeeBridge",
-      "image": "./bridge/Dockerfile",
-      "instance_type": "basic",
-      "max_instances": 1
-    }
-  ],
-  "durable_objects": {
-    "bindings": [{ "class_name": "BeeBridge", "name": "BEE_BRIDGE" }]
-  },
-  // First (and only) migration — register the BeeBridge DO class. Confirmed by
-  // observation that root wrangler.jsonc had no prior migrations block, so `v1`
-  // is correct as the initial tag (ledger E0014).
+  "containers": [{
+    "class_name": "BeeBridge",
+    "image": "registry.cloudflare.com/b03e6ea242724c05eb97eb732cceb21d/bee-validation-20260909-455501a57e820ab6c3eb927b699d02cb@sha256:5f732c594b2c5dbb1b06de2ff2ec81bfb45ca075eb6dcb9f71ea6c839ac09306",
+    "instance_type": "basic",
+    "max_instances": 1
+  }],
+  "durable_objects": { "bindings": [{ "class_name": "BeeBridge", "name": "BEE_BRIDGE" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BeeBridge"] }]
-  // Secrets (set via `wrangler secret put`, never committed, never in chat):
-  //   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET  (a GitHub *OAuth App* — identity only, not a GitHub App;
-  //                                            CLIENT_SECRET also HMAC-signs the consent round-trip)
-  // NOTE: there is NO BEE_API_TOKEN secret (v0.3+). Each user's Bee bearer is
-  // captured at the consent step and held only in their encrypted grant props
-  // (per-grant custody; ledger E0012). The relay reaches Bee only through the
-  // bound BEE_BRIDGE container above (see bridge/), never a public URL.
 }

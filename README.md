@@ -52,7 +52,7 @@ MIT. See `LICENSE`.
 2. Create the grant store: `wrangler kv namespace create OAUTH_KV` -> paste the id into `wrangler.jsonc` under the `OAUTH_KV` binding.
 3. Create a GitHub **OAuth App** (not a GitHub App): callback `https://<your-worker>/callback`. Set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` as Worker secrets.
 4. In `wrangler.jsonc` set `ALLOWED_GITHUB_LOGIN` to your GitHub login (the instance denies all logins until set). `BEE_UPSTREAM`/`BEE_SNI` (Bee's real API host), the `BEE_BRIDGE` Container, and `bridge/bee-ca.pem` (Bee's public CA roots) are already committed.
-5. **Deploy by pushing** — a push to `main` deploys to prod via Cloudflare Workers Builds (which also builds the bridge container image); a branch push is a preview. No manual `wrangler deploy`.
+5. **Deploy through the reviewed branch flow** — feature branches merge into `main` for isolated staging. Production promotion is a separately approved PR from `main` to `production`. See [Source and deployment environments](#source-and-deployment-environments) for the exact commands and configuration gate; routine staging builds reuse the existing Container image.
 6. Add the Worker URL as a custom connector in your MCP client, approve the GitHub login, then **paste your Bee token at the consent screen** and run `whoami` (or `bee_docs` / `bee_read`).
 
 **Getting your Bee token.** In the Bee iOS app, unlock Developer Mode (tap the app Version 5x); then on a computer with Node run `npm i -g @beeai/cli && bee login --qr` and approve the scan in your Bee app. Read the token from the macOS Keychain (`security find-generic-password -s bee-cli -a token:prod -w`) or `~/.bee/token-prod`, and paste it at the relay's consent screen. A one-tap in-app QR pairing is planned (pending a Bee-registered app id). See `docs/connecting-and-getting-your-bee-token.md`.
@@ -60,3 +60,77 @@ MIT. See `LICENSE`.
 **Security model (honest).** Your Bee token is held only in your encrypted grant props (workers-oauth-provider, token-derived key — no master key); it never appears in logs, URLs, errors, or tool output. **Revocation:** disconnecting deletes the relay's copy of your token; to fully revoke, re-pair / rotate it in the Bee app.
 
 **Tools.** `whoami` (credential smoke check, `GET /v1/me`), plus the Phase-2 read surface: `bee_docs` (serves the Bee API usage reference) and `bee_read` (read-only — GET any `/v1/*`, POST only to the allow-listed `/v1/search/*`; `/v1/stream` and all mutations refused). `bee_write` is deferred to a future write phase. Fewer tools, good docs by design.
+
+## Source and deployment environments
+
+OAuth client authentication negotiation uses a pinned maintained provider.
+See [the compatibility repair and migration evidence](docs/oauth-negotiation-repair-2026-09-10.md)
+for supported public-client alternatives, synthetic checks and remaining hosted gates.
+
+The shared hosted code includes a [default-disabled monthly allowance](docs/monthly-allowance.md).
+It does not activate self-service, choose an allowance, or add billing/referrals.
+When separately configured, each successful `bee_read` page consumes one unit;
+`bee_usage` reports the account's allowance and exact renewal time without a Bee call.
+Exhaustion preserves the OAuth connection. Existing manual signup policy remains
+in force while the feature is disabled.
+
+Feature branches merge into `main`, which is staging. Reviewed staging source is
+promoted by a separately approved PR from `main` to `production`. A separate
+staging branch is only needed if a distinct dev environment is introduced later.
+
+The root `wrangler.jsonc` targets the isolated staging Worker. Trusted main Builds
+run `node scripts/deploy-staging.cjs` after install, source-ID generation,
+typechecking and tests; `npm run deploy:staging` invokes the same deployment path.
+It preserves the existing deployment metadata, storage, secrets and runtime limit.
+
+Production's branch-only Builds command explicitly selects
+`wrangler.production.jsonc`. Production promotion still requires its own approval.
+See [the deployment contract](docs/ci-cd.md)
+for exact commands, validation and the production-release gate.
+
+## Owner-only staging calibration
+
+Optional `OWNER_USAGE_ENABLED=true` observes only the authenticated login matching the trusted `STAGING_OWNER_EMAIL`, with `SIGNUP_ENABLED=true` and the explicit staging runtime. All staging calls bypass legacy Analytics Engine identity derivation and emission, even when observation is off. Production retains its existing optional AE behavior.
+
+The existing per-tool wrapper measures `bee_read`, `bee_docs` and `whoami`. One existing BeeBridge Durable Object stores daily fixed-schema counts and summed duration, bridge duration and output bytes. Returned successful read pages, read failures, runtime/quota blocks, docs, identity checks and thrown errors have distinct buckets. No identity, hash, transcript, raw path, query, token or per-call record is stored. The private RPC rechecks owner matching. Emission failures never change the original tool result or thrown error.
+
+Owner-only `bee_observed_usage` reads the aggregate without calling Bee, starting the Container, consuming a commercial read or counting itself. It accepts no identity filters. Every permitted read/write consumes the existing lifetime signup-operation budget, which is never reset. At exhaustion observation is unavailable while Bee results remain unchanged. At most 31 UTC dates are retained, pruned on reads/writes; idle timed deletion is not promised.
+
+This is best-effort calibration, not a billing ledger. Coverage begins only after separately reviewed activation and actual hosted readback; enqueueing work with `waitUntil` is not persistence proof. Heavy owner usage is a useful upper-use observation, not a representative free-user distribution. No numeric allowance, self-service activation, production change or new telemetry service is selected here.
+
+
+### Existing native catalog compatibility
+
+`bee_docs({ view: "observed_usage" })` exposes the same owner-only aggregate inspection when a client has not refreshed its tool catalog. It uses the authenticated grant identity and the same private RPC, reports the same coverage and retention caveats, and never counts itself or starts Bee. Nonowners and disabled observation receive unavailable without an aggregate or observation write. Unknown views reject. Missing `view` or `view: "reference"` returns the byte-identical canonical API reference with ordinary documentation observation. The standalone `bee_observed_usage` tool remains available to eligible owners in refreshed catalogs.
+
+
+## Approved hosted homepage artifact
+
+Klappy accepted the protected homepage on September 11, 2026. The exact approved
+HTML lives in `src/hosted-homepage.ts`; protected `/preview/` consumes that same
+source. The review notice remains because immediate free use and paid upgrades
+are not enabled. [Exact copy and provenance](docs/hosted-homepage-draft-2026-09-11.md).
+
+To prepare a separate asset directory for release review, run
+`node scripts/materialize-hosted-homepage.mjs /tmp/bee-homepage-release-assets`
+with a new destination outside this repository. The command refuses existing
+destinations, preserves `public/`, copies the other public assets unchanged and
+writes the exact approved homepage as the output's `index.html`. It prints the
+HTML hash and byte count. No build or deployment currently invokes it. Selecting
+this asset directory belongs to the reviewed production configuration; generating
+it does not publish it or establish hosted acceptance.
+
+## Hosted production entry
+
+`src/hosted.ts` shares hardened native OAuth, email signup and admission/quota
+storage with staging. It keeps the GitHub allowlist, existing encrypted grants,
+refresh and consent route. Email signup grants additionally require their current
+admission epoch. `src/staging.ts` alone adds validation expiry, lifetime operation
+budgets, protected preview and owner-only observation. Signup enablement is no
+longer an environment detector.
+
+Production admin authentication uses private `ADMIN_ACCESS_AUD` and
+`ADMIN_OWNER_EMAIL`; staging retains its separate owner bindings. No values are
+included in source. This PR prepares the production entry configuration but does
+not deploy it, activate email signup, select a monthly allowance, or publish the
+approved homepage. See [production entry boundaries](docs/production-entry.md).

@@ -1,3 +1,4 @@
+import { isStaging } from './types';
 /**
  * Telemetry — minimal, optional, privacy-first observability for the read surface.
  *
@@ -11,9 +12,11 @@
  * class, durations, and response byte size. It NEVER records the Bee token,
  * conversation content, raw paths/ids, search bodies, or any reversible identity.
  *
- * MULTI-TENANCY: each row is keyed by an OPAQUE per-grant tenant key — an HMAC of
+ * STAGING: bypasses legacy AE entirely; optional owner-only daily aggregates
+ * contain no identity, hash or per-call record (see owner-usage.ts).
+ * LEGACY PRODUCTION: each row is keyed by an OPAQUE per-login tenant key — an HMAC of
  * the login under the existing GITHUB_CLIENT_SECRET (same secret-reuse precedent
- * as src/state.ts), never the login/Bee-id/email/token in the clear. Constant
+ * in legacy telemetry), never the login/Bee-id/email/token in the clear. Constant
  * under the single-tenant allow-list today; the partition key when the allow-list
  * widens (grant-level isolation, ledger E0014).
  *
@@ -27,10 +30,15 @@
 
 import { COMMIT_SHA } from "./version";
 import type { Env } from "./types";
+import { ownerUsageEnabled, recordOwnerUsage, type OwnerOutcome } from "./owner-usage";
 
 /** Per-call record a tool handler populates with the domain-specific facts the
  *  generic wrapper cannot see (path class, bridge timing/cold, status). */
 export interface ToolTelemetry {
+  /** Only set after bee_read returns its actual result. */
+  readSucceeded?: boolean;
+  /** Runtime or allowance blocked the requested tool. */
+  blocked?: boolean;
   /** Coarse Bee path class for bee_read — NEVER the raw path or an id. */
   pathClass?: string;
   /** Wall-clock of the Bee call through the bridge (ms). */
@@ -44,10 +52,12 @@ export interface ToolTelemetry {
   cacheLookups?: number;
 }
 
-/** Opaque, stable, non-reversible per-grant tenant key. Reuses GITHUB_CLIENT_SECRET
+/** Opaque, stable, per-login legacy production tenant key. Reuses GITHUB_CLIENT_SECRET
  *  as the HMAC key (already a server-only secret; see src/state.ts). Falls back to
  *  a constant on any crypto failure — telemetry must never break a request. */
 export async function deriveTenantKey(env: Env, login: string): Promise<string> {
+  // Staging uses no tenant key or AE row, even if an AE binding is accidentally present.
+  if (isStaging(env)) return '';
   try {
     const key = await crypto.subtle.importKey(
       "raw",
@@ -97,22 +107,37 @@ function bytesOut(result: unknown): number {
 }
 
 /**
- * Wrap a tool handler with one Analytics Engine emission per call. The wrapper
+ * Wrap a tool handler with one measurement per call. Staging optionally sends
+ * owner-only aggregates through waitUntil; production retains its legacy AE path. The wrapper
  * times total wall-clock and reads the envelope size; the handler contributes the
- * domain facts via the `tele` record it is handed. Emission is synchronous (no
- * racy clone()/waitUntil — the upstream emit-loss pitfall) and swallowed on any
- * failure so telemetry can never break a Bee request.
+ * domain facts via the `tele` record it is handed. Legacy AE emission is synchronous;
+ * staging DO work is caught and attached to waitUntil. Neither an enqueue nor a
+ * successful tool call proves aggregate persistence; hosted readback is required.
  */
 export function withTelemetry<Args extends unknown[], R>(
   env: Env,
   tenantKey: string,
   tool: string,
-  build: (tele: ToolTelemetry) => (...args: Args) => Promise<R>
+  build: (tele: ToolTelemetry) => (...args: Args) => Promise<R>,
+  observation?: { login: string; waitUntil: (promise: Promise<unknown>) => void }
 ): (...args: Args) => Promise<R> {
   return async (...args: Args): Promise<R> => {
     const tele: ToolTelemetry = {};
     const t0 = Date.now();
-    const result = await build(tele)(...args);
+    const emitOwner = (result: unknown, thrown = false): void => {
+      try {
+        if (!observation || !ownerUsageEnabled(env, observation.login) || !['bee_read', 'bee_docs', 'whoami'].includes(tool)) return;
+        const outcome: OwnerOutcome = thrown ? 'error' : tele.blocked ? 'blocked' : tool === 'bee_docs' ? 'docs' : tool === 'whoami' ? 'identity' : tele.readSucceeded === true ? 'read_success' : 'read_failure';
+        observation.waitUntil(recordOwnerUsage(env, observation.login, {
+          outcome, pathClass: tele.pathClass, statusClass: thrown ? 'transport_fail' : tele.statusClass ?? 'n/a',
+          durationMs: Date.now() - t0, bridgeMs: tele.bridgeMs, bytesOut: bytesOut(result),
+        }));
+      } catch { /* telemetry never changes the original result or error */ }
+    };
+    let result: R;
+    try { result = await build(tele)(...args); }
+    catch (error) { if (isStaging(env)) emitOwner(undefined, true); throw error; }
+    if (isStaging(env)) { emitOwner(result); return result; }
     const durationMs = Date.now() - t0;
     try {
       const ds = env.BEE_TELEMETRY;

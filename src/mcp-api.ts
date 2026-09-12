@@ -1,3 +1,4 @@
+import { isStaging } from './types';
 /**
  * The gated /mcp API. OAuthProvider has verified the access token and decrypted
  * THIS grant's props into ctx.props before we run. v0.3 per-grant custody: props
@@ -17,11 +18,26 @@ import { getContainer } from "@cloudflare/containers";
 import { z } from "zod";
 import { beeGetMe, beeRead } from "./bee";
 import { BEE_API_USAGE_DOC } from "./bee-api-usage-doc";
-import { classifyPath, deriveTenantKey, statusClassOf, withTelemetry } from "./telemetry";
+import { classifyPath, deriveTenantKey, statusClassOf, withTelemetry, type ToolTelemetry } from "./telemetry";
 import type { Env, GrantProps } from "./types";
+import { runtimeAllowed, grantIdentityAllowed } from './admission';
+import { ownerUsageEnabled, readOwnerUsage } from './owner-usage';
+import { meteredRead, ownUsage, quotaError, quotaPolicy } from './quota';
 
-function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer {
+function buildServer(env: Env, props: GrantProps, tenantKey: string, ctx: ExecutionContext): McpServer {
+  const observe = <Args extends unknown[], R>(tool: string, build: (tele: ToolTelemetry) => (...args: Args) => Promise<R>) =>
+    withTelemetry(env, tenantKey, tool, build, { login: props.login, waitUntil: promise => ctx.waitUntil(promise) });
   const server = new McpServer({ name: "bee-ai-auth-mcp", version: "0.1.0" });
+  const observedUsage = async () => {
+    // Trusted grant identity only; the private RPC independently rechecks owner.
+    const result = await readOwnerUsage(env, props.login);
+    return { content: [{ type: 'text' as const, text: JSON.stringify({ ...result, coverage: 'best_effort_not_billing', scope: 'owner_staging', retention: '31 UTC dates; pruned on read or write, not timed deletion while idle' }) }], ...(result.ok ? {} : { isError: true }) };
+  };
+  const reference = observe('bee_docs', tele => async () => {
+    tele.statusClass = '2xx';
+    return { content: [{ type: 'text' as const, text: BEE_API_USAGE_DOC }] };
+  });
+
 
   server.registerTool(
     "whoami",
@@ -40,7 +56,8 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
         "is read from your encrypted grant and is never returned.",
       inputSchema: {},
     },
-    withTelemetry(env, tenantKey, "whoami", (tele) => async () => {
+    observe("whoami", (tele) => async () => {
+      if (!(await runtimeAllowed(env))) { tele.blocked = true; return { content: [{ type: 'text' as const, text: 'The bounded Bee runtime is paused.' }], isError: true }; }
       // One shared, token-agnostic bridge: getContainer with no name resolves the
       // singleton ("cf-singleton-container"). Do NOT pass a per-user name — that
       // would shard the deliberately single shared bridge (multitenancy rule, E0014).
@@ -79,15 +96,15 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
         openWorldHint: false,
       },
       description:
-        "Return the Bee API usage reference: which /v1/* read endpoints exist, how to shape paths and the search body, pagination/cursors, and what is excluded. Read this before calling bee_read.",
-      inputSchema: {},
+        "Return the Bee API usage reference. Read this before bee_read. Optional view=observed_usage inspects owner-only staging aggregates without calling Bee or counting the inspection; unavailable for other users. Missing view or reference returns the unchanged API reference.",
+      inputSchema: { view: z.enum(['reference', 'observed_usage']).optional() },
     },
-    withTelemetry(env, tenantKey, "bee_docs", (tele) => async () => {
-      tele.statusClass = "2xx"; // local doc, no network leg
-      return {
-        content: [{ type: "text" as const, text: BEE_API_USAGE_DOC }],
-      };
-    })
+    async ({ view }: { view?: 'reference' | 'observed_usage' }) => {
+      // Keep inspection outside the observation wrapper, including denials.
+      if (view === 'observed_usage') return observedUsage();
+      if (view !== undefined && view !== 'reference') return { content: [{ type: 'text' as const, text: 'Unknown documentation view.' }], isError: true };
+      return reference();
+    }
   );
 
   server.registerTool(
@@ -134,9 +151,7 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
           ),
       },
     },
-    withTelemetry(
-      env,
-      tenantKey,
+    observe(
       "bee_read",
       (tele) =>
         async ({
@@ -153,8 +168,14 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
           chunk?: number;
         }) => {
       tele.pathClass = classifyPath(path);
-      const stub = getContainer(env.BEE_BRIDGE);
-      const result = await beeRead(props.beeToken, stub, path, search, { since, cursor, chunk });
+      if (!(await runtimeAllowed(env))) { tele.blocked = true; return { content: [{ type: 'text' as const, text: 'The bounded Bee runtime is paused.' }], isError: true }; }
+      const metered = await meteredRead(env, props.login, props.admissionEpoch ?? -1, async () => {
+        const stub = getContainer(env.BEE_BRIDGE);
+        return beeRead(props.beeToken, stub, path, search, { since, cursor, chunk });
+      });
+      if ('error' in metered) { tele.blocked = true; return quotaError(metered.error, metered.renewsAt); }
+      const result = metered.result;
+      tele.readSucceeded = result.ok;
       // bridge_ms/bridge_state come from the bridge.fetch leg measured inside
       // bee.ts — not the whole call (which includes the body read). bridgeCold is
       // set for non-2xx too: a cold container can still return 401/403/5xx.
@@ -171,6 +192,15 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string): McpServer 
     )
   );
 
+  if (ownerUsageEnabled(env, props.login)) server.registerTool('bee_observed_usage', {
+    title: 'Your observed Bee usage',
+    description: 'Inspect owner-only staging daily aggregates for the last 31 UTC dates. Successful read pages are separate from docs, blocked calls and failures. Best-effort calibration only, not a billing ledger or proof of complete usage. This inspection does not call Bee or count itself.',
+    inputSchema: {}, annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  }, observedUsage);
+  if (quotaPolicy(env) && props.login.includes('@')) server.registerTool('bee_usage', {
+    title: 'Your read allowance', description: 'Inspect your own monthly successful bee_read allowance, reserved reads, remaining reads and exact UTC renewal time. Each returned page consumes one read. Does not retrieve Bee data or consume a read.',
+    inputSchema: {}, annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  }, async () => ({ content: [{ type: 'text' as const, text: JSON.stringify(await ownUsage(env, props.login, props.admissionEpoch ?? -1)) }] }));
   return server;
 }
 
@@ -180,6 +210,8 @@ export const McpApiHandler = {
     if (!props?.login) {
       return new Response("Grant is not bound to an identity. Disconnect and reconnect.", { status: 403 });
     }
+    const hostedIdentity = isStaging(env) || env.BEE_ENVIRONMENT === 'production' || (env.SIGNUP_ENABLED === 'true' && props.login.includes('@'));
+    if (hostedIdentity && !(await grantIdentityAllowed(env, props.login, props.admissionEpoch))) return new Response('Access not approved. Reconnect after owner approval.', { status: 403, headers: { 'Cache-Control': 'no-store' } });
     if (!props.beeToken) {
       // A grant from before the custody bend (login only). Force a reconnect so
       // the consent step can capture a Bee token into the encrypted props.
@@ -188,8 +220,12 @@ export const McpApiHandler = {
         { status: 403 }
       );
     }
-    const tenantKey = await deriveTenantKey(env, props.login);
-    const handler = createMcpHandler(buildServer(env, props, tenantKey), { route: "/mcp" });
+    // Runtime admission belongs to expensive tools, independently of the
+    // commercial quota flag. Authenticated protocol/docs/usage do not start Bee.
+    // Staging must not derive or emit legacy identity-linked telemetry.
+    const tenantKey = isStaging(env) ? '' : await deriveTenantKey(env, props.login);
+    const handler = createMcpHandler(buildServer(env, props, tenantKey, ctx), { route: "/mcp" });
     return handler(request, env, ctx);
   },
 };
+

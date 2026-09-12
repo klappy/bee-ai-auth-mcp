@@ -1,0 +1,66 @@
+{
+  "apple-touch-icon.png": {
+    "sha256": "297b219db4e99e1f55655482d2a7d96d31e26db227eb1f63c3199301e58d898b",
+    "size": 8055
+  },
+  "favicon-16.png": {
+    "sha256": "2a81f0bc1584e2629d7b2f124accc7a040ce689e9387cbeba632bcc3b62ceb4e",
+    "size": 585
+  },
+  "favicon-32.png": {
+    "sha256": "c5ceea6870bff2f5375f282f3ae00bdaf415eecc9a283f2728106738bf66a2a4",
+    "size": 1213
+  },
+  "favicon-48.png": {
+    "sha256": "145a85ccbf979b0207a1cd18cc74cb70483417815df99ee224c3e5313b924af3",
+    "size": 1878
+  },
+  "favicon.ico": {
+    "sha256": "300e63c78340a7b03c80f437fe26d0a35cc78f22668dcbdf818c7edd32de0c6f",
+    "size": 15086
+  },
+  "favicon.svg": {
+    "sha256": "b7f1a83e5728a59f8210d913a8a67aefba555c7c576b76d318876022e8952f4f",
+    "size": 1574
+  },
+  "icon-192.png": {
+    "sha256": "62e682c9a26703c863c5275298681c0c8b17373c71bb32e8c5dd3a77adf8fc0f",
+    "size": 8596
+  },
+  "icon-512.png": {
+    "sha256": "08f679cff68ac49b39aeccbd942566232a2c1fc11e45ba49f0379b8b76658b1f",
+    "size": 27371
+  },
+  "index.html": {
+    "sha256": "640236e7a9d5e06a688ee59e1e0a984469fd85448ee99b55083dc383343a88d6",
+    "size": 13138
+  },
+  "og-image.png": {
+    "sha256": "c91fe6f0e499d690bafed1034098476bddc22ced0fc5723b965e72a0000b9682",
+    "size": 44592
+  },
+  "roadmap.html": {
+    "sha256": "ed25a994fe15b52967340c5ff86102dec6507375f888f8a63b3a34a49dfd52f0",
+    "size": 7010
+  },
+  "security.html": {
+    "sha256": "d422dfb48983932675d33c12a703d0536d998bcac11fcaff48653776882e7372",
+    "size": 5972
+  },
+  "setup.html": {
+    "sha256": "6db36a9e3a5d54cc7fe22ce6b9ce7ec7539178cab1565dc10f0ae1e5c91d7548",
+    "size": 13685
+  },
+  "site.webmanifest": {
+    "sha256": "31b0815fe616f44a36bcbeb71d1eb8b1ded2b66eddd8ff1b0537948de24438a4",
+    "size": 507
+  },
+  "style.css": {
+    "sha256": "37c2ea4e438523e6e0d1c0eeb5d881a615c958ea8f5c8735e52fe239b6f1020d",
+    "size": 13440
+  },
+  "under-the-hood.html": {
+    "sha256": "05ab6341ba16b19b473e56b6dedc0ec426dc87810c438094fda052e40a62a1b9",
+    "size": 9400
+  }
+}
