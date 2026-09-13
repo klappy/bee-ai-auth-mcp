@@ -85,8 +85,8 @@ It preserves the existing deployment metadata, storage, secrets and runtime limi
 
 Production's branch-only Builds command explicitly selects
 `wrangler.production.jsonc`. Production promotion still requires its own approval.
-See [the deployment contract](docs/ci-cd.md)
-for exact commands, validation and the production-release gate.
+See [the deployment contract](docs/ci-cd.md) and, for production, the
+[release runbook](docs/production-release.md) — githook only, then read back.
 
 ## Owner-only staging calibration
 
