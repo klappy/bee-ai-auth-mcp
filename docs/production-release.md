@@ -9,6 +9,8 @@ Read this before touching production. Canon: `9c7e0ec` ("githook auto-deploy is 
 3. Cloudflare Workers Builds trigger `40a4940d-5c14-4721-908f-a7c304ae2adf` (branch `production`) runs `npx wrangler deploy --config wrangler.production.jsonc`. Build command is empty; `wrangler.production.jsonc` `build.command` runs `node scripts/gen-version.mjs`. No custom deploy script. No API token. No manual trigger edits.
 4. Read production back (checklist below). Not done until read back.
 
+Before merging *any* PR in steps 1–2: wait for CI **and Bugbot** to complete. On promotion PRs the head is `main`, so a Bugbot Autofix pushed during review lands on `main` unreviewed; `.cursor/BUGBOT.md` tells Bugbot to comment-only there, and `main` branch protection (require PR) is the structural backstop.
+
 Nothing else deploys production. If the trigger is not exactly as in step 3, that is the bug — restore it, do not work around it.
 
 ## What the config carries (`wrangler.production.jsonc`)

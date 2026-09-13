@@ -13,6 +13,8 @@ Tasting. Auto-read at session start (Claude reads `CLAUDE.md`, Cursor reads `AGE
 
 **Deploy model (binding, canon `9c7e0ec`, owner ruling 2026-09-13):** production ships only by merging `main` → `production`; the Workers Builds githook runs `npx wrangler deploy --config wrangler.production.jsonc`. No custom deploy scripts, no API version uploads to production, no API tokens, no trigger edits, no direct pushes to `main`. Read `docs/production-release.md` before any production work; run its readback checklist after. A wrangler warning "last updated via the script API" means someone bypassed the githook — report it.
 
+**Bugbot (HYGIENE: every PR has him).** Wait for Bugbot to finish before merging any PR, including promotions — never merge while `mergeable_state` is `unstable` or a Bugbot check is `in_progress`. Read his findings; fix or answer each one. Bugbot's instructions live in `.cursor/BUGBOT.md`: on promotion PRs he comments only; if you see an autofix land on `main`, you merged too early — say so in the receipt.
+
 **Git:** commit as the operator — `klappy <118073+klappy@users.noreply.github.com>`, author and committer, no co-author trailers. Draft PR is the surface. Never merge. Never touch raw utterance bodies. Report as file/blob lines.
 
 **Reach:** GitAuth `https://gitauth.klappy.dev/mcp` mints the key; oddkit `https://oddkit.klappy.dev/mcp` is public canon; cartographer `https://cartographer.klappy.dev/mcp` reads repos without slurping.
