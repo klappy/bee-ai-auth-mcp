@@ -10,7 +10,7 @@ Skip to setup
  Homepage draft — review only. This describes the intended launch experience. Immediate free access and paid upgrades are not enabled yet. 
  Hosted by Klappy 
  Your Bee, in the AI you already use. 
- Bring conversations your Bee captured into your AI app. Verify your email, connect your own Bee , and start with free usage that renews each month. 
+ Bring conversations your Bee captured into your AI app. Verify your email, connect your own Bee , and start with free usage that renews each week. 
  Your connector URL 
  Copy URL 
  Use this address when your AI app asks for a server URL. 
