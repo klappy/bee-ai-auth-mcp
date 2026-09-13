@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
-const {run, releaseHtml, IMAGE, digest, candidateBody, verifyCandidate, bindingShape,candidateMetadata,desiredAdditions,verifyInheritance,ensureAncestry} = createRequire(import.meta.url)('../scripts/deploy-production.cjs');
+const {run, releaseHtml, IMAGE, digest, candidateBody, verifyCandidate, bindingShape,candidateMetadata,desiredAdditions,verifyInheritance,ensureAncestry,Refusal} = createRequire(import.meta.url)('../scripts/deploy-production.cjs');
 const id = (n: number) => `00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
 const sha = 'a'.repeat(40);
 const manifest = {schemaVersion:1,accepted:true,reviewedMain:sha,emailPolicyId:id(11),adminPolicyId:id(12),ownerPolicyMatched:true,ownerReferencePolicyId:id(13),acceptanceReceipt:'https://github.com/klappy/kitchen/blob/main/receipt.md',activeVersion:id(1),previousDeployment:id(2),emailAccessAppId:id(3),adminAccessAppId:id(4),accessTeamDomain:'klappy.cloudflareaccess.com',accessAud:'a'.repeat(64),adminAccessAud:'b'.repeat(64),weeklyLimit:700,policyVersion:'monthly-test'};
@@ -146,11 +146,12 @@ it('refuses when the active Container rollout is not completed',async()=>{
   expect(f.calls.filter(c=>c.route.includes('deploy=false'))).toHaveLength(0);
 });
 it('names the refused provider method and route in the fail-closed receipt, never the token',async()=>{
-  const f=fixture(); const api=f.options.api; process.env.CLOUDFLARE_API_TOKEN='synthetic-token-value';
-  f.options.api=async(m,r,b)=>{ if(r.startsWith('/access/apps/')) { const e:any=new Error('provider-http-403'); e.code='provider-http-403'; e.locus='GET /access/apps/x'; Object.setPrototypeOf(e, (createRequire(import.meta.url)('../scripts/deploy-production.cjs') as any).Refusal?.prototype ?? Object.getPrototypeOf(e)); throw e; } return api(m,r,b); };
+  const f=fixture(); const api=f.options.api; f.options.env.CLOUDFLARE_API_TOKEN='synthetic-token-value';
+  f.options.api=async(m,r,b)=>{ if(r.includes('?')) { const e:any=new Refusal('provider-http-403'); e.locus=m+' '+r.replace(/\?.*$/,''); throw e; } return api(m,r,b); };
   const result=await run(f.options);
   expect(result.accepted).toBe(false);
   expect(result.error).toBe('provider-http-403');
-  expect(result.locus).toBe('GET /access/apps/x');
+  expect(result.locus).toBe('GET /workers/workers/27b750389ea04ed1af1a6c50dc0e5e37/versions/'+id(1));
+  expect(JSON.stringify(result)).not.toContain('?');
   expect(JSON.stringify(result)).not.toContain('synthetic-token-value');
 });
