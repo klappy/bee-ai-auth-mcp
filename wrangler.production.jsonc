@@ -70,7 +70,13 @@
   // First (and only) migration — register the BeeBridge DO class. Confirmed by
   // observation that root wrangler.jsonc had no prior migrations block, so `v1`
   // is correct as the initial tag (ledger E0014).
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BeeBridge"] }]
+  // 2026-09-13: v1 (new_sqlite_classes BeeBridge) was applied on 2026-08-30 (active version
+  // 1a7996dd carries migration_tag v1). An API-uploaded custody version on 2026-09-11 left the
+  // script-level migration_tag absent, so wrangler re-sent v1 and Cloudflare refused with 10074
+  // ("class already depended on by existing Durable Objects"). The class and namespace
+  // 22228994536c4bb3808aa281c53e9727 exist; no migration is declared here. Re-add a migrations
+  // block only for a genuinely new/renamed/deleted class, with a new tag.
+  "migrations": []
   // Secrets (set via `wrangler secret put`, never committed, never in chat):
   //   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET  (a GitHub *OAuth App* — identity only, not a GitHub App;
   //                                            CLIENT_SECRET also HMAC-signs the consent round-trip)
