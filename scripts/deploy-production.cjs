@@ -36,7 +36,7 @@ function validateManifest(m, env, stamp) {
   check(digest(canon(m.desiredMetadata)) === m.desiredMetadataSha256,'desired-metadata-hash');
   check(m.emailAccessAppId !== m.adminAccessAppId,'access-separation');
   check(m.accessTeamDomain === 'klappy.cloudflareaccess.com' && /^[a-f0-9]{64}$/.test(m.accessAud || '') && /^[a-f0-9]{64}$/.test(m.adminAccessAud || '') && m.accessAud !== m.adminAccessAud,'access-audiences');
-  check(Number.isSafeInteger(m.monthlyLimit) && m.monthlyLimit > 0 && typeof m.policyVersion === 'string' && /^[a-zA-Z0-9._-]{1,80}$/.test(m.policyVersion),'monthly-policy');
+  check(Number.isSafeInteger(m.weeklyLimit) && m.weeklyLimit > 0 && typeof m.policyVersion === 'string' && /^[a-zA-Z0-9._-]{1,80}$/.test(m.policyVersion),'weekly-policy');
 }
 function validateVersion(v, m) {
   check(v.modules?.length === 1 && v.migration_tag === 'v1','version-shape');
@@ -53,7 +53,7 @@ function validatePrivacy(owner, ingress, container) {
   check(c?.image === IMAGE && c?.network?.mode === 'private' && c?.observability?.logs?.enabled === false,'container-privacy-image');
 }
 function desiredAdditions(m) {
-  return {ACCESS_TEAM_DOMAIN:m.accessTeamDomain,ACCESS_AUD:m.accessAud,ADMIN_ACCESS_AUD:m.adminAccessAud,SIGNUP_ENABLED:'true',SELF_SERVICE_ENABLED:'true',SELF_SERVICE_READ_LIMIT:String(m.monthlyLimit),SELF_SERVICE_POLICY_VERSION:m.policyVersion};
+  return {ACCESS_TEAM_DOMAIN:m.accessTeamDomain,ACCESS_AUD:m.accessAud,ADMIN_ACCESS_AUD:m.adminAccessAud,SIGNUP_ENABLED:'true',SELF_SERVICE_ENABLED:'true',SELF_SERVICE_READ_LIMIT:String(m.weeklyLimit),SELF_SERVICE_POLICY_VERSION:m.policyVersion};
 }
 function validateEffectiveLogging(owner, settings, m) {
   check(canon({logpush:owner.logpush,observability:owner.observability}) === canon(m.desiredLogging),'effective-logging-prerequisite');

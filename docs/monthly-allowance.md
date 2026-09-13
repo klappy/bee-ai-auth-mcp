@@ -1,3 +1,5 @@
+> **Period change, 2026-09-13.** The allowance period is now one UTC week (Monday 00:00Z → Monday), per the owner's 2026-09-12 ruling. Where this document says "month" or "monthly", read "week"/"weekly"; the mechanics (reservation, commit, refund, snapshot at period start, no proration, no rollover) are unchanged. See `docs/weekly-allowance-debrief-2026-09-13.md`.
+
 # Monthly self-service allowance
 
 Implementation contract: kitchen auth ticket, SELF-SERVICE-QUOTA-AMENDMENT-2026-09-10.md v1.1, blob c6f738291310d5070082e3f8170b052f63709f91. This is disabled mechanics, not an announced free plan, price or activation.

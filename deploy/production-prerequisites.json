@@ -8,7 +8,7 @@
   "accessTeamDomain": null,
   "accessAud": null,
   "adminAccessAud": null,
-  "monthlyLimit": null,
+  "weeklyLimit": null,
   "policyVersion": null,
   "reviewedMain": null,
   "emailPolicyId": null,

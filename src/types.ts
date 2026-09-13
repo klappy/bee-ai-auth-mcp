@@ -9,7 +9,7 @@ export interface Env {
   ADMIN_OWNER_EMAIL?: string;
   /** Hosted email signup/approval feature; absent preserves allowlist behavior. */
   SIGNUP_ENABLED?: string;
-  /** Disabled unless explicitly enabled with an approved positive monthly limit/version. */
+  /** Disabled unless explicitly enabled with an approved positive weekly limit/version. */
   SELF_SERVICE_ENABLED?: string;
   SELF_SERVICE_READ_LIMIT?: string;
   SELF_SERVICE_POLICY_VERSION?: string;

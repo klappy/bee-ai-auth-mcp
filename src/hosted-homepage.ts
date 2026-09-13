@@ -5,7 +5,7 @@ export const HOSTED_HOMEPAGE_HTML = `<!DOCTYPE html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Your Bee, connected — a klappy.dev service</title>
-<meta name="description" content="Connect your own Bee to your AI app. Verify your email, approve in Bee, and start with a monthly free allowance." />
+<meta name="description" content="Connect your own Bee to your AI app. Verify your email, approve in Bee, and start with a weekly free allowance." />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Your Bee, connected" />
 <meta property="og:description" content="Your Bee conversations, in the AI you already use." />
@@ -79,7 +79,7 @@ export const HOSTED_HOMEPAGE_HTML = `<!DOCTYPE html>
 <p class="kicker">Plans</p><h2>Start free. Upgrade when you need more.</h2>
 <p>The connector brings your existing Bee account into your AI app. Bee hardware, Bee services and your AI app's subscription are separate.</p>
 <div class="status">
-<div class="row live"><div class="mark">1</div><div><div class="t">Free — renews monthly</div><div class="d">A monthly allowance for reading your Bee through the connector. Your usage view shows what remains and when it renews. If you reach the allowance, your connection stays intact; wait for renewal or choose Standard when upgrades are available.</div></div></div>
+<div class="row live"><div class="mark">1</div><div><div class="t">Free — renews weekly</div><div class="d">A weekly allowance for reading your Bee through the connector. Your usage view shows what remains and when it renews. If you reach the allowance, your connection stays intact; wait for renewal or choose Standard when upgrades are available.</div></div></div>
 <div class="row"><div class="mark">2</div><div><div class="t">Standard</div><div class="d">For people who need more than the free allowance. Paid signup is not open yet; included usage will be shown before purchase.</div><ul class="ready-list"><li><strong>$5/month</strong></li><li><strong>$24/year</strong> — $2/month equivalent</li></ul></div></div>
 </div>
 </section>

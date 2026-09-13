@@ -56,7 +56,7 @@ it('actual MCP read charges success/pages, refunds failures, docs/setup cost zer
   fetch.mockImplementationOnce(async () => Response.json({ facts: [] }) as any);
   await calls.tools.get('bee_read')!({ path: '/v1/facts' });
   const exhausted = await calls.tools.get('bee_read')!({ path: '/v1/facts' });
-  expect(text(exhausted)).toMatchObject({ error: 'allowance_exhausted', renewsAt: '2026-10-01T00:00:00.000Z' });
+  expect(text(exhausted)).toMatchObject({ error: 'allowance_exhausted', renewsAt: '2026-09-14T00:00:00.000Z' });
   expect(fetch).toHaveBeenCalledTimes(4); await connected(env, bridge); expect(calls.tools.has('bee_docs')).toBe(true);
 });
 it('usage and docs remain available after runtime expiry without Container calls', async () => {
