@@ -23,6 +23,16 @@
     // Comma-separated GitHub login(s) allowed to use this self-host instance.
     // REQUIRED — the instance denies all logins until this is set.
     "ALLOWED_GITHUB_LOGIN": "klappy,tatacurly",
+    // Hosted signup (Cloudflare Access email OTP) and weekly self-service allowance.
+    // Access apps created 2026-09-13; AUDs are public identifiers, not secrets.
+    // Owner ruling 2026-09-12: 700 successful reads per verified-email account per UTC week.
+    "SIGNUP_ENABLED": "true",
+    "ACCESS_TEAM_DOMAIN": "klappy.cloudflareaccess.com",
+    "ACCESS_AUD": "e7223b22130f74959cfddfe7d79db28d6e3545871dad5512bf25831bbc5bf743",
+    "ADMIN_ACCESS_AUD": "053cbd1c541f17609e093e58b58e19a3993c81f6ae6b3972df8d1a5b1ede6272",
+    "SELF_SERVICE_ENABLED": "true",
+    "SELF_SERVICE_READ_LIMIT": "700",
+    "SELF_SERVICE_POLICY_VERSION": "weekly-700-2026-09",
     // Bee's direct-API endpoint, read by BeeBridge (src/bridge.ts) and passed to
     // the container as caddy's {$BEE_UPSTREAM}/{$BEE_SNI}. Not a credential — the
     // Bee API still requires a per-user bearer — and the same for every self-host
