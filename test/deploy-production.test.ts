@@ -150,5 +150,7 @@ it('names the refused provider method and route in the fail-closed receipt, neve
   f.options.api=async(m,r,b)=>{ if(r.startsWith('/access/apps/')) { const e:any=new Error('provider-http-403'); e.code='provider-http-403'; e.locus='GET /access/apps/x'; Object.setPrototypeOf(e, (createRequire(import.meta.url)('../scripts/deploy-production.cjs') as any).Refusal?.prototype ?? Object.getPrototypeOf(e)); throw e; } return api(m,r,b); };
   const result=await run(f.options);
   expect(result.accepted).toBe(false);
+  expect(result.error).toBe('provider-http-403');
+  expect(result.locus).toBe('GET /access/apps/x');
   expect(JSON.stringify(result)).not.toContain('synthetic-token-value');
 });
