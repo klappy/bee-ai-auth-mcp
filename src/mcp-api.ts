@@ -198,7 +198,7 @@ function buildServer(env: Env, props: GrantProps, tenantKey: string, ctx: Execut
     inputSchema: {}, annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   }, observedUsage);
   if (quotaPolicy(env) && props.login.includes('@')) server.registerTool('bee_usage', {
-    title: 'Your read allowance', description: 'Inspect your own monthly successful bee_read allowance, reserved reads, remaining reads and exact UTC renewal time. Each returned page consumes one read. Does not retrieve Bee data or consume a read.',
+    title: 'Your read allowance', description: 'Inspect your own weekly successful bee_read allowance, reserved reads, remaining reads and exact UTC renewal time. Each returned page consumes one read. Does not retrieve Bee data or consume a read.',
     inputSchema: {}, annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   }, async () => ({ content: [{ type: 'text' as const, text: JSON.stringify(await ownUsage(env, props.login, props.admissionEpoch ?? -1)) }] }));
   return server;

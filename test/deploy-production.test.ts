@@ -3,12 +3,12 @@ import { describe, expect, it } from 'vitest';
 const {run, releaseHtml, IMAGE, digest, candidateBody, verifyCandidate, bindingShape,candidateMetadata,desiredAdditions,verifyInheritance,ensureAncestry} = createRequire(import.meta.url)('../scripts/deploy-production.cjs');
 const id = (n: number) => `00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
 const sha = 'a'.repeat(40);
-const manifest = {schemaVersion:1,accepted:true,reviewedMain:sha,emailPolicyId:id(11),adminPolicyId:id(12),ownerPolicyMatched:true,ownerReferencePolicyId:id(13),acceptanceReceipt:'https://github.com/klappy/kitchen/blob/main/receipt.md',activeVersion:id(1),previousDeployment:id(2),emailAccessAppId:id(3),adminAccessAppId:id(4),accessTeamDomain:'klappy.cloudflareaccess.com',accessAud:'a'.repeat(64),adminAccessAud:'b'.repeat(64),monthlyLimit:500,policyVersion:'monthly-test'};
+const manifest = {schemaVersion:1,accepted:true,reviewedMain:sha,emailPolicyId:id(11),adminPolicyId:id(12),ownerPolicyMatched:true,ownerReferencePolicyId:id(13),acceptanceReceipt:'https://github.com/klappy/kitchen/blob/main/receipt.md',activeVersion:id(1),previousDeployment:id(2),emailAccessAppId:id(3),adminAccessAppId:id(4),accessTeamDomain:'klappy.cloudflareaccess.com',accessAud:'a'.repeat(64),adminAccessAud:'b'.repeat(64),weeklyLimit:700,policyVersion:'monthly-test'};
 const bindings = [
   {name:'OAUTH_KV',type:'kv_namespace',namespace_id:'8f260f3c8ab6476dbea2b17926bf38bf'},
   {name:'BEE_BRIDGE',type:'durable_object_namespace',namespace_id:'22228994536c4bb3808aa281c53e9727'},
   ...['GITHUB_CLIENT_ID','GITHUB_CLIENT_SECRET','CONSENT_SIGNING_SECRET','ADMIN_OWNER_EMAIL'].map(name => ({name,type:'secret_text',text:'NEVER_PRINT_THIS'})),
-  ...Object.entries({ACCESS_TEAM_DOMAIN:manifest.accessTeamDomain,ACCESS_AUD:manifest.accessAud,ADMIN_ACCESS_AUD:manifest.adminAccessAud,SIGNUP_ENABLED:'true',SELF_SERVICE_ENABLED:'true',SELF_SERVICE_READ_LIMIT:'500',SELF_SERVICE_POLICY_VERSION:'monthly-test'}).map(([name,text]) => ({name,type:'plain_text',text})),
+  ...Object.entries({ACCESS_TEAM_DOMAIN:manifest.accessTeamDomain,ACCESS_AUD:manifest.accessAud,ADMIN_ACCESS_AUD:manifest.adminAccessAud,SIGNUP_ENABLED:'true',SELF_SERVICE_ENABLED:'true',SELF_SERVICE_READ_LIMIT:'700',SELF_SERVICE_POLICY_VERSION:'monthly-test'}).map(([name,text]) => ({name,type:'plain_text',text})),
 ];
 function fixture() {
   let deployed = false; let uploaded: any;
@@ -53,7 +53,7 @@ describe('production Git Build preservation transaction',()=>{
     expect(writes[0].body.bindings.find((b:any)=>b.name==='GITHUB_CLIENT_SECRET')).toEqual({name:'GITHUB_CLIENT_SECRET',type:'inherit',version_id:id(1)});
     expect(JSON.stringify(receipt)).not.toContain('NEVER_PRINT');
   });
-  it.each([['accepted',false],['monthlyLimit',0],['monthlyLimit',-1],['monthlyLimit',1.5],['monthlyLimit',null],['policyVersion',''],['activeVersion',null]])('refuses bad %s before provider work',async(key,value)=>{
+  it.each([['accepted',false],['weeklyLimit',0],['weeklyLimit',-1],['weeklyLimit',1.5],['weeklyLimit',null],['policyVersion',''],['activeVersion',null]])('refuses bad %s before provider work',async(key,value)=>{
     const f=fixture();(f.options.manifest as any)[key]=value;expect((await run(f.options)).accepted).toBe(false);expect(f.calls).toHaveLength(0);
   });
   it('refuses a local or main build before reads',async()=>{const f=fixture();f.options.env.WORKERS_CI_BRANCH='main';expect((await run(f.options)).accepted).toBe(false);expect(f.calls).toHaveLength(0);});

@@ -19,10 +19,18 @@ export type QuotaResult = { ok: boolean; reason?: string; reservation?: string; 
 export type QuotaOperation = 'usage' | 'reserve' | 'commit' | 'refund';
 // Operational request lease, not an allowance reset or a commercial period.
 const LEASE_MS = 120_000;
-export function quotaMonth(now: number): { month: string; renewsAt: string } {
+// Allowance period: one UTC week starting Monday 00:00:00Z (owner ruling 2026-09-12: 700 reads per week).
+// The period key is the ISO date of that Monday, so keys sort chronologically and need no ISO-year handling.
+// Stored field names (`month`, `latestMonth`) are kept for state compatibility; they hold the week key.
+const WEEK_MS = 7 * 86_400_000;
+export function quotaWeek(now: number): { month: string; renewsAt: string } {
   const date = new Date(now);
-  return { month: date.toISOString().slice(0, 7), renewsAt: new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1)).toISOString() };
+  const dayStart = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  const monday = dayStart - ((date.getUTCDay() + 6) % 7) * 86_400_000;
+  return { month: new Date(monday).toISOString().slice(0, 10), renewsAt: new Date(monday + WEEK_MS).toISOString() };
 }
+/** @deprecated period is weekly; kept so older callers fail loudly at type level rather than silently. */
+export const quotaMonth = quotaWeek;
 export function quotaTransition(state: QuotaState, record: AdmissionRecord | null, policy: ReturnType<typeof quotaPolicy>, op: QuotaOperation, input: QuotaInput, now = Date.now()): QuotaResult {
   for (const [id, r] of Object.entries(state.reservations)) if (r.expires <= now) delete state.reservations[id];
   // Only the newest period and periods with an unexpired settlement lease stay.
@@ -40,7 +48,7 @@ export function quotaTransition(state: QuotaState, record: AdmissionRecord | nul
     if (r.status === 'reserved') { r.status = 'committed'; original.used++; }
     return { ok: true };
   }
-  const { month, renewsAt } = quotaMonth(now);
+  const { month, renewsAt } = quotaWeek(now);
   if (state.latestMonth && month < state.latestMonth) return { ok: false, reason: 'clock_unavailable' };
   state.latestMonth = month;
   const period = state.periods[month] ??= { used: 0, limit: policy.limit, policy: policy.version, renewsAt };
@@ -61,7 +69,7 @@ export async function ownUsage(env: Env, email: string, epoch: number): Promise<
   try { return await quotaStub(env).quota('usage', { email, epoch }); } catch { return { ok: false, reason: 'unavailable' }; }
 }
 export function quotaError(reason = 'unavailable', renewsAt?: string) {
-  return { content: [{ type: 'text' as const, text: JSON.stringify({ error: reason, renewsAt, message: reason === 'allowance_exhausted' ? 'Your monthly read allowance is used up. Your connection remains saved; usage and reference information remain available.' : 'Read allowance could not be confirmed. No data was returned.' }) }], isError: true };
+  return { content: [{ type: 'text' as const, text: JSON.stringify({ error: reason, renewsAt, message: reason === 'allowance_exhausted' ? 'Your weekly read allowance is used up. Your connection remains saved; usage and reference information remain available.' : 'Read allowance could not be confirmed. No data was returned.' }) }], isError: true };
 }
 export async function meteredRead<T extends { ok: boolean }>(env: Env, email: string, epoch: number, read: () => Promise<T>): Promise<{ result: T } | { error: string; renewsAt?: string }> {
   const policy = quotaPolicy(env);
