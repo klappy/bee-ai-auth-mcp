@@ -10,7 +10,9 @@ const bindings = [
   ...['GITHUB_CLIENT_ID','GITHUB_CLIENT_SECRET','CONSENT_SIGNING_SECRET','ADMIN_OWNER_EMAIL'].map(name => ({name,type:'secret_text',text:'NEVER_PRINT_THIS'})),
   ...Object.entries({ACCESS_TEAM_DOMAIN:manifest.accessTeamDomain,ACCESS_AUD:manifest.accessAud,ADMIN_ACCESS_AUD:manifest.adminAccessAud,SIGNUP_ENABLED:'true',SELF_SERVICE_ENABLED:'true',SELF_SERVICE_READ_LIMIT:'700',SELF_SERVICE_POLICY_VERSION:'monthly-test'}).map(([name,text]) => ({name,type:'plain_text',text})),
 ];
+let f_containerProjection: (()=>any)|null = null;
 function fixture() {
+  f_containerProjection = null;
   let deployed = false; let uploaded: any;
   const calls: {method:string,route:string,body:any}[] = [];
   const old = {id:id(1),migration_tag:'v1',modules:[{name:'worker.js',content_type:'application/javascript+module',content_base64:'b2xk'}],bindings:bindings.filter(b=>['OAUTH_KV','BEE_BRIDGE','GITHUB_CLIENT_ID','GITHUB_CLIENT_SECRET'].includes(b.name)),assets:{jwt:'NEVER_PRINT_ASSET_TOKEN',config:{html_handling:'auto-trailing-slash',not_found_handling:'none'}},containers:[{class_name:'BeeBridge'}],exports:{BeeBridge:{type:'durable-object',storage:'sqlite',container:'BeeBridge'}},compatibility_date:'2026-01-01',main_module:'worker.js',limits:{cpu_ms:30000}};
@@ -37,7 +39,9 @@ function fixture() {
     }
     if (route === '/workers/domains') return [{id:'d1949a5b447e9deff5652e7be227fd10d787957a',hostname:'bee.klappy.dev',service:'bee-ai-auth-mcp'}];
     if (route.endsWith('/instances')) return {instances:[]};
-    if (route.includes('/containers/')) return container;
+    if (route.includes('/containers/') && route.includes('/rollouts/')) return {status:'completed',target_version:23};
+    if (route.endsWith('/versions') && route.includes('/containers/')) return [{version:21,configuration:{...container.configuration,image:'registry.cloudflare.com/old:stale',observability:{logs:{enabled:true}}}},{version:23,configuration:container.configuration}];
+    if (route.includes('/containers/')) return f_containerProjection ? f_containerProjection() : container;
     return owner;
   };
   const preparedManifest={...structuredClone(manifest),custodyVersion:id(14),custodyAcceptanceReceipt:'https://github.com/klappy/kitchen/blob/main/custody.md',loggingAcceptanceReceipt:'https://github.com/klappy/kitchen/blob/main/logging.md',custodyModuleSha256:digest(Buffer.from('old')),desiredMetadata:candidateMetadata(old),desiredMetadataSha256:'',desiredNonsecretBindings:desiredAdditions(manifest),desiredLogging:structuredClone(owner)};
@@ -125,3 +129,19 @@ it('projects only documented module upload keys even when GET adds computed meta
 it('rejects default/latest inheritance and unapproved supported operations',()=>{const {assertVersionPayload}=createRequire(import.meta.url)('../scripts/deploy-production.cjs');const f=fixture();const body=candidateBody(f.old,Buffer.from(sha),f.options.manifest);body.bindings.find((b:any)=>b.type==='inherit').version_id='latest';expect(()=>assertVersionPayload(body)).toThrow('unsupported-inheritance-payload');const other=candidateBody(f.old,Buffer.from(sha),f.options.manifest);other.migrations={new_tag:'v2'};expect(()=>assertVersionPayload(other)).toThrow('unapproved-version-operation');});
 
 it('rejects read-only annotation and unproven nested Container fields',()=>{const {assertVersionPayload}=createRequire(import.meta.url)('../scripts/deploy-production.cjs');const f=fixture();const body=candidateBody(f.old,Buffer.from(sha),f.options.manifest);body.annotations['workers/triggered_by']='api';expect(()=>assertVersionPayload(body)).toThrow('unsupported-version-annotation');const other=candidateBody(f.old,Buffer.from(sha),f.options.manifest);other.containers[0].unproven='ignored';expect(()=>assertVersionPayload(other)).toThrow('unsupported-container-payload');});
+
+it('reads Container truth from the completed active rollout version, not the stale application projection',async()=>{
+  const f=fixture();
+  const stale={max_instances:1,version:21,active_rollout_id:'ddd8275e-d4e0-47cf-a3cc-eb7634e0cc16',configuration:{vcpu:0.25,memory_mib:1024,disk:{size_mb:4000},image:'registry.cloudflare.com/old:stale',network:{mode:'private'},observability:{logs:{enabled:true}},environment_variables:{PRESERVE:'private'}}};
+  f_containerProjection=()=>stale;
+  const result=await run(f.options);
+  expect(result.accepted).toBe(true);
+});
+it('refuses when the active Container rollout is not completed',async()=>{
+  const f=fixture();
+  f_containerProjection=()=>({max_instances:1,version:21,active_rollout_id:'ddd8275e-d4e0-47cf-a3cc-eb7634e0cc16',configuration:{vcpu:0.25,memory_mib:1024,disk:{size_mb:4000},image:'registry.cloudflare.com/old:stale',network:{mode:'private'},observability:{logs:{enabled:true}}}});
+  const api=f.options.api; f.options.api=async(m,r,b)=>{ if(r.includes('/containers/')&&r.includes('/rollouts/')) return {status:'progressing',target_version:23}; return api(m,r,b); };
+  const result=await run(f.options);
+  expect(result.error).toBe('container-rollout-incomplete');
+  expect(f.calls.filter(c=>c.route.includes('deploy=false'))).toHaveLength(0);
+});

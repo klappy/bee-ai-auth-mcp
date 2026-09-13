@@ -27,3 +27,7 @@ Bugbot found computed urls had been mistaken for writable configuration. Live Op
 The full audit also honored nested allOf.readOnly for exports_reconciliation and the read-only workers/triggered_by annotation. Exact named BeeBridge linkage retains a documented same-endpoint successful receipt despite incomplete schema enumeration, while unproven nested fields refuse. No optional deployment mechanism was added.
 
 Final schema correction validation: TypeScript clean; 326 tests passed, two skipped, including 59 focused deployment tests. Automatic Autofix9a4f8e11's one-line urls removal is preserved as parent; the cook adds the bounded prevention guards and evidence. Fresh exact-head review and required CI/Bugbot remain mandatory before merge.
+
+## 2026-09-13 — Container projection
+
+Rolling production container a0318e64 to the pinned staging digest (rollout ddd8275e, completed, versions 22/23 created, instance restarted on the digest at 18:38:31Z) left GET /containers/applications/{id} reporting version 21 and the old image; PATCH of configuration returned success and changed nothing. The script now reads the rollout-selected version as effective configuration and refuses on an incomplete rollout. Learning: every provider "current configuration" projection must be tested against a completed mutation before a check is written against it; Workers script-settings and Containers application GET both lag their own version stores.
