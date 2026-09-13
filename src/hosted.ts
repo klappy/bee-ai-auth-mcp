@@ -2,6 +2,7 @@
 import { hostedFetch } from './hosted-handler';
 import type { Env } from './types';
 import { embeddedAssets } from './embedded-assets';
+import { releasedHomepage, homepageResponse } from './homepage-release';
 import { BeeBridge as SharedBridge } from './hosted-bridge';
 export class BeeBridge extends SharedBridge {
   constructor(ctx: DurableObjectState<{}>, env: Env) {
@@ -15,6 +16,7 @@ export default {
     // the hosted handler, even if a future asset manifest contains that name.
     const protectedRoute = /^\/(?:mcp|authorize|callback|consent|pairing|signup|admin|register|token|healthz|version|preview|\.well-known)(?:\/|$)/.test(path);
     if (['GET', 'HEAD'].includes(request.method) && !protectedRoute) {
+      if (['/', '/index', '/index.html'].includes(path)) { const html = releasedHomepage(env); if (html) return homepageResponse(request, html); }
       const asset = await embeddedAssets.fetch(request);
       if (asset.status !== 404) return asset;
     }
