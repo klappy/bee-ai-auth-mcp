@@ -1,5 +1,7 @@
 # Bee delivery environments
 
+> **Production:** the Workers Builds githook is the deploy model — merge `main` → `production`, the Build runs `npx wrangler deploy --config wrangler.production.jsonc`, then read back. Full runbook and the provider traps: [docs/production-release.md](production-release.md). Nothing in this file authorizes a different production deploy path.
+
 Feature branches merge into `main`. `main` is staging. A reviewed PR from `main`
 to `production` promotes the reviewed source to production. If a separate dev
 environment becomes necessary, staging can become its own branch then.

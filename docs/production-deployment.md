@@ -1,3 +1,5 @@
+> **History, not the runbook.** Superseded 2026-09-13 by owner ruling: production ships only through the Workers Builds githook (`npx wrangler deploy --config wrangler.production.jsonc`). The runbook is [docs/production-release.md](production-release.md). The transaction described below is retained as reviewable source and is not wired into any trigger. Any commit that reasserts it as the release path contradicts canon `9c7e0ec` and the owner's 2026-09-13 ruling.
+
 # Production source deployment
 
 Feature branches merge to main (staging). Production is promoted only by the reviewed main → production PR. Existing production Git Build runs `npm ci && node scripts/gen-version.mjs && npm run typecheck && npm test`, then `node scripts/deploy-production.cjs`. This source does not edit or invoke the provider trigger. Otto separately reviews and configures it.
