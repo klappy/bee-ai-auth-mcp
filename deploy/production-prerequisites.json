@@ -1,27 +1,75 @@
 {
   "schemaVersion": 1,
-  "accepted": false,
-  "acceptanceReceipt": null,
-  "previousDeployment": null,
-  "emailAccessAppId": null,
-  "adminAccessAppId": null,
-  "accessTeamDomain": null,
-  "accessAud": null,
-  "adminAccessAud": null,
-  "weeklyLimit": null,
-  "policyVersion": null,
-  "reviewedMain": null,
-  "emailPolicyId": null,
-  "adminPolicyId": null,
-  "ownerPolicyMatched": false,
-  "ownerReferencePolicyId": null,
-  "activeVersion": null,
-  "custodyVersion": null,
-  "custodyAcceptanceReceipt": null,
-  "custodyModuleSha256": null,
-  "desiredMetadata": null,
-  "desiredMetadataSha256": null,
-  "desiredNonsecretBindings": null,
-  "desiredLogging": null,
-  "loggingAcceptanceReceipt": null
+  "accepted": true,
+  "acceptanceReceipt": "https://github.com/klappy/kitchen/blob/main/rail/3-pass/2026-08-13-bee-relay-cf-access/VALIDATION-RECEIPT-2026-09-13.md",
+  "previousDeployment": "614b5e3b-5581-4821-8daf-d19289c45ba9",
+  "emailAccessAppId": "7c23d2a0-2361-4ef2-be67-61a578d5dc98",
+  "adminAccessAppId": "5d2d344f-b6de-4d39-8c5a-7dd63b5ebe43",
+  "accessTeamDomain": "klappy.cloudflareaccess.com",
+  "accessAud": "e7223b22130f74959cfddfe7d79db28d6e3545871dad5512bf25831bbc5bf743",
+  "adminAccessAud": "053cbd1c541f17609e093e58b58e19a3993c81f6ae6b3972df8d1a5b1ede6272",
+  "weeklyLimit": 700,
+  "policyVersion": "weekly-700-2026-09",
+  "reviewedMain": "023a5adba529d4d0731b4b9c3a959d9b4862c3be",
+  "emailPolicyId": "c381edc5-4082-4493-8ac6-a16d5e758b06",
+  "adminPolicyId": "4659f778-8bec-410c-ab8c-1b4c33dff30d",
+  "ownerPolicyMatched": true,
+  "ownerReferencePolicyId": "fb785d29-4812-436d-9d19-1476593d6203",
+  "activeVersion": "1a7996dd-1cc0-4046-9e39-56d0aaea4bc8",
+  "custodyVersion": "d9d07844-8be5-4437-a89a-d94b2d7b7ac4",
+  "custodyAcceptanceReceipt": "https://github.com/klappy/kitchen/blob/main/rail/3-pass/2026-08-13-bee-relay-cf-access/VALIDATION-RECEIPT-2026-09-13.md",
+  "custodyModuleSha256": "bbf09a90855e387a91f95d7da4e95d78daeb3fae835cb14d6995e17fe68dfa00",
+  "desiredMetadata": {
+    "compatibility_date": "2026-06-01",
+    "compatibility_flags": [
+      "nodejs_compat"
+    ],
+    "containers": [
+      {
+        "class_name": "BeeBridge",
+        "name": "BeeBridge"
+      }
+    ],
+    "main_module": "index.js",
+    "usage_model": "standard",
+    "exports": {
+      "BeeBridge": {
+        "type": "durable-object",
+        "storage": "sqlite",
+        "container": "BeeBridge"
+      }
+    }
+  },
+  "desiredMetadataSha256": "1b3d1945b4d57d6f587ba19296e1625d452bb83ac390bb44a156591ae8b1ece7",
+  "desiredNonsecretBindings": {
+    "ACCESS_TEAM_DOMAIN": "klappy.cloudflareaccess.com",
+    "ACCESS_AUD": "e7223b22130f74959cfddfe7d79db28d6e3545871dad5512bf25831bbc5bf743",
+    "ADMIN_ACCESS_AUD": "053cbd1c541f17609e093e58b58e19a3993c81f6ae6b3972df8d1a5b1ede6272",
+    "SIGNUP_ENABLED": "true",
+    "SELF_SERVICE_ENABLED": "true",
+    "SELF_SERVICE_READ_LIMIT": "700",
+    "SELF_SERVICE_POLICY_VERSION": "weekly-700-2026-09"
+  },
+  "desiredLogging": {
+    "logpush": false,
+    "observability": {
+      "enabled": false,
+      "head_sampling_rate": 1,
+      "redact_query_string": false,
+      "logs": {
+        "enabled": false,
+        "head_sampling_rate": 1,
+        "invocation_logs": true,
+        "persist": true,
+        "destinations": []
+      },
+      "traces": {
+        "enabled": false,
+        "head_sampling_rate": 1,
+        "persist": true,
+        "destinations": []
+      }
+    }
+  },
+  "loggingAcceptanceReceipt": "https://github.com/klappy/kitchen/blob/main/rail/3-pass/2026-08-13-bee-relay-cf-access/VALIDATION-RECEIPT-2026-09-13.md"
 }
