@@ -34,6 +34,7 @@ Run from a shell. The MCP execute sandbox returns 403/53-byte bodies for `bee.kl
 
 ```
 curl -s https://bee.klappy.dev/version                      # == promoted commit SHA
+curl -s https://bee.klappy.dev/ >/dev/null; # MCP handshake reports BUILD_VERSION = <package.json version>+<sha7>; verify in a connected client's server info
 curl -sI https://bee.klappy.dev/ | head -1                  # 200, approved page, no "review only" notice
 curl -s https://bee.klappy.dev/ | grep -c "renews weekly"   # 1
 curl -sI https://bee.klappy.dev/signup | grep -i location   # 302 → klappy.cloudflareaccess.com … kid=<ACCESS_AUD>
