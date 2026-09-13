@@ -45,6 +45,23 @@ function validateVersion(v, m) {
   for (const key of ['GITHUB_CLIENT_ID','GITHUB_CLIENT_SECRET']) check(byName[key]?.type === 'secret_text','required-secret');
   check(!v.bindings.some(b => /^(STAGING_|VALIDATION_|OWNER_USAGE_)/.test(b.name)),'staging-binding-in-production');
 }
+// Observed 2026-09-13 (rollout ddd8275e on a0318e64): a completed Containers rollout creates a new
+// application version and the running instance adopts it, but GET /containers/applications/{id} keeps
+// projecting the pre-rollout `configuration` and `version` (a PATCH of configuration also returns success
+// and changes nothing). The application GET is therefore a legacy projection, like Workers script-settings.
+// Effective truth = the version selected by the application's completed active rollout; with no active
+// rollout, the application configuration itself. The running-instance image is still checked separately.
+async function effectiveContainer(api) {
+  const app = await api('GET','/containers/applications/' + CONTAINER);
+  if (!app.active_rollout_id) return app;
+  const rollout = await api('GET','/containers/applications/' + CONTAINER + '/rollouts/' + app.active_rollout_id);
+  check(rollout.status === 'completed' && Number.isInteger(rollout.target_version),'container-rollout-incomplete');
+  const versions = await api('GET','/containers/applications/' + CONTAINER + '/versions');
+  const list = Array.isArray(versions) ? versions : (versions?.versions ?? []);
+  const selected = list.find(v => v.version === rollout.target_version);
+  check(selected && selected.configuration && typeof selected.configuration === 'object','container-version-missing');
+  return {...app, version: selected.version, configuration: selected.configuration, effective_rollout_id: app.active_rollout_id};
+}
 function validatePrivacy(owner, ingress, container) {
   check(owner.observability?.enabled === false && owner.observability?.logs?.enabled === false && owner.observability?.traces?.enabled === false && owner.logpush === false,'worker-logging');
   check(ingress.enabled === true && ingress.previews_enabled === false,'preview-ingress');
@@ -148,7 +165,7 @@ async function run({env, manifest, stamp, bundle, api, publicCheck}) {
     const logging = await api('GET',script + '/script-settings');
     validateEffectiveLogging(owner,logging,manifest);
     const ingress = await api('GET',script + '/subdomain');
-    const container = await api('GET','/containers/applications/' + CONTAINER);
+    const container = await effectiveContainer(api);
     validatePrivacy(owner,ingress,container);
     const accessSnapshots = [];
     const ownerReferenceId = '8fc54e03-24c8-4c02-9376-7c639a3ca94e';
@@ -216,7 +233,7 @@ async function run({env, manifest, stamp, bundle, api, publicCheck}) {
     validateEffectiveLogging(finalOwner,finalLogging,manifest);
     check(canon(finalOwner.observability) === canon(owner.observability) && finalOwner.logpush === owner.logpush,'logging-drift');
     check(canon(await api('GET',script + '/subdomain')) === canon(ingress),'ingress-drift');
-    const finalContainer = await api('GET','/containers/applications/' + CONTAINER);
+    const finalContainer = await effectiveContainer(api);
     check(finalContainer.max_instances === container.max_instances && canon(finalContainer.configuration) === canon(container.configuration),'container-drift');
     const instances = await api('GET','/containers/applications/' + CONTAINER + '/instances');
     check(Array.isArray(instances?.instances),'instance-response-shape');
