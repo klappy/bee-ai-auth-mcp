@@ -14,6 +14,21 @@ status: draft
 
 # 📡 Telemetry Governance — bee-ai-auth-mcp
 
+## Owner-only staging calibration
+
+Optional `OWNER_USAGE_ENABLED=true` observes only the authenticated login matching the trusted `STAGING_OWNER_EMAIL`, with `SIGNUP_ENABLED=true` and the explicit staging runtime. All staging calls bypass legacy Analytics Engine identity derivation and emission, even when observation is off. Production retains its existing optional AE behavior even when email signup is enabled. The production entry and bridge force production runtime; neither a signup flag nor stale owner-observation bindings enable staging telemetry there.
+
+The existing per-tool wrapper measures `bee_read`, `bee_docs` and `whoami`. One existing BeeBridge Durable Object stores daily fixed-schema counts and summed duration, bridge duration and output bytes. Returned successful read pages, read failures, runtime/quota blocks, docs, identity checks and thrown errors have distinct buckets. No identity, hash, transcript, raw path, query, token or per-call record is stored. The private RPC rechecks owner matching. Emission failures never change the original tool result or thrown error.
+
+Owner-only `bee_observed_usage` reads the aggregate without calling Bee, starting the Container, consuming a commercial read or counting itself. It accepts no identity filters. Every permitted read/write consumes the existing lifetime signup-operation budget, which is never reset. At exhaustion observation is unavailable while Bee results remain unchanged. At most 31 UTC dates are retained, pruned on reads/writes; idle timed deletion is not promised.
+
+This is best-effort calibration, not a billing ledger. Coverage begins only after separately reviewed activation and actual hosted readback; enqueueing work with `waitUntil` is not persistence proof. Heavy owner usage is a useful upper-use observation, not a representative free-user distribution. No numeric allowance, self-service activation, production change or new telemetry service is selected here.
+
+## Legacy production and self-host Analytics Engine design
+
+The following historical design applies to the legacy AE path only. The staging contract above supersedes it for staging; usage inspection is intentionally uninstrumented.
+
+
 > **DRAFT pending the operator's author pass — v0.2.** Nothing here commits, pushes, or merges until reviewed. v0.2 folds in the operator's correction: telemetry must be **multi-tenant-ready from the start**, like oddkit and the rest of the family — not retrofitted later. Drafted by the first officer from observed source (`src/bee.ts`, `src/bridge.ts`, `wrangler.jsonc`) and the oddkit/aquifer telemetry lineage. This document is **docs-first**: it precedes the instrumentation code and governs it.
 
 > bee instruments tool calls so the operator can see what the service is actually costing. The first job is to answer a question the service currently cannot: **what does a conversation fetch cost, cold versus warm — before we design any R2/KV/Cache layer to speed it up.** The mechanism is borrowed from oddkit; the schema is designed so the *same instrument* works whether bee is running single-tenant on a self-hosted Worker today, or hosted multi-tenant tomorrow. We build the dream house and cut later (`klappy://writings/the-dream-house-and-pre-optimization`) — the tenant dimension exists from day one even while it holds a single value.
@@ -210,3 +225,8 @@ Per `klappy://canon/definition-of-done` and the telemetry-validation-gate:
 - **Draft (v0.2) for the operator's author pass.** Crew does not push author-voice text; the operator reviews exact wording, then opens/merges per the standing provenance rule.
 - On acceptance: assign a `D00xx` decision and add a DOLCHEO ledger entry (`odd/ledger/`), then graduate from `stability: draft`.
 - Implementation is a **separate execution pass** gated by this governance — docs-first holds. The git-repo-auth adoption is a follow-on, not in scope for the bee implementation pass.
+
+
+### Existing native catalog compatibility
+
+`bee_docs({ view: "observed_usage" })` exposes the same owner-only aggregate inspection when a client has not refreshed its tool catalog. It uses the authenticated grant identity and the same private RPC, reports the same coverage and retention caveats, and never counts itself or starts Bee. Nonowners and disabled observation receive unavailable without an aggregate or observation write. Unknown views reject. Missing `view` or `view: "reference"` returns the byte-identical canonical API reference with ordinary documentation observation. The standalone `bee_observed_usage` tool remains available to eligible owners in refreshed catalogs.

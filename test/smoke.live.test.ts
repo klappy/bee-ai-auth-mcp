@@ -1,6 +1,8 @@
 /**
  * Live smoke battery — runs against a deployed base URL (SMOKE_BASE_URL).
  * Skips entirely when that env is unset, so `npm test` stays network-free.
+ * CI sets that URL only from vars.DEPLOYED_VALIDATION_URL (an isolated
+ * Worker). It never points this file at production from a PR.
  *
  * Deliberately does NOT exercise the Bee credential (whoami). That call needs a
  * captured per-grant Bee token and traverses the private-CA Container bridge —

@@ -1,0 +1,11 @@
+# Owner usage observation debrief
+
+2026-09-11, America/New_York. Order: [owner usage](../orders/2026-09-11-owner-usage.md). Parent: existing Bee auth ticket, owner usage amendment blob192af26e3d887a18a0e1bf5077da0880aa2ee114. Charter and delivery loop1.0.0 accepted.
+
+Recovered interrupted local source from the prior cook, whose remote branch contained only its order. Reconciled current main9036cd7 and preserved the homepage extraction. Finished the default-disabled owner-only aggregate path in the existing staging DO and per-tool wrapper. Staging now skips legacy tenant HMAC derivation as well as AE emission. Inspection rechecks the authenticated owner, has no identity arguments, does not activate Bee and does not measure itself. Fixed-schema storage excludes identity/content; numeric accumulation is bounded, date keys validated, reads/writes prune31UTC dates, and transactions preserve the100,000 lifetime operation ceiling.
+
+Validation: TypeScript clean;30 tests passed across owner-usage, telemetry, quota-integration and MCP-admission. Twelve owner tests cover flags, identity exclusion, concurrent transactions, budget exhaustion, fixed schema, retention, exact UTF8 bytes, result/error preservation, telemetry failure isolation, production AE behavior, staging HMAC exclusion and actual MCP tool registration/outcome accounting. A broader native-MCP attempt failed because the reconstructed scratch checkout lacks scripts/test-native-mcp.cjs; this is not claimed as a passing native or full-suite run. CI must run the complete repository suite.
+
+No provider activation, deployment, private Bee call, quota amount, billing change or public-copy publication. Independent exact-head review, CI and Bugbot remain required. Otto's separately accepted activation envelope and hosted aggregate readback are prerequisites for claiming observation active or persistent. Organic data is not yet collected by this source return.
+
+Learning: local source surviving an interrupted cook is recoverable cargo, not delivered functionality. The recovered wrapper bypassed legacy emission but still derived a staging identity hash; testing the real MCP setup caught that privacy boundary before release. Assertions now exercise both the RPC and tool boundary. Best-effort measurement cannot silently become billing enforcement.

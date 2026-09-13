@@ -16,33 +16,32 @@
  *   /consent   — (POST) verify the signed state, validate the pasted Bee token
  *                via GET /v1/me through the bridge, then completeAuthorization
  *                binding { login, beeToken } into encrypted props.
- *   /pairing/start  — (POST, page JS) verify the signed state, mint an ephemeral
- *                x25519 keypair, create the Bee pairing request, return the QR
- *                + a sealed (AES-GCM) blob carrying the keypair client-side.
- *   /pairing/status — (POST, page JS) verify signed state + sealed blob, re-POST
- *                the same publicKey (the pairing service polls idempotently);
- *                on approval decrypt the boxed token and join the paste path:
- *                same bridge validation, same completeAuthorization. See
- *                src/pairing.ts for protocol facts and custody rationale.
+ *   /pairing/start  — (POST, page JS) verify the signed state, clear any
+ *                previous owned broker dir from sealed `p`, mint an opaque
+ *                broker id, exec hosted Bee CLI `login --no-wait` in an isolated
+ *                config dir, return the CLI connect URL/QR + a sealed blob.
+ *   /pairing/status — (POST, page JS) resume that same broker dir, validate the
+ *                resulting bearer through the caddy bridge, bind the grant,
+ *                delete the broker directory. See src/broker.ts.
  */
 
 import type { AuthRequest } from "@cloudflare/workers-oauth-provider";
 import { getContainer } from "@cloudflare/containers";
 import { renderSVG } from "uqr";
+import { verifyAccessJwt } from "./access";
 import { encodeState, decodeState, signConsent, verifyConsent } from "./state";
 import { beeGetMe } from "./bee";
 import {
-  b64ToBytes,
-  buildConnectUrl,
-  bytesToB64,
-  generatePairingKeyPair,
-  openPairingEnvelope,
-  postPairing,
-  sealPairingState,
-  unsealPairingState,
-} from "./pairing";
+  newBrokerId,
+  ownedBrokerId,
+  sealBrokerState,
+  unsealBrokerState,
+  type BeeBroker,
+} from "./broker";
 import type { Env } from "./types";
 import { COMMIT_SHA } from "./version";
+import { grantIdentityAllowed, admissionAllowed, admissionRecord, enrollVerified, runtimeAllowed, runtimePaused } from './admission';
+import { pendingPage } from './signup';
 
 const GH = "https://api.github.com";
 const UA = "bee-ai-auth-mcp";
@@ -110,27 +109,28 @@ export function consentForm(login: string, signed: string, isMobile: boolean, er
        </div>`;
   return html(
     `<h2>Connect your Bee</h2>
-     <p>Signed in as <b>${login}</b>. Authorize this relay to read your Bee on your behalf.
-        Your Bee token is stored only inside your own encrypted grant —
-        never shown to the AI client, never logged.</p>
+     <p>Signed in as <b>${login}</b>. That identifies you to this relay only.
+        Connect <b>your</b> Bee so your AI client reads your data — this hosted
+        service does not share another person's Bee account. Your Bee token is
+        stored only inside your own encrypted grant — never shown to the AI
+        client, never logged.</p>
      ${error ? `<p class="err">${error}</p>` : ""}
      ${ctaPane}
      ${connectUrlPane}
-     <p style="font-size:0.8em;color:#5b6660">Heads-up: the Bee app shows this approval as the
-        <b>Bee CLI</b> — the relay borrows the CLI's app registration (fine for self-hosting;
-        details in the <a href="/setup">setup guide</a>).</p>
+     <p style="font-size:0.8em;color:#5b6660">The hosted Bee CLI is the Bee application.
+        Approve the connection in the Bee app if asked — you do not install or run
+        the CLI yourself. Details in the <a href="/setup">setup guide</a>.</p>
      <div id="or">or paste a token</div>
      <form method="POST" action="/consent" autocomplete="off">
        <input type="hidden" name="s" value="${signed}">
        <input type="password" name="bee_token" placeholder="Bee API token" autocomplete="off">
        <button type="submit">Authorize</button>
      </form>
-     <details><summary><b>How do I get my Bee token by hand?</b></summary>
+     <details><summary><b>Already have a Bee token? (operator fallback)</b></summary>
+     <p style="font-size:0.9em">Invited users should approve the hosted CLI link or QR above — do not install the CLI. Paste is only for someone who already holds a token.</p>
      <ol style="padding-left:1.2em">
-       <li>In the <b>Bee iOS app</b>, open Settings and tap the app <b>Version 5 times</b> to turn on Developer Mode (<a href="${BEE_TOKEN_HELP}" target="_blank" rel="noopener">Bee's guide</a>).</li>
-       <li>On a computer with Node, run <code>npm i -g @beeai/cli</code>, then <code>bee login --qr</code>, and approve the scan in your Bee app.</li>
-       <li>Print your token — macOS Keychain: <code>security find-generic-password -s bee-cli -a token:prod -w</code>; or file store: <code>cat ~/.bee/token-prod</code>.</li>
-       <li>Paste it above and choose Authorize.</li>
+       <li>If you already have a token, paste it above and choose Authorize. The relay validates it through Bee <code>GET /v1/me</code>.</li>
+       <li>To print an existing local token — macOS Keychain: <code>security find-generic-password -s bee-cli -a token:prod -w</code>; or file store: <code>cat ~/.bee/token-prod</code>. Bee Developer Mode notes: <a href="${BEE_TOKEN_HELP}" target="_blank" rel="noopener">Bee's guide</a>.</li>
      </ol></details>
      <p style="font-size:0.85em">Full walkthrough: <a href="/setup">setup guide</a>. To revoke: disconnect here to delete this copy, then re-pair or rotate in the Bee app.</p>
      <script>
@@ -179,7 +179,7 @@ export function consentForm(login: string, signed: string, isMobile: boolean, er
         var myGen = ++gen;
         attempt = 0; done = false; polling = false; clearPairingActions();
          statusEl.textContent = 'Getting a pairing code…';
-         post('/pairing/start', { s: s }).then(function (d) {
+         post('/pairing/start', { s: s, p: p }).then(function (d) {
            if (myGen !== gen) return;
            if (d.status !== 'pending') { retryLink(d.message || 'Could not start pairing.'); return; }
            p = d.p;
@@ -256,9 +256,45 @@ function isAllowed(login: string, env: Env): boolean {
   return list.includes(login.toLowerCase());
 }
 
+/** Comma-separated email allow-list for the Cloudflare Access door; lives
+ *  beside isAllowed, never replacing it. Denies by default until configured. */
+export function isAllowedEmail(email: string, env: Env): boolean {
+  const list = (env.ALLOWED_EMAILS ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return list.includes(email.toLowerCase());
+}
+
+/** Defense-in-depth re-check covering BOTH identity namespaces: emails contain
+ *  `@` (Access door), GitHub logins cannot (GitHub door) — disjoint by
+ *  construction, so one signed `login` field routes to exactly one list. */
+async function isAllowedIdentity(login: string, env: Env, epoch?: number): Promise<boolean> {
+  return grantIdentityAllowed(env, login, epoch);
+}
+
+/** Best-effort delete of one owned broker dir. Wrong identity or a stale blob
+ *  is a no-op — never clear a sibling. */
+async function clearOwnedBrokerDir(
+  broker: BeeBroker,
+  blob: unknown,
+  secret: string,
+  login: string,
+  clientId: string
+): Promise<void> {
+  const id = ownedBrokerId(await unsealBrokerState(str(blob), secret), login, clientId);
+  if (!id) return;
+  try {
+    await broker.clearBeeBroker(id);
+  } catch {
+    /* leftover dir dies with container sleep */
+  }
+}
+
 interface ConsentState {
   req: AuthRequest;
   login: string;
+  admissionEpoch?: number;
 }
 
 export const BeeAuthHandler = {
@@ -268,12 +304,13 @@ export const BeeAuthHandler = {
     if (url.pathname === "/healthz") return new Response("ok", { status: 200 });
 
     // Commit SHA baked into this immutable version's bundle at build time
-    // (scripts/gen-version.mjs), so CI can confirm this preview is the commit
-    // under test. Per-version by construction — no shared/mutable deploy var.
+    // (scripts/gen-version.mjs). A versions-upload is not a reachable preview
+    // URL for this Durable Object + Container Worker; /version still names
+    // the bundle. Per-version by construction — no shared/mutable deploy var.
     if (url.pathname === "/version") return new Response(COMMIT_SHA, { status: 200 });
 
     // ---- MCP client begins authorization ----
-    if (url.pathname === "/authorize") {
+    if (["/authorize", "/authorize/email", "/authorize/github"].includes(url.pathname)) {
       let oauthReqInfo: AuthRequest;
       try {
         oauthReqInfo = await env.OAUTH_PROVIDER.parseAuthRequest(request);
@@ -288,6 +325,37 @@ export const BeeAuthHandler = {
       if (!(await env.OAUTH_PROVIDER.lookupClient(oauthReqInfo.clientId))) {
         return html(`<h2>Unknown client</h2><p>Register via <code>/register</code> first.</p>`, 400);
       }
+      // Only the email route is protected at the Access edge. The chooser and
+      // direct GitHub route must remain reachable without an Access session.
+      if (url.pathname === "/authorize" && env.ACCESS_TEAM_DOMAIN && env.ACCESS_AUD) {
+        const query = url.search.replaceAll("&", "&amp;").replaceAll('"', "&quot;")
+          .replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+        return html(`<h2>Connect your Bee</h2><p>Choose how to sign in.</p>
+          <a class="btn-hero" href="/authorize/email${query}">Continue with email</a>
+          <p><a href="/authorize/github${query}">Continue with GitHub</a></p>`);
+      }
+      if (url.pathname === "/authorize/email") {
+        const access = await verifyAccessJwt(request, env);
+        if (!access) {
+          return html(`<h2>Email sign-in could not be verified</h2><p>Restart the connection from your client. If this continues, contact the relay operator.</p>`, 403);
+        }
+        if (env.SIGNUP_ENABLED === 'true') {
+          if (!(await enrollVerified(env, access.email))) return json({ error: 'temporarily_unavailable' }, 503);
+          if (!(await admissionAllowed(env, access.email))) return pendingPage(env, access.email, request);
+        }
+        if (env.SIGNUP_ENABLED !== 'true' && !isAllowedEmail(access.email, env)) {
+          return html(
+            `<h2>Not authorized</h2><p>Signed in as <b>${access.email}</b>, but this self-host instance only allows its configured operator(s). Set <code>ALLOWED_EMAILS</code> and retry.</p>`,
+            403
+          );
+        }
+        const signed = await signConsent(
+          { req: oauthReqInfo, login: access.email, ...(env.SIGNUP_ENABLED === 'true' ? { admissionEpoch: (await admissionRecord(env, access.email))?.epoch } : {}) } satisfies ConsentState,
+          env.CONSENT_SIGNING_SECRET
+        );
+        return consentForm(access.email, signed, isMobileUA(request));
+      }
+
       const gh = new URL("https://github.com/login/oauth/authorize");
       gh.searchParams.set("client_id", env.GITHUB_CLIENT_ID);
       gh.searchParams.set("redirect_uri", `${url.origin}/callback`);
@@ -339,7 +407,7 @@ export const BeeAuthHandler = {
       // the GitHub token is now discarded. No Bee token exists yet.
       const signed = await signConsent(
         { req: oauthReqInfo, login: user.login } satisfies ConsentState,
-        env.GITHUB_CLIENT_SECRET
+        env.CONSENT_SIGNING_SECRET
       );
       return consentForm(user.login, signed, isMobileUA(request));
     }
@@ -350,13 +418,14 @@ export const BeeAuthHandler = {
       const signed = String(form.get("s") ?? "");
       const beeToken = String(form.get("bee_token") ?? "").trim();
 
-      const cs = await verifyConsent<ConsentState>(signed, env.GITHUB_CLIENT_SECRET);
+      const cs = await verifyConsent<ConsentState>(signed, env.CONSENT_SIGNING_SECRET);
       if (!cs || !cs.login || !cs.req) {
         return html(`<h2>Consent state invalid or tampered.</h2><p>Restart the connection from your client.</p>`, 400);
       }
 
-      // Defense in depth: re-check the allow-list against the signed login.
-      if (!isAllowed(cs.login, env)) {
+      // Defense in depth: re-check the allow-list against the signed login —
+      // both namespaces (GitHub login or Access email; disjoint by `@`).
+      if (!(await isAllowedIdentity(cs.login, env, cs.admissionEpoch))) {
         return html(`<h2>Not authorized</h2><p><b>${cs.login}</b> is not on this instance's allow-list.</p>`, 403);
       }
 
@@ -367,6 +436,7 @@ export const BeeAuthHandler = {
       // Validate the token before binding it — a bad token must not become a
       // confusing post-connect failure. This is the first real call through the
       // private-CA bridge container; a transport error here means it isn't ready.
+      if (!(await runtimeAllowed(env))) return runtimePaused();
       const stub = getContainer(env.BEE_BRIDGE); // shared singleton; never per-user (E0014)
       const check = await beeGetMe(beeToken, stub);
       if (!check.ok) {
@@ -374,103 +444,121 @@ export const BeeAuthHandler = {
       }
 
       // Bind identity + Bee token into the user's encrypted grant props.
+      if (!(await isAllowedIdentity(cs.login, env, cs.admissionEpoch))) return json({ error: 'access_denied' }, 403);
       const { redirectTo } = await env.OAUTH_PROVIDER.completeAuthorization({
         request: cs.req,
         userId: cs.login,
         metadata: { label: cs.login },
         scope: ["bee_read"],
-        props: { login: cs.login, beeToken },
+        props: { login: cs.login, beeToken, ...(env.SIGNUP_ENABLED === 'true' && cs.login.includes('@') ? { admissionEpoch: cs.admissionEpoch } : {}) },
       });
       return Response.redirect(redirectTo, 302);
     }
 
-    // ---- QR pairing: start (called by the consent page's JS) ----
-    // Generates the ephemeral x25519 keypair in-Worker and creates the pairing
-    // request. The keypair leaves this invocation only inside `p`, an
-    // AES-GCM-sealed blob the page carries back on every poll — the Worker
-    // holds no pairing state and the browser holds only ciphertext.
+    // ---- Hosted CLI broker start (consent page JS) ----
     if (url.pathname === "/pairing/start" && request.method === "POST") {
       const body = await readJson(request);
-      const cs = await verifyConsent<ConsentState>(str(body?.["s"]), env.GITHUB_CLIENT_SECRET);
+      const cs = await verifyConsent<ConsentState>(str(body?.["s"]), env.CONSENT_SIGNING_SECRET);
       if (!cs || !cs.login || !cs.req) {
         return json({ status: "error", message: "Consent state invalid — restart the connection from your client." }, 400);
       }
-      if (!isAllowed(cs.login, env)) {
+      if (!(await isAllowedIdentity(cs.login, env, cs.admissionEpoch))) {
         return json({ status: "error", message: "Not authorized." }, 403);
       }
 
-      const kp = generatePairingKeyPair();
-      const outcome = await postPairing(kp.publicKeyB64);
+      if (!(await runtimeAllowed(env))) return runtimePaused();
+      const broker = getContainer(env.BEE_BRIDGE) as unknown as BeeBroker;
+      await clearOwnedBrokerDir(broker, body?.["p"], env.CONSENT_SIGNING_SECRET, cs.login, cs.req.clientId);
+
+      const brokerId = newBrokerId();
+      let outcome: Awaited<ReturnType<BeeBroker["startBeeBroker"]>>;
+      try {
+        outcome = await broker.startBeeBroker(brokerId);
+      } catch {
+        return json({ status: "error", message: "hosted Bee CLI broker unreachable" }, 502);
+      }
       if (outcome.status !== "pending") {
-        // A fresh keypair can only be answered "pending" — anything else is a
-        // service-side failure worth surfacing verbatim (status only, no material).
         const message = outcome.status === "error" ? outcome.message : "Pairing request failed — try again.";
         return json({ status: "error", message }, 502);
       }
 
-      const sealed = await sealPairingState(
+      const sealed = await sealBrokerState(
         {
-          pk: kp.publicKeyB64,
-          sk: bytesToB64(kp.secretKey),
-          requestId: outcome.requestId,
+          kind: "cli-broker-v1",
+          brokerId,
           login: cs.login,
           clientId: cs.req.clientId,
           iat: Date.now(),
         },
-        env.GITHUB_CLIENT_SECRET
+        env.CONSENT_SIGNING_SECRET
       );
-      const connectUrl = buildConnectUrl(outcome.requestId);
       return json({
         status: "pending",
-        requestId: outcome.requestId,
         expiresAt: outcome.expiresAt,
-        connectUrl,
-        qrSvg: renderSVG(connectUrl, { border: 2 }),
+        connectUrl: outcome.connectUrl,
+        qrSvg: renderSVG(outcome.connectUrl, { border: 2 }),
         p: sealed,
       });
     }
 
-    // ---- QR pairing: poll (idempotent re-POST of the same publicKey) ----
+    // ---- Hosted CLI broker poll ----
     if (url.pathname === "/pairing/status" && request.method === "POST") {
       const body = await readJson(request);
-      const cs = await verifyConsent<ConsentState>(str(body?.["s"]), env.GITHUB_CLIENT_SECRET);
+      const cs = await verifyConsent<ConsentState>(str(body?.["s"]), env.CONSENT_SIGNING_SECRET);
       if (!cs || !cs.login || !cs.req) {
         return json({ status: "error", message: "Consent state invalid — restart the connection from your client." }, 400);
       }
-      if (!isAllowed(cs.login, env)) {
+      if (!(await isAllowedIdentity(cs.login, env, cs.admissionEpoch))) {
         return json({ status: "error", message: "Not authorized." }, 403);
       }
-      const st = await unsealPairingState(str(body?.["p"]), env.GITHUB_CLIENT_SECRET);
+      const st = await unsealBrokerState(str(body?.["p"]), env.CONSENT_SIGNING_SECRET);
       if (!st || st.login !== cs.login || st.clientId !== cs.req.clientId) {
         return json({ status: "error", message: "Pairing state invalid or stale — get a new code." }, 400);
       }
 
-      const outcome = await postPairing(st.pk);
-      if (outcome.status === "pending") return json({ status: "pending", expiresAt: outcome.expiresAt });
-      if (outcome.status === "expired") return json({ status: "expired" });
+      if (!(await runtimeAllowed(env))) return runtimePaused();
+      const broker = getContainer(env.BEE_BRIDGE) as unknown as BeeBroker;
+      let outcome: Awaited<ReturnType<BeeBroker["resumeBeeBroker"]>>;
+      try {
+        outcome = await broker.resumeBeeBroker(st.brokerId);
+      } catch {
+        return json({ status: "error", message: "hosted Bee CLI broker unreachable" }, 502);
+      }
+      if (outcome.status === "pending") return json({ status: "pending" });
+      if (outcome.status === "expired") {
+        await clearOwnedBrokerDir(broker, body?.["p"], env.CONSENT_SIGNING_SECRET, cs.login, cs.req.clientId);
+        return json({ status: "expired" });
+      }
       if (outcome.status === "error") return json({ status: "error", message: outcome.message }, 502);
 
-      // Completed: decrypt to OUR ephemeral key, then follow the paste path
-      // exactly — bridge validation first, then the same grant write. A bad
-      // decrypt or a bad token can never become a grant.
-      const beeToken = openPairingEnvelope(outcome.encryptedToken, b64ToBytes(st.sk));
-      if (!beeToken) {
-        return json({ status: "error", message: "Could not decrypt the pairing response — get a new code." }, 400);
-      }
-
-      const stub = getContainer(env.BEE_BRIDGE); // shared singleton; never per-user (E0014)
+      const beeToken = outcome.token;
+      const stub = getContainer(env.BEE_BRIDGE);
       const check = await beeGetMe(beeToken, stub);
       if (!check.ok) {
+        try {
+          await broker.clearBeeBroker(st.brokerId);
+        } catch {
+          /* best-effort */
+        }
         return json({ status: "error", message: `Bee did not accept the paired token: ${check.message}` }, 400);
       }
 
+      if (!(await isAllowedIdentity(cs.login, env, cs.admissionEpoch))) {
+        try { await broker.clearBeeBroker(st.brokerId); } catch { /* Do not claim cleanup on failure. */ }
+        return json({ error: 'access_denied' }, 403);
+      }
       const { redirectTo } = await env.OAUTH_PROVIDER.completeAuthorization({
         request: cs.req,
         userId: cs.login,
         metadata: { label: cs.login },
         scope: ["bee_read"],
-        props: { login: cs.login, beeToken },
+        props: { login: cs.login, beeToken, ...(env.SIGNUP_ENABLED === 'true' && cs.login.includes('@') ? { admissionEpoch: cs.admissionEpoch } : {}) },
       });
+      try {
+        await broker.clearBeeBroker(st.brokerId);
+      } catch {
+        /* best-effort — grant is already bound; leftover dir dies with container sleep */
+      }
       return json({ status: "completed", redirectTo });
     }
 
