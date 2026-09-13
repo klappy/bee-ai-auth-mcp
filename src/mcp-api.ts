@@ -21,13 +21,14 @@ import { BEE_API_USAGE_DOC } from "./bee-api-usage-doc";
 import { classifyPath, deriveTenantKey, statusClassOf, withTelemetry, type ToolTelemetry } from "./telemetry";
 import type { Env, GrantProps } from "./types";
 import { runtimeAllowed, grantIdentityAllowed } from './admission';
+import { BUILD_VERSION } from './version';
 import { ownerUsageEnabled, readOwnerUsage } from './owner-usage';
 import { meteredRead, ownUsage, quotaError, quotaPolicy } from './quota';
 
 function buildServer(env: Env, props: GrantProps, tenantKey: string, ctx: ExecutionContext): McpServer {
   const observe = <Args extends unknown[], R>(tool: string, build: (tele: ToolTelemetry) => (...args: Args) => Promise<R>) =>
     withTelemetry(env, tenantKey, tool, build, { login: props.login, waitUntil: promise => ctx.waitUntil(promise) });
-  const server = new McpServer({ name: "bee-ai-auth-mcp", version: "0.1.0" });
+  const server = new McpServer({ name: "bee-ai-auth-mcp", version: BUILD_VERSION });
   const observedUsage = async () => {
     // Trusted grant identity only; the private RPC independently rechecks owner.
     const result = await readOwnerUsage(env, props.login);
