@@ -1,3 +1,5 @@
+> **Superseded 2026-09-13 — owner ruling.** Production deploys through the Workers Builds githook exactly like staging: push to `production` → Build → `npx wrangler deploy --config wrangler.production.jsonc`. The API-orchestrated `scripts/deploy-production.cjs` transaction below is retained as reviewable source and tests but is **not** the trigger's deploy command and is not required for release. Hosted bindings live in `wrangler.production.jsonc` `vars`; `CONSENT_SIGNING_SECRET` and `ADMIN_OWNER_EMAIL` are script secrets set by the owner (`wrangler secret put`), verified by readback after the first hosted deploy.
+
 # Production source deployment
 
 Feature branches merge to main (staging). Production is promoted only by the reviewed main → production PR. Existing production Git Build runs `npm ci && node scripts/gen-version.mjs && npm run typecheck && npm test`, then `node scripts/deploy-production.cjs`. This source does not edit or invoke the provider trigger. Otto separately reviews and configures it.

@@ -35,7 +35,7 @@ export const HOSTED_HOMEPAGE_HTML = `<!DOCTYPE html>
 <img class="bee-mark" src="/favicon.svg" width="76" height="76" alt="" />
 <p class="eyebrow">Hosted by Klappy</p>
 <h1>Your Bee, <span class="hl">in the AI you already use.</span></h1>
-<p class="lede">Bring conversations your Bee captured into your AI app. Verify your email, connect <strong>your own Bee</strong>, and start with free usage that renews each month.</p>
+<p class="lede">Bring conversations your Bee captured into your AI app. Verify your email, connect <strong>your own Bee</strong>, and start with free usage that renews each week.</p>
 <div class="endpoint-box">
 <label for="mcp-url">Your connector URL</label>
 <div class="endpoint-row"><input id="mcp-url" type="url" value="https://bee.klappy.dev/mcp" readonly spellcheck="false" /><button class="btn btn-primary" id="copy-url" type="button" hidden>Copy URL</button></div>
