@@ -252,7 +252,7 @@ async function run({env, manifest, stamp, bundle, api, publicCheck}) {
       catch { deployed = 'unknown'; }
     }
     // Never render a provider body, exception message, binding value or private identity.
-    return {accepted:false,phase,candidate,source_deployed:deployed,deployment_attempted:deploymentAttempted,error:error instanceof Refusal ? error.code : 'operation-failed'};
+    return {accepted:false,phase,candidate,source_deployed:deployed,deployment_attempted:deploymentAttempted,error:error instanceof Refusal ? error.code : 'operation-failed',...(error instanceof Refusal && error.locus ? {locus:error.locus,...(error.codes ? {provider_codes:error.codes} : {})} : {})};
   }
 }
 async function publicCheck(stamp, expectedAssets) {
@@ -313,8 +313,9 @@ async function main() {
   ensureAncestry(ROOT,stamp,manifest.reviewedMain);
   const api = async (method, route, body) => {
     const r = await fetch('https://api.cloudflare.com/client/v4/accounts/' + ACCOUNT + route,{method,redirect:'error',headers:{Authorization:'Bearer ' + process.env.CLOUDFLARE_API_TOKEN,...(body ? {'Content-Type':'application/json'} : {})},body:body ? JSON.stringify(body) : undefined});
-    check(r.ok,'provider-http-' + r.status);
-    const json = await r.json(); check(json.success === true,'provider-rejected'); return json.result;
+    // Refusal locus: method and route only (route is a fixed account-relative path; never token, body or response).
+    if (!r.ok) { const e = new Refusal('provider-http-' + r.status); e.locus = method + ' ' + route.replace(/\?.*$/,''); throw e; }
+    const json = await r.json(); if (json.success !== true) { const e = new Refusal('provider-rejected'); e.locus = method + ' ' + route.replace(/\?.*$/,''); e.codes = (json.errors||[]).map(x=>x.code); throw e; } return json.result;
   };
   let expectedAssets;
   const bundle = async () => {
@@ -326,5 +327,5 @@ async function main() {
   const receipt = await run({env:process.env,manifest,stamp,bundle,api,publicCheck:(source)=>publicCheck(source,expectedAssets)});
   console.log(JSON.stringify(receipt)); if (!receipt.accepted) process.exitCode = 1;
 }
-module.exports = {assertVersionPayload,validateEffectiveLogging,desiredAdditions,candidateMetadata,validateCustody,verifyInheritance,ensureAncestry,releaseHtml,releaseAssetSource,run,validateManifest,validateVersion,validatePrivacy,candidateBody,verifyCandidate,canon,digest,bindingShape,IMAGE};
+module.exports = {Refusal,assertVersionPayload,validateEffectiveLogging,desiredAdditions,candidateMetadata,validateCustody,verifyInheritance,ensureAncestry,releaseHtml,releaseAssetSource,run,validateManifest,validateVersion,validatePrivacy,candidateBody,verifyCandidate,canon,digest,bindingShape,IMAGE};
 if (require.main === module) main().catch(() => {console.error(JSON.stringify({accepted:false,phase:'initialization',candidate:null,source_deployed:false,error:'configuration-unavailable'}));process.exitCode=1;});

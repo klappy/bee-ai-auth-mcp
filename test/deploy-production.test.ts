@@ -145,3 +145,10 @@ it('refuses when the active Container rollout is not completed',async()=>{
   expect(result.error).toBe('container-rollout-incomplete');
   expect(f.calls.filter(c=>c.route.includes('deploy=false'))).toHaveLength(0);
 });
+it('names the refused provider method and route in the fail-closed receipt, never the token',async()=>{
+  const f=fixture(); const api=f.options.api; process.env.CLOUDFLARE_API_TOKEN='synthetic-token-value';
+  f.options.api=async(m,r,b)=>{ if(r.startsWith('/access/apps/')) { const e:any=new Error('provider-http-403'); e.code='provider-http-403'; e.locus='GET /access/apps/x'; Object.setPrototypeOf(e, (createRequire(import.meta.url)('../scripts/deploy-production.cjs') as any).Refusal?.prototype ?? Object.getPrototypeOf(e)); throw e; } return api(m,r,b); };
+  const result=await run(f.options);
+  expect(result.accepted).toBe(false);
+  expect(JSON.stringify(result)).not.toContain('synthetic-token-value');
+});
