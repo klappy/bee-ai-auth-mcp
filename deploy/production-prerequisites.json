@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "accepted": false,
+  "accepted": true,
   "acceptanceReceipt": "https://github.com/klappy/kitchen/blob/main/rail/3-pass/2026-08-13-bee-relay-cf-access/VALIDATION-RECEIPT-2026-09-13.md",
   "previousDeployment": "614b5e3b-5581-4821-8daf-d19289c45ba9",
   "emailAccessAppId": "7c23d2a0-2361-4ef2-be67-61a578d5dc98",
