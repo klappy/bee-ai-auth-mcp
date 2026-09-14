@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Stripe billing, part 1 — discovery receipt.** `planning/stripe-billing/DISCOVERY-RECEIPT-2026-09-14.md`: one live-mode account, no Bee catalog, no webhooks, write permission unverified, planner guide accepted (hosted Checkout, flat rate, freemium, Customer Portal). No Stripe objects created.
+
 ## 1.0.0 — 2026-09-13
 
 - **First public release on `bee.klappy.dev`.** Hosted email signup (Cloudflare Access one-time code), Bee pairing by QR or in-app approval, and a free allowance of 700 successful reads per verified-email account per UTC week (renews Monday 00:00Z). Paid upgrade: unlimited reads (Stripe, not yet enabled).
