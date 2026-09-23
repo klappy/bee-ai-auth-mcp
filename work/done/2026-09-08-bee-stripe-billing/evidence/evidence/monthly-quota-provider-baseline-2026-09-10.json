@@ -1,0 +1,278 @@
+{
+  "observedAt": "2026-09-10T15:46:38.198Z",
+  "bee-validation-20260909": {
+    "settingsStatus": 200,
+    "deploymentsStatus": 200,
+    "active": [
+      {
+        "id": "84ac5750-6c6c-4a66-b4a0-4b4eb297280a",
+        "versions": [
+          {
+            "version_id": "d7f2063f-81d9-4775-9b06-f8c6a7c75b24",
+            "percentage": 100
+          }
+        ],
+        "created_on": "2026-09-10T14:07:38.786386Z"
+      }
+    ],
+    "publicConfiguration": [
+      {
+        "name": "SIGNUP_ENABLED",
+        "value": "true"
+      },
+      {
+        "name": "VALIDATION_EXPIRES_AT",
+        "value": "2026-09-10T15:18:31.966Z"
+      },
+      {
+        "name": "VALIDATION_STARTS_AT",
+        "value": "2026-09-10T13:18:31.966Z"
+      }
+    ],
+    "quotaBindingNames": []
+  },
+  "bee-ai-auth-mcp": {
+    "settingsStatus": 200,
+    "deploymentsStatus": 200,
+    "active": [
+      {
+        "id": "614b5e3b-5581-4821-8daf-d19289c45ba9",
+        "versions": [
+          {
+            "version_id": "1a7996dd-1cc0-4046-9e39-56d0aaea4bc8",
+            "percentage": 100
+          }
+        ],
+        "created_on": "2026-08-30T14:10:48.825181Z"
+      }
+    ],
+    "publicConfiguration": [],
+    "quotaBindingNames": []
+  },
+  "billing": {
+    "failure": "Error: Cloudflare API error: 10000: Authentication error"
+  },
+  "container": {
+    "status": 200,
+    "id": "a0362707-1337-4517-9f84-49b53ecfdfa9",
+    "max_instances": 1,
+    "configurationKeys": [
+      "image",
+      "vcpu",
+      "memory",
+      "memory_mib",
+      "disk",
+      "network",
+      "command",
+      "entrypoint",
+      "runtime",
+      "observability"
+    ]
+  },
+  "access": {
+    "status": 200,
+    "targets": [
+      {
+        "id": "5ae63959-05d5-45a7-a9bd-237c271245c0",
+        "type": "self_hosted",
+        "domain": "bee-validation-20260909.klappy.workers.dev/signup",
+        "self_hosted_domains": [
+          "bee-validation-20260909.klappy.workers.dev/signup",
+          "bee-validation-20260909.klappy.workers.dev/signup/*",
+          "bee-validation-20260909.klappy.workers.dev/preview",
+          "bee-validation-20260909.klappy.workers.dev/preview/*",
+          "bee-validation-20260909.klappy.workers.dev/index.html",
+          "bee-validation-20260909.klappy.workers.dev/authorize/email",
+          "bee-validation-20260909.klappy.workers.dev/authorize/email/*"
+        ],
+        "destinations": [
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/signup"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/signup/*"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/preview"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/preview/*"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/index.html"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/authorize/email"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/authorize/email/*"
+          }
+        ]
+      },
+      {
+        "id": "8fc54e03-24c8-4c02-9376-7c639a3ca94e",
+        "type": "self_hosted",
+        "domain": "bee-validation-20260909.klappy.workers.dev/admin",
+        "self_hosted_domains": [
+          "bee-validation-20260909.klappy.workers.dev/admin",
+          "bee-validation-20260909.klappy.workers.dev/admin/*"
+        ],
+        "destinations": [
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/admin"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/admin/*"
+          }
+        ]
+      },
+      {
+        "id": "f5c6bb74-2b83-441a-a316-08de4c68743a",
+        "type": "self_hosted",
+        "domain": "bee-validation-20260909.klappy.workers.dev/mcp",
+        "self_hosted_domains": [
+          "bee-validation-20260909.klappy.workers.dev/mcp",
+          "bee-validation-20260909.klappy.workers.dev/register",
+          "bee-validation-20260909.klappy.workers.dev/token",
+          "bee-validation-20260909.klappy.workers.dev/.well-known",
+          "bee-validation-20260909.klappy.workers.dev/authorize",
+          "bee-validation-20260909.klappy.workers.dev/consent",
+          "bee-validation-20260909.klappy.workers.dev/pairing",
+          "bee-validation-20260909.klappy.workers.dev/callback"
+        ],
+        "destinations": [
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/mcp"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/register"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/token"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/.well-known"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/authorize"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/consent"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/pairing"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/callback"
+          }
+        ]
+      },
+      {
+        "id": "157ccc32-1cd7-4c7b-a23e-0a70cf3921e6",
+        "type": "self_hosted",
+        "domain": "klappy-kitchen-rail.klappy.workers.dev",
+        "self_hosted_domains": [
+          "klappy-kitchen-rail.klappy.workers.dev",
+          "klappy-kitchen-rail-hud-review.klappy.workers.dev"
+        ],
+        "destinations": [
+          {
+            "type": "public",
+            "uri": "klappy-kitchen-rail.klappy.workers.dev"
+          },
+          {
+            "type": "preview_worker"
+          },
+          {
+            "type": "worker"
+          },
+          {
+            "type": "public",
+            "uri": "klappy-kitchen-rail-hud-review.klappy.workers.dev"
+          }
+        ]
+      },
+      {
+        "id": "975f893c-b9a6-47c3-800b-99803a2c8959",
+        "type": "self_hosted",
+        "domain": "*-tincan.klappy.workers.dev",
+        "self_hosted_domains": [
+          "*-tincan.klappy.workers.dev"
+        ],
+        "destinations": [
+          {
+            "type": "public",
+            "uri": "*-tincan.klappy.workers.dev"
+          }
+        ]
+      }
+    ]
+  },
+  "inventory": {
+    "status": 200,
+    "beeWorkers": [
+      {
+        "name": "bee-ai-auth-mcp",
+        "tag": "27b750389ea04ed1af1a6c50dc0e5e37"
+      },
+      {
+        "name": "bee-validation-20260909",
+        "tag": "9b7d9c86f72e4af38303e3f9e63ee3c9"
+      }
+    ]
+  },
+  "triggers": [
+    {
+      "worker": "bee-ai-auth-mcp",
+      "status": 200,
+      "triggers": [
+        {
+          "id": "40a4940d-5c14-4721-908f-a7c304ae2adf",
+          "branches": [
+            "production"
+          ],
+          "deployCommand": "npx wrangler deploy --config wrangler.production.jsonc"
+        }
+      ]
+    },
+    {
+      "worker": "bee-validation-20260909",
+      "status": 200,
+      "triggers": [
+        {
+          "id": "ef89722b-f048-4889-894f-be7a841d682c",
+          "branches": [
+            "main"
+          ],
+          "deployCommand": "node scripts/deploy-staging.cjs"
+        }
+      ]
+    }
+  ],
+  "disposition": {
+    "providerMutations": 0,
+    "runtimeExpired": true,
+    "quotaActivated": false,
+    "productionChanged": false,
+    "cumulativeCostRemaining": "unknown",
+    "costReason": "Billing usage GET failed with Cloudflare API error10000 Authentication error. No extension or allowance remainder inferred.",
+    "scope": "Read-only monthly continuation baseline; not hosted consumer acceptance."
+  }
+}

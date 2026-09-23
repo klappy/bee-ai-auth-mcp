@@ -1,0 +1,20 @@
+{
+  "observed_at": "2026-09-09T17:28:34.756Z",
+  "scope": "Closed current probe cleanup; no claim of historical-version secret erasure or user-grant revocation.",
+  "result": {
+    "probe_bindings_absent": true,
+    "phase": "readback",
+    "version": "f7a09836-7fad-469e-8c5f-bb23dea704a9",
+    "deployment": "d5778d43-2b66-4ae9-9a5e-3b4f6446cf8f",
+    "module_sha256": "541413ce0e278571ed8fb47b62f0077090d1cfd5852030e3fc8bff38ac2974fe",
+    "namespace": {
+      "id": "5b99701b01df4b2b886be69a0202a0e9",
+      "name": "bee-validation-20260909_BeeBridge",
+      "script": "bee-validation-20260909",
+      "class": "BeeBridge",
+      "use_sqlite": true,
+      "use_containers": true
+    },
+    "accepted": true
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "image": "registry.cloudflare.com/b03e6ea242724c05eb97eb732cceb21d/bee-validation-20260909-455501a57e820ab6c3eb927b699d02cb:ea68e53edb8e",
+  "uploaded_blobs": [
+    {
+      "digest": "sha256:458e92ce73199d5f9f362ba3a4f0adbc5534343e0a47ea495ebc4b34dc9cd6da",
+      "size": 2965
+    },
+    {
+      "digest": "sha256:235c3625d753c5b8a741210c2e7fb26b47a0d02cf49acc631a38dcf847eedf89",
+      "size": 4951123
+    },
+    {
+      "digest": "sha256:dc0fb75e565a59a5824baedc9645656d17bc91c4b31332ee179580fa9f60eacd",
+      "size": 2506537
+    },
+    {
+      "digest": "sha256:50e014bb597ee21e385d8e5c783e96406b294a8c4a1d90db620109765b813a07",
+      "size": 95379880
+    }
+  ],
+  "manifest_published": true,
+  "partial_upload": false,
+  "upload_start_outcome": "accepted",
+  "partial_upload_disposition": "Committed and checked by digest.",
+  "last_upload_path": "/v2/b03e6ea242724c05eb97eb732cceb21d/bee-validation-20260909-455501a57e820ab6c3eb927b699d02cb/blobs/uploads/d7278303-2bd2-462f-ae76-bd98444c5d47",
+  "blob_commit_outcome": "accepted",
+  "manifest_put_outcome": "accepted",
+  "anonymous_access_status": 401,
+  "verified": true,
+  "digest": "sha256:5f732c594b2c5dbb1b06de2ff2ec81bfb45ca075eb6dcb9f71ea6c839ac09306",
+  "compressed_bytes": 103556232,
+  "blob_count": 16,
+  "local_key_and_ciphertext_removed": true
+}

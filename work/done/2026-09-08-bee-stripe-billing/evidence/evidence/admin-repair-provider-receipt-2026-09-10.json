@@ -1,0 +1,14 @@
+{
+  "accepted": true,
+  "observed": "2026-09-10T13:41:19.193Z",
+  "phase": "readback",
+  "version": "92624aca-33c0-490b-b5b8-d4ac8e4bf0b5",
+  "deployment": "b8de09ec-eb58-433f-b45f-e8e8b1dcdd20",
+  "module_sha256": "3e5e7e72a7a2f7af4ced0d5387347e0cfef8a756dd80e0be34b9b5d7e353c8e8",
+  "module_bytes": 2558550,
+  "secrets_inherited": true,
+  "runtime_deadline_preserved": true,
+  "access_unchanged": true,
+  "production_unchanged": true,
+  "logging_disabled": true
+}

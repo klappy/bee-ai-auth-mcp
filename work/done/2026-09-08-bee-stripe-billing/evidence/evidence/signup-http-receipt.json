@@ -1,0 +1,120 @@
+{
+  "checks": [
+    {
+      "content_type": "text/html; charset=utf-8",
+      "marketing_pricing_absent": true,
+      "neutral_signup_entry": true,
+      "path": "/",
+      "redirect_host": null,
+      "redirect_path": null,
+      "status": 200
+    },
+    {
+      "authorization_url": "https://bee-validation-20260909.klappy.workers.dev/authorize",
+      "content_type": "application/json",
+      "issuer_is_staging": true,
+      "json": true,
+      "path": "/.well-known/oauth-authorization-server",
+      "redirect_host": null,
+      "redirect_path": null,
+      "registration_url": "https://bee-validation-20260909.klappy.workers.dev/register",
+      "status": 200,
+      "token_url": "https://bee-validation-20260909.klappy.workers.dev/token"
+    },
+    {
+      "content_type": "application/json",
+      "issuer_is_staging": false,
+      "json": true,
+      "path": "/.well-known/oauth-protected-resource",
+      "redirect_host": null,
+      "redirect_path": null,
+      "resource": "https://bee-validation-20260909.klappy.workers.dev",
+      "status": 200
+    },
+    {
+      "content_type": "application/json",
+      "issuer_is_staging": false,
+      "json": true,
+      "path": "/.well-known/oauth-protected-resource/mcp",
+      "redirect_host": null,
+      "redirect_path": null,
+      "resource": "https://bee-validation-20260909.klappy.workers.dev/mcp",
+      "status": 200
+    },
+    {
+      "content_type": "application/json",
+      "issuer_is_staging": false,
+      "json": true,
+      "path": "/mcp",
+      "redirect_host": null,
+      "redirect_path": null,
+      "status": 401
+    },
+    {
+      "content_type": "text/html; charset=UTF-8",
+      "path": "/signup",
+      "redirect_host": "klappy.cloudflareaccess.com",
+      "redirect_path": "/cdn-cgi/access/login/bee-validation-20260909.klappy.workers.dev",
+      "status": 302
+    },
+    {
+      "content_type": "text/html; charset=UTF-8",
+      "path": "/signup/retry",
+      "redirect_host": "klappy.cloudflareaccess.com",
+      "redirect_path": "/cdn-cgi/access/login/bee-validation-20260909.klappy.workers.dev",
+      "status": 302
+    },
+    {
+      "content_type": "text/html; charset=UTF-8",
+      "path": "/preview/index.html",
+      "redirect_host": "klappy.cloudflareaccess.com",
+      "redirect_path": "/cdn-cgi/access/login/bee-validation-20260909.klappy.workers.dev",
+      "status": 302
+    },
+    {
+      "content_type": "text/html; charset=UTF-8",
+      "path": "/admin",
+      "redirect_host": "klappy.cloudflareaccess.com",
+      "redirect_path": "/cdn-cgi/access/login/bee-validation-20260909.klappy.workers.dev",
+      "status": 302
+    },
+    {
+      "content_type": "text/html; charset=UTF-8",
+      "path": "/admin/decision",
+      "redirect_host": "klappy.cloudflareaccess.com",
+      "redirect_path": "/cdn-cgi/access/login/bee-validation-20260909.klappy.workers.dev",
+      "status": 302
+    },
+    {
+      "content_type": "text/html; charset=UTF-8",
+      "path": "/authorize/email",
+      "redirect_host": "klappy.cloudflareaccess.com",
+      "redirect_path": "/cdn-cgi/access/login/bee-validation-20260909.klappy.workers.dev",
+      "status": 302
+    },
+    {
+      "error": "invalid_client",
+      "json": true,
+      "method": "POST",
+      "path": "/token",
+      "redirect_host": null,
+      "status": 401
+    },
+    {
+      "client_created": true,
+      "method": "POST",
+      "path": "/register",
+      "public_client_no_secret": true,
+      "redirect_host": null,
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/authorize",
+      "redirect_host": "bee-validation-20260909.klappy.workers.dev",
+      "redirect_path": "/authorize/email",
+      "status": 307
+    }
+  ],
+  "observed": "2026-09-10T13:17:32.726Z"
+}

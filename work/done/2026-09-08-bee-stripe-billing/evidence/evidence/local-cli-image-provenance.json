@@ -1,0 +1,69 @@
+{
+  "base": {
+    "manifest_sha256": "5883c320d81f76c764e114c9ab14054f037bb040907816fc9028d80d9602a7c3",
+    "config": "sha256:c31423653c22931f970322b39ef0b1a9395efefa45e4e8d16fc409c286443c0b",
+    "layers": [
+      "sha256:a5789fc40e828c4e7467626e3f69ec5dea8e5da22fe660db8ae6d16f777b0bbf",
+      "sha256:990a9c434e5e0f11549a8d4a41a1991e621b04e30cd63269adbc97b1dc38fd7e",
+      "sha256:39dc083afc39bd8dc43d456fe7ff7d39292e593bb2769972c11bb2e5f9119386",
+      "sha256:bf7a4185f01524837d19abde915ffde84e64368b250f5b5e9f6f75aea62a11d4",
+      "sha256:2780920e5dbfbe103d03a583ed75345306e572ec5a48cb10361f046767d9f29a",
+      "sha256:7c12895b777bcaa8ccae0605b4de635b68fc32d60fa08f421dc3818bf55ee212",
+      "sha256:3214acf345c0cc6bbdb56b698a41ccdefc624a09d6beb0d38b5de0b2303ecaf4",
+      "sha256:52630fc75a18675c530ed9eba5f55eca09b03e91bd5bc15307918bbc1a7e7296",
+      "sha256:dd64bf2dd177757451a98fcdc999a339c35dee5d9872d8f4dc69c8f3c4dd0112",
+      "sha256:b839dfae01f66e15c6a8b63520557ed315bdfe036342fa7a0c537259f10d7a9a",
+      "sha256:dcaa5a89b0ccda4b283e16d0b4d0891cd93d5fe05c6798f7806781a6a2d84354",
+      "sha256:96ed2737ae312e0bc637b40783f7c2f23416cb72ca957aa01855f1614278e64b",
+      "sha256:235c3625d753c5b8a741210c2e7fb26b47a0d02cf49acc631a38dcf847eedf89",
+      "sha256:dc0fb75e565a59a5824baedc9645656d17bc91c4b31332ee179580fa9f60eacd"
+    ],
+    "archive_config_and_layers_verified": true
+  },
+  "caddy": {
+    "manifest_sha256": "8c78bf0a666541cd56e36ea40d02f1c84847a2b4fd490f600aa38f7221d73c67",
+    "config": "sha256:a2d4f34dbb530cece73f3e56e62ec5bb6a134713d461f1926626b7662637d911",
+    "layers": [
+      "sha256:e6f31ffc071e5560b82a8685fba8214954e5721e3e49269d00958316edbe89fe",
+      "sha256:caf85087de4d9029bde4e29993ffa1fd51bdcd601ee8f0b24b475b6f188b3015",
+      "sha256:2cb3e687d353c47479f7eb82d6cc1b230f1d252bfefaddbeec9d3de57edf5d49",
+      "sha256:a01ef6a6016004d114c97cf04a9708d71f6bb95e2b482f829ae547874376d5c7",
+      "sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1",
+      "sha256:1cd8c17890dbc73f8bb6f40ef0968d669b221cbe8c9a3ef7170983b8bca126f3",
+      "sha256:09612693ad193e1457380aa26ec51154996b78557d8eef3d51c273603f01b977",
+      "sha256:190965b80b0cfe3b02431a55f4c8d1f863acca348ce52454efba550d642814fd",
+      "sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1"
+    ],
+    "archive_config_and_layers_verified": true
+  },
+  "bun": {
+    "manifest_sha256": "11ec60524072cb42ed7e92cbeea9c6c1781da7d50db6d4bd57b5162e6685b25d",
+    "config": "sha256:7eac9a043058cd244197e348191c82afd0195d0dfea7d8ddcbeac76882fd4f9e",
+    "layers": [
+      "sha256:8fb375ec14f3df8b31b70d0216508565ab7264a7e16cac4f8cc07f8eca22445f",
+      "sha256:5df8ab8dde120c0347d2d8d5f74f4c6df454c06afa23a51c9db7f206f5961c80",
+      "sha256:a5fef6c30484e902a469a8e4dc4894f4631b63b69cd98849f473c7a4adbce1c7",
+      "sha256:21294ec0f634ed6ddb5412179ab37937a5ee6486854b24d7601d0ce8bbcfa806",
+      "sha256:0f299ea228a39356612ba2d3ad137c10f75c09422c92946e724e4dd215b1219e",
+      "sha256:28379e3c6135b74568d73f9ef685c4b8130f1c2908b8d0ed6e4d971b9bb08e01"
+    ],
+    "retrieval": "crane export --platform linux/amd64 oven/bun:1.2-debian bun-rootfs.tar; initial pull archive truncated; direct filesystem export completed0",
+    "immutable_oci_digest": "sha256:11ec60524072cb42ed7e92cbeea9c6c1781da7d50db6d4bd57b5162e6685b25d",
+    "compiler_sha256": "b8c8e67bd0476593f50b8ba2f1f203210e6b3cfa1bc1a81f82bda109318118c9",
+    "compiler_matches_immutable_oci_layers": true,
+    "oci_path": "bun-oci"
+  },
+  "bee_source": {
+    "url": "https://codeload.github.com/bee-computer/bee-cli/tar.gz/e67032d59bdfdc7f3bc73dd67683328c3e0d58b2",
+    "archive": "metadata/bee-source.tar.gz",
+    "sha256": "2af3e57f1806036adcc3c5bb9c4b4678d3feb8e8918ab2657ec6e8708b81fe27",
+    "matched_files": 112
+  },
+  "commands": [
+    "CGO_ENABLED=0 xcaddy build --output out/caddy (Go from extracted caddy builder, PATH/GOROOT selected)",
+    "bun add github:bee-computer/bee-cli#e67032d59bdfdc7f3bc73dd67683328c3e0d58b2",
+    "bun build ./sources/main.ts --compile --outfile out/bee (cwd installed @beeai/cli)",
+    "bun build bee-validation-combined/bridge/broker.mjs --compile --outfile bee-local-image/out/broker"
+  ],
+  "broker_source_sha256": "d608eecca1120db42ebf541d594157387dc9f5b14df1e23a53b0b387fd2f324c"
+}

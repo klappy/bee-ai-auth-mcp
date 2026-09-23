@@ -1,0 +1,17 @@
+# Homepage owner verdict — September 11, 2026
+
+Observed 2026-09-11T21:26:50Z; America/New_York. Klappy reviewed the protected homepage and said: “good enough to ship!” This accepts its visual presentation and exact copy and directs shipment once applicable technical and configuration gates pass. Do not ask for the same copy or generic shipping approval again.
+
+Approved surface: https://bee-validation-20260909.klappy.workers.dev/preview/. Exact text: product docs/hosted-homepage-draft-2026-09-11.md at 6b252fb34137ce600e5327603f36d29570d10fcd, blob b23923d1129e95f40657db054aac573bcec4be5e. Current preview module blob7783ea350e2d4f62b160054a1eb3ce89683f777e retains the explicit review-only notice that immediate free access and paid upgrades are not enabled.
+
+## Bounded source continuation
+
+Auggie /root/auggie_bee_ship accepts charter and delivery loop1.0.0. Receiver homepage_cook owns a feature branch from current main2993b9c158a9214736253d375060d91df1deaf31. Extract the exact approved HTML into one data-only source module, retain its protected-preview consumer, and prepare an explicit release materializer using the existing esbuild dependency. Output is a reviewable release artifact; it must not automatically replace public/index.html or alter provider/build configuration. Preserve banner, all copy, layout, clipboard and authentication behavior. Documentation, order and debrief travel in the same PR. No new substrate or dependency; reuse existing template and esbuild. Driver-seat: exempt (fast-food). Remaining promise is20minutes from receiver implementation ACK to reviewed source or named partial; historical promises are not reset.
+
+Current rail reorientation: authenticated complete recursive mainfd904e3537677f4eb89292794cc3a7c2ef54845f tree has exactly one auth and homepage directory in3-pass, Stripe in1-ordered, no duplicate paths. PR55 remains draft at current main and does not contain a production-ready signup configuration. Amendment supersedes pending voice review, not technical acceptance. Existing checklist/fire record remains the parent; this is counter-service packaging of the accepted artifact, not a new product design.
+
+Preflight surfaced visual evidence, logic tests and decision provenance: owner visual acceptance and existing browser evidence retained; verify exact HTML equality and unchanged route behavior; attach this verdict. Fresh independent review and current-head CI/Bugbot remain before merge. Challenge block_until_addressed=false. It is one exact source instance, not a generalized pattern; any byte/output drift or route regression falsifies the preservation claim and requires correction before landing. No comparative, architectural or commercial claim is introduced.
+
+## Remaining production gates
+
+The reviewed draft is not proof that production implements monthly free access. A numeric allowance, hosted production entry/configuration, real remaining isolation/cleanup acceptance and accepted provider envelope are still required. No arbitrary quota, new ongoing spending, secret disclosure, billing activation or unverified success is authorized by copy approval. Otto owns infrastructure/security; an independent reviewer accepts actual candidates before provider effects. Production must remain unchanged until the applicable candidate is ready. Whole-ticket disposition remains cook longer at3-pass; no plating or meal closure.

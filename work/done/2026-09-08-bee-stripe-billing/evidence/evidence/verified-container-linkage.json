@@ -1,0 +1,19 @@
+{
+  "observed_at": "2026-09-09T17:20:05.589Z",
+  "scope": "Actual isolated Container linkage; no runtime acceptance",
+  "result": {
+    "phase": "readback",
+    "version": "996e2832-df16-4ad5-a995-61e0b998f775",
+    "deployment": "a7d0312a-5391-459d-a1b3-a9d9d3fff0db",
+    "module_sha256": "541413ce0e278571ed8fb47b62f0077090d1cfd5852030e3fc8bff38ac2974fe",
+    "namespace": {
+      "id": "5b99701b01df4b2b886be69a0202a0e9",
+      "name": "bee-validation-20260909_BeeBridge",
+      "script": "bee-validation-20260909",
+      "class": "BeeBridge",
+      "use_sqlite": true,
+      "use_containers": true
+    },
+    "accepted": true
+  }
+}

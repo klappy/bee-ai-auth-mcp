@@ -1,0 +1,151 @@
+{
+  "all_inactive": true,
+  "bindings": [
+    {
+      "name": "ACCESS_AUD",
+      "type": "plain_text"
+    },
+    {
+      "name": "ACCESS_TEAM_DOMAIN",
+      "type": "plain_text"
+    },
+    {
+      "name": "ALLOWED_GITHUB_LOGIN",
+      "type": "plain_text"
+    },
+    {
+      "class_name": "BeeBridge",
+      "name": "BEE_BRIDGE",
+      "namespace_id": "5b99701b01df4b2b886be69a0202a0e9",
+      "type": "durable_object_namespace"
+    },
+    {
+      "name": "BEE_SNI",
+      "type": "plain_text"
+    },
+    {
+      "name": "BEE_UPSTREAM",
+      "type": "plain_text"
+    },
+    {
+      "name": "CONSENT_SIGNING_SECRET",
+      "type": "secret_text"
+    },
+    {
+      "name": "OAUTH_KV",
+      "namespace_id": "d57ff6004e48496893132f343a8f4a81",
+      "type": "kv_namespace"
+    },
+    {
+      "name": "SIGNUP_ENABLED",
+      "type": "plain_text",
+      "value": "true"
+    },
+    {
+      "name": "STAGING_OWNER_EMAIL",
+      "type": "secret_text"
+    },
+    {
+      "name": "STAGING_PREVIEW_AUD",
+      "type": "plain_text"
+    },
+    {
+      "name": "VALIDATION_EXPIRES_AT",
+      "type": "plain_text",
+      "value": "2026-09-11T11:54:18.386Z"
+    },
+    {
+      "name": "VALIDATION_STARTS_AT",
+      "type": "plain_text",
+      "value": "2026-09-11T11:34:18.386Z"
+    }
+  ],
+  "build": {
+    "branch": "main",
+    "commit": "2f5e2727798cd8cac1a90ba98a2b813458f49897",
+    "id": "73566682-cf11-40b7-a53b-27d4a1889c8b",
+    "outcome": "success",
+    "status": "stopped",
+    "stopped_on": "2026-09-11T11:58:33.622Z",
+    "trigger": "ef89722b-f048-4889-894f-be7a841d682c"
+  },
+  "container": {
+    "image": "registry.cloudflare.com/b03e6ea242724c05eb97eb732cceb21d/bee-validation-20260909-455501a57e820ab6c3eb927b699d02cb@sha256:5f732c594b2c5dbb1b06de2ff2ec81bfb45ca075eb6dcb9f71ea6c839ac09306",
+    "logs_enabled": false,
+    "max_instances": 1,
+    "private": true
+  },
+  "containers": [
+    {
+      "class_name": "BeeBridge",
+      "name": "BeeBridge"
+    }
+  ],
+  "exports": {
+    "BeeBridge": {
+      "container": "BeeBridge",
+      "storage": "sqlite",
+      "type": "durable-object"
+    }
+  },
+  "main": "2f5e2727798cd8cac1a90ba98a2b813458f49897",
+  "observed": "2026-09-11T11:59:41.908Z",
+  "preservation": {
+    "containers_preserved": true,
+    "exports_preserved": true,
+    "full_nonsecret_bindings_preserved": true,
+    "observed": "2026-09-11T12:00:26.924Z",
+    "secret_names_preserved": true
+  },
+  "production": {
+    "deployment": "614b5e3b-5581-4821-8daf-d19289c45ba9",
+    "versions": [
+      {
+        "percentage": 100,
+        "version_id": "1a7996dd-1cc0-4046-9e39-56d0aaea4bc8"
+      }
+    ]
+  },
+  "quota_bindings": 0,
+  "staging": {
+    "deployment": "3522fb86-bac3-4aff-b776-cc2243fdd933",
+    "embedded_main": true,
+    "module_bytes": 2605544,
+    "module_count": 1,
+    "module_sha256": "2613aed6ed2785f2560ca1d55769e859acb8425f8028e1b18cf1114c5122939d",
+    "versions": [
+      {
+        "percentage": 100,
+        "version_id": "bf2ab5bf-98d1-45c0-8786-4eb9dca50127"
+      }
+    ]
+  },
+  "states": {
+    "inactive": 1
+  },
+  "status": 200,
+  "window": {
+    "expired": true,
+    "expires_at": "2026-09-11T11:54:18.386Z",
+    "starts_at": "2026-09-11T11:34:18.386Z"
+  },
+  "worker_logging_disabled": true,
+  "consumer_result": {
+    "source": "Root actual native bee_docs, relayed through Auggie",
+    "isError": false,
+    "text_blocks": 1,
+    "exact_canonical_match": true,
+    "characters": 8074,
+    "canonical_blob": "d8164e1679e7d766bc2d80d1c048bde21fa2aee7",
+    "private_retrieval": false
+  },
+  "post_docs_state": {
+    "observed": "2026-09-11T12:01:22.138Z",
+    "status": 200,
+    "all_inactive": true,
+    "states": {
+      "inactive": 1
+    }
+  },
+  "disposition": "Scoped PR61 served-reference delivery verified; expired runtime remains closed and Container inactive. Otto stands down; no background monitoring, additional provider mutation or private retrieval."
+}

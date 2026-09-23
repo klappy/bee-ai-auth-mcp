@@ -1,0 +1,29 @@
+{
+  "accepted": true,
+  "build_id": "234fd53f-64a9-4af4-97de-de6586f7e0b7",
+  "build_outcome": "success",
+  "build_status": "stopped",
+  "ci_provider_credential_worked": true,
+  "commit": "15d4deb6a0b18fc17ec7eb3f4967168f12ba174c",
+  "deployment": "84ac5750-6c6c-4a66-b4a0-4b4eb297280a",
+  "module_bytes": 2564349,
+  "module_contains_exact_commit": true,
+  "module_sha256": "2721c4b1b32c21a0d1a5fe45f20dbfcb8223e85051f7db14216e65c64cd6700e",
+  "observed": "2026-09-10T14:08:53.225Z",
+  "runtime_expires_at": "2026-09-10T15:18:31.966Z",
+  "staging_only": true,
+  "tests_passed": 198,
+  "tests_skipped": 2,
+  "trigger_source": "push_event",
+  "version": "d7f2063f-81d9-4775-9b06-f8c6a7c75b24",
+  "http": {
+    "version_status": 200,
+    "version_body": "15d4deb6a0b18fc17ec7eb3f4967168f12ba174c",
+    "authorization_metadata_status": 200,
+    "protected_resource_metadata_status": 200,
+    "mcp_status": 401,
+    "mcp_resource_metadata_challenge": true,
+    "access_redirect_on_protocol": false
+  },
+  "scope": "Actual main push-triggered Builds success, deployed module/provider readback and public HTTP. Consumer signup, owner decision, ChatGPT installation and personal Bee grant acceptance remain separate."
+}

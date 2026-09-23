@@ -1,0 +1,17 @@
+# Nonce image repository — bounded alternative for review
+
+Supersedes only the fixed image repository/tag collision prerequisite in image packet e3dcc5aa4354c10f923c547b73d89ba0a9bc40a93a7871ab26d0ef1f633cfaee. No execution of this alternative yet.
+
+Observed prior attempt: one registry transport credential was issued with requested1minute TTL/pull-only; its same-call HEAD on fixed tag returned403. Absence and403origin remain unproven. Credential issuance was a provider mutation; no Worker/build/image/Container mutation occurred. No second credential or read retry is proposed.
+
+Proposal: generate16 random bytes through crypto.getRandomValues inside trusted tooling and format32lowercasehex. Use NEW repository `bee-validation-20260909-<32hex>` and tag `ea68e53edb8e`. Validate final image-name regex before constructing the one reviewed image-only build command. The nonce is a nonsecret resource identifier and may be recorded. Do not derive nonce from credentials, identities or private data.
+
+This does not prove registry absence. It avoids practically plausible overwrite of any existing production/test artifact by selecting an independently random128bit repository name (collision probability for one existing name is2^-128). Preserve that distinction. No attempt accesses the denied fixed tag, copies an existing image, changes its permissions, or reuses a known repository. No retry of the failed registry request, new credential, list operation, alternative credential source or globalGC. The same previously reviewed provider Builds path creates a newly named artifact from the already approved exact source.
+
+Everything else remains exact image-stage scope: fresh Worker-name absence; new undeployed Worker/no traffic; new trigger using existing associated repo_connection/build_token references; automatic branches excluded; HEADassert ea68e53edb8e684c779b89fcbbf5c9496b7200b5; minimal NEW Worker-name config; provider `npx wrangler containers build ./bridge --tag <nonce-repository>:ea68e53edb8e --push --config wrangler.image-validation.jsonc`; one manual exactcommit build; no seed_repo/source push/production trigger modification; no runtime Container/secrets/admission; max20min build and shared$5 ceiling unchanged. No independent second build for failure.
+
+Before POST, record concrete nonce repository and SHA256 of final command/config so the executed material is reviewable against this substitution-only template. Sanitize build status/digest output; final pushed digest and exact source are required. Existing stored credential reference is consumed by already-reviewed provider build; no account API token is newly created or broadened. Provider permission failure ends this attempt.
+
+Cost: one build at published20minmaximum and$0.005/min is$0.10. ManagedregistryR2-backed storage estimate benchmark remains provisional, not tariff/cap. No new subscription selected and no Container running. Preserve known newly created image tag/digest and bounded retention disposition; no deletion credential or physical-GC claim added by this alternative. If exact artifact cleanup requires wider authority, name only that residue, not whole-accountGC.
+
+Reviewer must decide whether this is a materially safer new-artifact path within approved scope rather than bypass of denied access. Do not execute on author's own verdict. No renewed isolated-environment or$5 owner approval is requested.

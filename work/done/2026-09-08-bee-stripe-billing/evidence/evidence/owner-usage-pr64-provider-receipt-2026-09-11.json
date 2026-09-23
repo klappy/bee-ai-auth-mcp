@@ -1,0 +1,19 @@
+{
+  "main": "d4c2b0c5ced8f5792b961c55bab4194fb6e0fe4a",
+  "build": {
+    "id": "33d1d503-eb5a-414a-94de-305c0fc50cc4",
+    "outcome": "fail",
+    "phase": "build command tests before deployment",
+    "test": "test/bridge-image-probe.test.ts:23:3",
+    "error": "Test timed out in 5000ms",
+    "passed": 248,
+    "failed": 1,
+    "skipped": 2
+  },
+  "active": {
+    "version": "691200c9-5064-4f74-8cd8-1cfecc80e636",
+    "deployment": "e625405b-8a9b-4c47-b58f-d681336addcf",
+    "unchanged": true
+  },
+  "disposition": "PR64 merged but not deployed. No same-source retry or bypass invoked. Cook investigating bounded subprocess test failure; no daemon-hang root cause established from log."
+}

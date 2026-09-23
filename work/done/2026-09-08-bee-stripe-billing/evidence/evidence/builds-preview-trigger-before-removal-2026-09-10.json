@@ -1,0 +1,27 @@
+{
+  "config": {
+    "branch_excludes": [
+      "production"
+    ],
+    "branch_includes": [
+      "*"
+    ],
+    "build_caching_enabled": true,
+    "build_command": "",
+    "deploy_command": "npx wrangler versions upload",
+    "external_script_id": "27b750389ea04ed1af1a6c50dc0e5e37",
+    "path_excludes": [],
+    "path_includes": [
+      "*"
+    ],
+    "root_directory": "/",
+    "trigger_name": "Deploy non-production branches"
+  },
+  "failed_patch_error": 12002,
+  "failed_patch_status": 400,
+  "observed": "2026-09-10T13:45:47.099Z",
+  "private_reference_trigger": "ce34c1d3-6a81-4fe3-8ff4-38054fbe36e4",
+  "private_references_match": true,
+  "rollback_tested": false,
+  "trigger_to_remove": "8d6c1aca-f859-49a3-b2c1-4104cce9e1aa"
+}

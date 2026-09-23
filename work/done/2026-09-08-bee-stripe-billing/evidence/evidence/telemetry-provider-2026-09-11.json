@@ -1,0 +1,137 @@
+{
+  "scope": "Read-only telemetry capability and staging baseline; no provider mutation",
+  "authority": "Owner authorizes observing own extreme usage for monthly allowance calibration; no other-user telemetry or numeric quota activation.",
+  "source": {
+    "main": "2f5e2727798cd8cac1a90ba98a2b813458f49897",
+    "telemetryBlob": "aaf37a5a4c0f639dc9d78d287ca18af4adf044ca",
+    "quotaBlob": "172dca684395dab4bdcb359a59cb5f9a27b85ee1"
+  },
+  "provider": {
+    "inventoryStatus": 200,
+    "beeWorkers": [
+      "bee-ai-auth-mcp",
+      "bee-validation-20260909"
+    ],
+    "staging": {
+      "settingsStatus": 200,
+      "analyticsEngineBinding": false,
+      "githubSecretBinding": false,
+      "ownerSecretBinding": true,
+      "quotaEnabled": false,
+      "windowExpiresAt": "2026-09-11T11:54:18.386Z",
+      "version": "bf2ab5bf-98d1-45c0-8786-4eb9dca50127",
+      "deployment": "3522fb86-bac3-4aff-b776-cc2243fdd933",
+      "percent": 100,
+      "containerStatus": "inactive",
+      "containerStatusUpdatedAt": "2026-09-11T11:55:35Z",
+      "logpush": false
+    },
+    "production": {
+      "settingsStatus": 200,
+      "analyticsEngineBinding": true,
+      "version": "1a7996dd-1cc0-4046-9e39-56d0aaea4bc8",
+      "deployment": "614b5e3b-5581-4821-8daf-d19289c45ba9",
+      "percent": 100,
+      "mutated": false
+    },
+    "access": {
+      "status": 200,
+      "applicationCount": 5,
+      "beeScope": "signup/preview/email-authorize, admin, protocol paths",
+      "unrelatedKitchenAndTincanPreserved": true,
+      "hostnameCollision": false,
+      "mutation": false
+    }
+  },
+  "findings": [
+    "Staging Analytics Engine telemetry is currently a no-op because binding absent.",
+    "Existing key derivation uses GitHub secret absent in email-only staging; failure collapses to t_unknown and source falsely describes per-login HMAC as per-grant.",
+    "Disabled quota policy bypasses usage accounting; no historical owner usage count established.",
+    "No transcript, path, body, token, grant or other-user row was queried."
+  ],
+  "capability": {
+    "schema": "POST /accounts/{account_id}/analytics_engine/sql exposed; plain-text SELECT with FORMAT JSON",
+    "probe": "SELECT 1 AS capability_probe FORMAT JSON",
+    "result": "Tool isError true: Cloudflare API error: 200; structured error INVALID_ARGUMENT",
+    "interpretation": "Response adapter incompatibility suspected; not proof of provider authorization denial or usable aggregate query access."
+  },
+  "recommendation": {
+    "source": "Owner-only, default-disabled daily aggregate counters in existing staging DO with authenticated owner-only aggregate read, independently of quota enforcement.",
+    "privacy": "Match trusted owner identity inside runtime; no identity or tenant key stored or returned; no raw event rows or content; bounded 31-day buckets; coarse tool/status/duration/bytes only.",
+    "limits": "Preserve existing lifetime operation budget, request limits, storage, runtime expiry and production. Swallow telemetry failure. Fresh independent review before activation.",
+    "measurement": "Idle or disabled instrumentation cannot establish normal or extreme usage; no threshold recommendation from absent data.",
+    "retention": "At most 31 dated buckets; pruning on reads/writes does not promise physical timed deletion while idle."
+  },
+  "recordedAt": "2026-09-11T12:54:04.483Z",
+  "observationWindow": {
+    "startsAt": "2026-09-11T12:49:46.171Z",
+    "endsAt": "2026-09-11T12:54:04.483Z"
+  },
+  "proposedNaturalUsageEnvelope": {
+    "version": "1.0.0",
+    "status": "DRAFT awaiting exact source and fresh independent acceptance; no activation",
+    "purpose": "Observe owner's normal Bee work, not synthetic load or free quota enforcement.",
+    "scope": "Existing staging owner connection supplies measured usage; instrument is owner-only, execution is not owner-exclusive because other approved admission remains unchanged. Preserve lifetime caps and halt unexpected traffic. No new enrollment, grants, billing or production.",
+    "sourceGate": "Exact reviewed telemetry main commit/module and successful staging build; independent privacy and source gates before candidate.",
+    "configurationDelta": [
+      "OWNER_USAGE_ENABLED=true (actual source flag; exact reviewed source still required)",
+      "VALIDATION_STARTS_AT=observed activation timestamp",
+      "VALIDATION_EXPIRES_AT=start plus 2 hours"
+    ],
+    "preserve": [
+      "All other metadata/bindings and inherited secrets",
+      "Existing KV/DO, Container immutable image/private network/logs disabled",
+      "Lifetime validation requests 10000 and signup operations 100000; no resets",
+      "Quota bindings absent; no numeric commercial policy",
+      "Access applications, staging hostname, production source/deployment/settings"
+    ],
+    "execution": "GET active version/settings/Container/Access/production; clone full writable version, inherit secrets, change only approved flag and timestamps; upload deploy=false; GET exact source/bindings/metadata and unchanged active deployment; explicit deploy; GET effective source/settings/Container/Access/production; independent deployed acceptance before measurement.",
+    "shutdown": "Retain exact expiry until scheduled destruction. Never early restore to older expiry and invalidate scheduled shutdown. Observe actual inactive after deadline plus at most 10-minute accepted tail. No automatic extension or additional runtime after expiry. If no active session observes then, report unobserved rather than claim monitoring.",
+    "activity": "Owner uses normal existing Bee connection for own work; no agent generates load merely to fill telemetry. Baseline and after aggregates only; classify harness validation separately from normal usage. Do not call raw profile or transcript to establish measurement.",
+    "cost": {
+      "currency": "USD",
+      "originalApproval": 5,
+      "additionalApprovalRequested": false,
+      "containerWorstProvisionedSeconds": 7800,
+      "containerCompute": 0.060684,
+      "durableObjectLinearDuration": 0.01248,
+      "combinedLinearCompute": 0.073164,
+      "rateSources": [
+        "https://developers.cloudflare.com/containers/platform/pricing/",
+        "https://developers.cloudflare.com/durable-objects/platform/pricing/"
+      ],
+      "assumptions": "One max instance, 0.25 vCPU at full utilization, 1GiB RAM, 4GB disk for entire 2h+10min; one 128MB DO continuously active.",
+      "limits": "Linear estimates exclude request/storage/egress and provider billable-unit rounding. Included account allowances and historical remaining approval unknown. Prior accepted conservative history ~0.631 Container +0.130 DO and subsequent observed expired/inactive periods support plausibility, not full invoice proof. Halt on unexpected traffic/configuration or inability reasonably to remain under settled approval."
+    },
+    "retention": "31 days of bounded owner aggregates, not 31 days of open runtime; pruning on read/write, not guaranteed physical timed deletion.",
+    "outcome": "Actual measured usage can inform a proposed monthly free amount later. No sample yet and no threshold selected.",
+    "measurementGate": "After exact-source review/deployment, independently accept phase A: enable OWNER_USAGE_ENABLED only, preserving already-expired runtime timestamps. Read back version/settings and inactive Container. Rediscover actual native bee_observed_usage and obtain initial aggregate readback; registration is flag-gated, so catalog availability cannot precede flag-only activation. Phase B may open the bounded 2-hour runtime only after actual tool/readback availability and separate exact candidate acceptance. Subsequent observed aggregates must follow waitUntil completion before persistence claims. No provider RPC bypass or OAuth re-pair inference.",
+    "amendment": {
+      "observed": "2026-09-11T20:26:43.045Z",
+      "priorProposalBlob": "a98d6e32cf8c76d6500069d712c8283f41677333",
+      "disposition": "DRAFT corrected dependency cycle: reviewed flag-only activation precedes native catalog proof while runtime stays expired; runtime activation requires actual catalog and aggregate readback. Exact landed source still pending."
+    },
+    "phases": [
+      {
+        "id": "A",
+        "purpose": "Make owner-only native aggregate tool discoverable without opening Bee runtime",
+        "delta": [
+          "OWNER_USAGE_ENABLED=true"
+        ],
+        "preserve": "Existing expired VALIDATION_STARTS_AT and VALIDATION_EXPIRES_AT, all other bindings/resources/logging and production",
+        "gate": "Exact merged source, successful build, fresh independent source and flag-only candidate acceptance",
+        "readback": "Effective flag/version/module, unchanged expired window, Container inactive; actual native catalog and initial aggregate result"
+      },
+      {
+        "id": "B",
+        "purpose": "Observe natural owner usage",
+        "delta": [
+          "VALIDATION_STARTS_AT=observed activation timestamp",
+          "VALIDATION_EXPIRES_AT=start plus 2 hours"
+        ],
+        "gate": "Phase A actual native tool and aggregate readback passed; fresh exact runtime candidate acceptance",
+        "readback": "Preservation and deployed acceptance before usage; actual aggregate readback after waitUntil, shutdown observation after expiry"
+      }
+    ]
+  }
+}

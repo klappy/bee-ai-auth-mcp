@@ -1,0 +1,23 @@
+{
+  "observed": "2026-09-10T13:52:41.464Z",
+  "trigger_to_replace": "ce34c1d3-6a81-4fe3-8ff4-38054fbe36e4",
+  "config": {
+    "branch_includes": [
+      "production"
+    ],
+    "branch_excludes": [],
+    "build_command": "",
+    "deploy_command": "npx wrangler deploy",
+    "root_directory": "/",
+    "build_caching_enabled": true,
+    "path_includes": [
+      "*"
+    ],
+    "path_excludes": [],
+    "external_script_id": "27b750389ea04ed1af1a6c50dc0e5e37",
+    "trigger_name": "Deploy default branch"
+  },
+  "private_references": "Clone internally into replacement before deletion; also retained by staging trigger ef89722b-f048-4889-894f-be7a841d682c",
+  "production_code_mutation": false,
+  "rollback_tested": false
+}

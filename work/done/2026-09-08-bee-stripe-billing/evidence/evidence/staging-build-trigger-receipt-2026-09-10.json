@@ -1,0 +1,13 @@
+{
+  "accepted": true,
+  "observed": "2026-09-10T13:51:50.289Z",
+  "trigger": "ef89722b-f048-4889-894f-be7a841d682c",
+  "branch_includes": [
+    "main"
+  ],
+  "build_command": "npm ci && node scripts/gen-version.mjs && npm run typecheck && npm test",
+  "deploy_command": "node scripts/deploy-staging.cjs",
+  "production_unchanged": true,
+  "staging_deployment_unchanged": true,
+  "actual_ci_execution_proven": false
+}

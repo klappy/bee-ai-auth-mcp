@@ -1,0 +1,226 @@
+{
+  "scope": "PR63 source deployment and Phase A flag-only candidate; runtime remains expired",
+  "source": {
+    "bindings_preserved": true,
+    "build": {
+      "id": "6cfa900e-8280-4cff-89f4-bfffb7eab71a",
+      "outcome": "success",
+      "stopped_on": "2026-09-11T20:38:10.234Z"
+    },
+    "deployment": "27d2afb8-9191-4a40-8410-c2cd69279261",
+    "embedded_main": true,
+    "flags": [],
+    "main": "7f9e51f024b44b7a9b96b104e7f44bf3bcd67be1",
+    "module_bytes": 2623046,
+    "module_sha256": "bb679cf9c53f93cd473f1160c4752d39a50241cd8abb392d191576c7e02bada9",
+    "observed": "2026-09-11T20:38:13.291Z",
+    "states": [
+      {
+        "state": "inactive",
+        "updated_at": "2026-09-11T11:55:35Z"
+      }
+    ],
+    "version": "caf3ec77-b5ac-4ee4-91e5-71ea21d87418",
+    "window": [
+      {
+        "name": "VALIDATION_EXPIRES_AT",
+        "text": "2026-09-11T11:54:18.386Z"
+      },
+      {
+        "name": "VALIDATION_STARTS_AT",
+        "text": "2026-09-11T11:34:18.386Z"
+      }
+    ]
+  },
+  "phaseA": {
+    "active_unchanged": true,
+    "bindings_only_flag": true,
+    "candidate": "691200c9-5064-4f74-8cd8-1cfecc80e636",
+    "deployed": false,
+    "flag": {
+      "name": "OWNER_USAGE_ENABLED",
+      "text": "true",
+      "type": "plain_text"
+    },
+    "metadata_preserved": true,
+    "module_identical": true,
+    "observed": "2026-09-11T20:38:45.508Z",
+    "previous": "caf3ec77-b5ac-4ee4-91e5-71ea21d87418",
+    "status": 200,
+    "window": [
+      {
+        "name": "VALIDATION_EXPIRES_AT",
+        "text": "2026-09-11T11:54:18.386Z"
+      },
+      {
+        "name": "VALIDATION_STARTS_AT",
+        "text": "2026-09-11T11:34:18.386Z"
+      }
+    ]
+  },
+  "disposition": "Phase A independently accepted flag-only candidate deployed; actual settings/version/migration/expired window/inactive Container/production/Access read back. Await independent deployed acceptance and native catalog/aggregate verification. Phase B runtime not activated.",
+  "phaseADeployment": {
+    "access": [
+      {
+        "destinations": [
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/signup"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/signup/*"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/preview"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/preview/*"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/index.html"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/authorize/email"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/authorize/email/*"
+          }
+        ],
+        "domain": "bee-validation-20260909.klappy.workers.dev/signup",
+        "id": "5ae63959-05d5-45a7-a9bd-237c271245c0"
+      },
+      {
+        "destinations": [
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/admin"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/admin/*"
+          }
+        ],
+        "domain": "bee-validation-20260909.klappy.workers.dev/admin",
+        "id": "8fc54e03-24c8-4c02-9376-7c639a3ca94e"
+      },
+      {
+        "destinations": [
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/mcp"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/register"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/token"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/.well-known"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/authorize"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/consent"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/pairing"
+          },
+          {
+            "type": "public",
+            "uri": "bee-validation-20260909.klappy.workers.dev/callback"
+          }
+        ],
+        "domain": "bee-validation-20260909.klappy.workers.dev/mcp",
+        "id": "f5c6bb74-2b83-441a-a316-08de4c68743a"
+      },
+      {
+        "destinations": [
+          {
+            "type": "public",
+            "uri": "klappy-kitchen-rail.klappy.workers.dev"
+          },
+          {
+            "type": "preview_worker",
+            "worker_id": "d4de52630387490b9be77fa431462ae5"
+          },
+          {
+            "type": "worker",
+            "worker_id": "6f462dbf91bf44dfb01f0afa1a6c5e08"
+          },
+          {
+            "type": "public",
+            "uri": "klappy-kitchen-rail-hud-review.klappy.workers.dev"
+          }
+        ],
+        "domain": "klappy-kitchen-rail.klappy.workers.dev",
+        "id": "157ccc32-1cd7-4c7b-a23e-0a70cf3921e6"
+      },
+      {
+        "destinations": [
+          {
+            "type": "public",
+            "uri": "*-tincan.klappy.workers.dev"
+          }
+        ],
+        "domain": "*-tincan.klappy.workers.dev",
+        "id": "975f893c-b9a6-47c3-800b-99803a2c8959"
+      }
+    ],
+    "deployment": "e625405b-8a9b-4c47-b58f-d681336addcf",
+    "effective_bindings_match": true,
+    "flag": {
+      "name": "OWNER_USAGE_ENABLED",
+      "text": "true",
+      "type": "plain_text"
+    },
+    "migration_tag": "v1",
+    "observed": "2026-09-11T20:40:19.580Z",
+    "production": {
+      "deployment": "614b5e3b-5581-4821-8daf-d19289c45ba9",
+      "versions": [
+        {
+          "percentage": 100,
+          "version_id": "1a7996dd-1cc0-4046-9e39-56d0aaea4bc8"
+        }
+      ]
+    },
+    "states": [
+      {
+        "state": "inactive",
+        "updated_at": "2026-09-11T11:55:35Z"
+      }
+    ],
+    "status": 200,
+    "versions": [
+      {
+        "percentage": 100,
+        "version_id": "691200c9-5064-4f74-8cd8-1cfecc80e636"
+      }
+    ],
+    "window": [
+      {
+        "name": "VALIDATION_EXPIRES_AT",
+        "text": "2026-09-11T11:54:18.386Z"
+      },
+      {
+        "name": "VALIDATION_STARTS_AT",
+        "text": "2026-09-11T11:34:18.386Z"
+      }
+    ],
+    "worker_logging_disabled": true
+  }
+}

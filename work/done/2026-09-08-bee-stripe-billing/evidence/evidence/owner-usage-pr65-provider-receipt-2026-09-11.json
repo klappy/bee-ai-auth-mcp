@@ -1,0 +1,127 @@
+{
+  "bindings_preserved": true,
+  "build": {
+    "id": "11ee2ccf-2a25-489f-b708-e59be2a95a8a",
+    "outcome": "success",
+    "stopped_on": "2026-09-11T21:08:16.774Z"
+  },
+  "container": {
+    "configuration": {
+      "command": [],
+      "disk": {
+        "size": "4GB",
+        "size_mb": 4000
+      },
+      "entrypoint": [],
+      "image": "registry.cloudflare.com/b03e6ea242724c05eb97eb732cceb21d/bee-validation-20260909-455501a57e820ab6c3eb927b699d02cb@sha256:5f732c594b2c5dbb1b06de2ff2ec81bfb45ca075eb6dcb9f71ea6c839ac09306",
+      "memory": "1GiB",
+      "memory_mib": 1024,
+      "network": {
+        "assign_ipv4": "none",
+        "assign_ipv6": "none",
+        "mode": "private"
+      },
+      "observability": {
+        "logs": {
+          "enabled": false
+        }
+      },
+      "runtime": "firecracker",
+      "vcpu": 0.25
+    },
+    "max_instances": 1
+  },
+  "deployment": "5320ba3d-a6d1-4616-a819-2572622301a0",
+  "embedded_main": true,
+  "flags": [
+    {
+      "name": "OWNER_USAGE_ENABLED",
+      "text": "true"
+    }
+  ],
+  "main": "2993b9c158a9214736253d375060d91df1deaf31",
+  "migration_tag": "v1",
+  "module_bytes": 2623501,
+  "module_sha256": "3263edcc87792892e29ca5bedeb8b6b15de81b0c6f75fe7a88002a4af52ddeb3",
+  "observed": "2026-09-11T21:08:28.506Z",
+  "production": {
+    "deployment": "614b5e3b-5581-4821-8daf-d19289c45ba9",
+    "versions": [
+      {
+        "percentage": 100,
+        "version_id": "1a7996dd-1cc0-4046-9e39-56d0aaea4bc8"
+      }
+    ]
+  },
+  "states": [
+    {
+      "state": "inactive",
+      "updated_at": "2026-09-11T11:55:35Z"
+    }
+  ],
+  "version": "827fa8d8-78d6-4cda-bb4a-3e4910b72647",
+  "window": [
+    {
+      "name": "VALIDATION_EXPIRES_AT",
+      "text": "2026-09-11T11:54:18.386Z"
+    },
+    {
+      "name": "VALIDATION_STARTS_AT",
+      "text": "2026-09-11T11:34:18.386Z"
+    }
+  ],
+  "worker_logging_disabled": true,
+  "consumer": {
+    "source": "Root actual native calls relayed by Auggie",
+    "observed": "2026-09-11T21:09:56.870Z",
+    "initial_empty_aggregate": true,
+    "default_docs_exact_canonical": true,
+    "default_docs_characters": 8074,
+    "docs_count_after": 1,
+    "successful_read_count": 0,
+    "repeated_report_unchanged": true,
+    "bee_or_private_calls": false
+  },
+  "post_consumer": {
+    "deployment": "5320ba3d-a6d1-4616-a819-2572622301a0",
+    "flag": {
+      "name": "OWNER_USAGE_ENABLED",
+      "text": "true",
+      "type": "plain_text"
+    },
+    "observed": "2026-09-11T21:10:44.555Z",
+    "production": {
+      "deployment": "614b5e3b-5581-4821-8daf-d19289c45ba9",
+      "versions": [
+        {
+          "percentage": 100,
+          "version_id": "1a7996dd-1cc0-4046-9e39-56d0aaea4bc8"
+        }
+      ]
+    },
+    "states": [
+      {
+        "state": "inactive",
+        "updated_at": "2026-09-11T11:55:35Z"
+      }
+    ],
+    "versions": [
+      {
+        "percentage": 100,
+        "version_id": "827fa8d8-78d6-4cda-bb4a-3e4910b72647"
+      }
+    ],
+    "window": [
+      {
+        "name": "VALIDATION_EXPIRES_AT",
+        "text": "2026-09-11T11:54:18.386Z"
+      },
+      {
+        "name": "VALIDATION_STARTS_AT",
+        "text": "2026-09-11T11:34:18.386Z"
+      }
+    ],
+    "worker_logging_disabled": true
+  },
+  "disposition": "Owner aggregate persistence and uncounted inspection observed through actual native consumer; default reference preserved. Runtime remains expired, Container inactive. Phase B natural Bee usage observation not activated; no normal-use sample or free-quota threshold claimed."
+}

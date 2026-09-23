@@ -1,0 +1,14 @@
+{
+  "scope": "Fresh authenticated read-only Access applicability check before bounded isolated probe",
+  "account_id": "b03e6ea242724c05eb97eb732cceb21d",
+  "target": "bee-validation-20260909.klappy.workers.dev/__bee_validation_probe",
+  "access_inventory": {"success": true, "page": 1, "total_pages": 1, "count": 3, "total_count": 3},
+  "applications": [
+    {"id": "5ae63959-05d5-45a7-a9bd-237c271245c0", "targets": ["bee-validation-20260909.klappy.workers.dev/authorize/email"]},
+    {"id": "157ccc32-1cd7-4c7b-a23e-0a70cf3921e6", "targets": ["klappy-kitchen-rail.klappy.workers.dev", "klappy-kitchen-rail-hud-review.klappy.workers.dev"], "resolved_selectors": [{"type": "preview_worker", "worker_id": "d4de52630387490b9be77fa431462ae5", "actual_worker": "klappy-kitchen-rail"}, {"type": "worker", "worker_id": "6f462dbf91bf44dfb01f0afa1a6c5e08", "actual_worker": "klappy-kitchen-rail-hud-review"}]},
+    {"id": "975f893c-b9a6-47c3-800b-99803a2c8959", "targets": ["*-tincan.klappy.workers.dev"]}
+  ],
+  "worker_inventory": {"success": true, "count": 34, "isolated_name": "bee-validation-20260909", "isolated_tag": "9b7d9c86f72e4af38303e3f9e63ee3c9"},
+  "findings": {"unresolved_worker_selectors": false, "account_wide_or_all_worker_app_selectors": false, "tincan_wildcard_collision": false, "probe_path_covered_by_email_access_app": false},
+  "limitations": "Configuration applicability only, not HTTP probe behavior or OTP acceptance. No provider mutation."
+}

@@ -1,0 +1,15 @@
+{
+  "accepted": true,
+  "observed": "2026-09-10T13:10:31.953Z",
+  "phase": "readback",
+  "version": "5a641618-2e48-44ad-8062-509c3cd80e7d",
+  "deployment": "e9d109f0-61e2-4078-8a38-760f6a7e23f3",
+  "module_sha256": "cd22b026173d289777783bac51493fcf1da0fb64f0769c4fd97a51af70636560",
+  "previous_version": "75ca2a71-dcf9-4cfd-8307-63dfcfe3f2a9",
+  "existing_upload_reused": true,
+  "comparison_correction": "Object key order ignored; every binding field still compared",
+  "runtime_closed": true,
+  "namespace_linkage_preserved": true,
+  "access_unchanged": true,
+  "production_unchanged": true
+}

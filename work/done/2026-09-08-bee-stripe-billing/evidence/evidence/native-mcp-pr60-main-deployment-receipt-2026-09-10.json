@@ -1,0 +1,83 @@
+{
+  "signupEnabled": true,
+  "containerStates": [
+    "inactive"
+  ],
+  "observedAt": "2026-09-10T16:57:12.987Z",
+  "build": {
+    "id": "05c74070-064c-43ef-a39e-a1ed94eccd73",
+    "status": "stopped",
+    "outcome": "success",
+    "branch": "main",
+    "commit": "4eb9b0f742cf5bebc690746661a41b39da5fe893",
+    "stopped_on": "2026-09-10T16:57:06.005Z"
+  },
+  "deployment": "21f930b2-7c6d-49ab-ba41-9b84f52f3e21",
+  "versions": [
+    {
+      "version_id": "6bc65db6-6d2f-470b-8538-a5b8e0f8211e",
+      "percentage": 100
+    }
+  ],
+  "module": {
+    "bytes": 2603277,
+    "sha256": "1fc483ce932b5d38d65199a123fe5e65c3b5b58465f25c573afba2e91de2a152",
+    "embedsExpectedMain": true
+  },
+  "bindingMetadataPreserved": true,
+  "effectiveBindingMetadataMatches": true,
+  "quotaBindings": [],
+  "runtime": [
+    {
+      "name": "VALIDATION_EXPIRES_AT",
+      "value": "2026-09-10T15:18:31.966Z"
+    },
+    {
+      "name": "VALIDATION_STARTS_AT",
+      "value": "2026-09-10T13:18:31.966Z"
+    }
+  ],
+  "observability": {
+    "enabled": false,
+    "head_sampling_rate": 1,
+    "redact_query_string": false,
+    "logs": {
+      "enabled": false,
+      "head_sampling_rate": 1,
+      "invocation_logs": true,
+      "persist": true,
+      "destinations": []
+    },
+    "traces": {
+      "enabled": false,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "destinations": []
+    }
+  },
+  "logpush": false,
+  "container": {
+    "id": "a0362707-1337-4517-9f84-49b53ecfdfa9",
+    "max_instances": 1,
+    "vcpu": 0.25,
+    "memory_mib": 1024,
+    "disk": {
+      "size_mb": 4000,
+      "size": "4GB"
+    },
+    "network": "private",
+    "logs": false,
+    "imageDigest": "sha256:5f732c594b2c5dbb1b06de2ff2ec81bfb45ca075eb6dcb9f71ea6c839ac09306"
+  },
+  "production": {
+    "deployment": "614b5e3b-5581-4821-8daf-d19289c45ba9",
+    "versions": [
+      {
+        "version_id": "1a7996dd-1cc0-4046-9e39-56d0aaea4bc8",
+        "percentage": 100
+      }
+    ]
+  },
+  "providerMutations": 0,
+  "grantStateRead": false
+}

@@ -1,0 +1,20 @@
+{
+  "accepted": true,
+  "observed": "2026-09-09T23:28:38.546Z",
+  "phase": "readback",
+  "previous_version": "1c29a7a3-b0f3-441d-8089-8afddaf9bece",
+  "version": "75ca2a71-dcf9-4cfd-8307-63dfcfe3f2a9",
+  "deployment": "3b0e0903-0898-49af-8a8a-53aab9f14857",
+  "module_sha256": "4a0be14b596068c32a6aab5f188abaa8ebcf4430721bd90af4d89cda7a651eee",
+  "source_unchanged": true,
+  "only_binding_changed": "ACCESS_TEAM_DOMAIN",
+  "domain": "klappy.cloudflareaccess.com",
+  "access_apps_policies_unchanged": true,
+  "production_unchanged": true,
+  "data_gate_closed": true,
+  "logging_disabled": true,
+  "ingress_enabled": true,
+  "preview_disabled": true,
+  "secrets_absent": true,
+  "test": "Real JWT signature verification: old effective config503; corrected200; absent/malformed/bad signature/wrong issuer/wrong audience503; MCP remains503. One bounded regression test passed. Synthetic JWKS transport only; not human browser acceptance."
+}

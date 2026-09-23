@@ -1,0 +1,66 @@
+{
+  "observed": "2026-09-10T14:08:31.728Z",
+  "deployment": "84ac5750-6c6c-4a66-b4a0-4b4eb297280a",
+  "versions": [
+    {
+      "version_id": "d7f2063f-81d9-4775-9b06-f8c6a7c75b24",
+      "percentage": 100
+    }
+  ],
+  "module_sha256": "2721c4b1b32c21a0d1a5fe45f20dbfcb8223e85051f7db14216e65c64cd6700e",
+  "module_bytes": 2564349,
+  "main_commit_embedded": true,
+  "starts_at": "2026-09-10T13:18:31.966Z",
+  "expires_at": "2026-09-10T15:18:31.966Z",
+  "kv": "d57ff6004e48496893132f343a8f4a81",
+  "do_namespace": "5b99701b01df4b2b886be69a0202a0e9",
+  "required_secrets_present": true,
+  "observability": {
+    "enabled": false,
+    "head_sampling_rate": 1,
+    "redact_query_string": false,
+    "logs": {
+      "enabled": false,
+      "head_sampling_rate": 1,
+      "invocation_logs": true,
+      "persist": true,
+      "destinations": []
+    },
+    "traces": {
+      "enabled": false,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "destinations": []
+    }
+  },
+  "logpush": false,
+  "ingress": {
+    "enabled": true,
+    "previews_enabled": false
+  },
+  "exports": {
+    "BeeBridge": {
+      "type": "durable-object",
+      "storage": "sqlite",
+      "container": "BeeBridge"
+    }
+  },
+  "migration_tag": "v1",
+  "container": {
+    "id": "a0362707-1337-4517-9f84-49b53ecfdfa9",
+    "max_instances": 1,
+    "vcpu": 0.25,
+    "memory_mib": 1024,
+    "disk_mb": 4000,
+    "network": "private",
+    "logs_enabled": false,
+    "image": "registry.cloudflare.com/b03e6ea242724c05eb97eb732cceb21d/bee-validation-20260909-455501a57e820ab6c3eb927b699d02cb@sha256:5f732c594b2c5dbb1b06de2ff2ec81bfb45ca075eb6dcb9f71ea6c839ac09306"
+  },
+  "production_deployment": "614b5e3b-5581-4821-8daf-d19289c45ba9",
+  "production_versions": [
+    {
+      "version_id": "1a7996dd-1cc0-4046-9e39-56d0aaea4bc8",
+      "percentage": 100
+    }
+  ]
+}
