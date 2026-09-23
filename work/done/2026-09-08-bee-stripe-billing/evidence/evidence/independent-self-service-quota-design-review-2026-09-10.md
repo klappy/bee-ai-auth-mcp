@@ -1,0 +1,11 @@
+# Independent self-service allowance design review
+
+Reviewer: /root/auggie_oauth_finish/reviewer. September 10, 2026, 10:30 EDT initial clock; exact final amendment fetched before verdict. Design-only PASS for SELF-SERVICE-QUOTA-AMENDMENT-2026-09-10.md blob4fc17efa7e2943fd962c7ad97ecb7ec56fb71c55, commit8dde495d4d88ec9151d7575b3c520ba9f471810b. This reviewer did not author implementation.
+
+The disabled-by-default, explicitly configured one-time allowance design preserves manual decisions and denial control, uses stable admission account identity, and places reserve/settle accounting in the existing transactional Durable Object. Successful bee_read pages alone consume allowance; failed calls refund, settlement is account/epoch-bound and terminal, late success is discarded, and uncertain settlement cannot return data. Quota exhaustion does not revoke OAuth or return an Access interstitial. No numeric activation, recurring billing, price, checkout destination or new financial commitment is accepted.
+
+Initial bounded findings were resolved in the exact accepted amendment: usage cannot reset on configuration-version/limit changes, toggle, denial/reapproval or grant rotation; terminal settlements cannot reverse; authenticated own-account usage inspection remains outside the existing broad Bee runtime gate. Manually approved verified-email accounts use the same allowance while enabled, and flag-off restores prior manual-approved behavior. Existing GitHub-only identities are not silently remapped into email trials.
+
+Required implementation evidence remains the amendment's concurrency, idempotency, refund, expiry, denied-midflight, cross-account, saved-connection, per-page and rollback tests plus actual route/DO wiring. Independent source review and current-head CI/Bugbot are still required. This design acceptance authorizes source implementation only, not automatic numerical activation or completed hosted acceptance.
+
+Landing wording to clarify separately: merging main invokes the already configured staging deployment. The amendment's 'no provider mutation' statement must distinguish that existing source-deployment path from separate configuration/resource/activation changes, or main merge must remain held. This does not block source implementation.

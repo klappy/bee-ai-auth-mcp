@@ -1,0 +1,84 @@
+{
+  "observedAt": "2026-09-10T16:30:43.896Z",
+  "build": {
+    "id": "96ace8be-9713-4e24-a656-bd5d3027e9d6",
+    "status": "stopped",
+    "outcome": "success",
+    "branch": "main",
+    "commit": "a2a3a9fa84b5c24f000a1040f3dea3ba0261d3ec",
+    "stopped_on": "2026-09-10T16:30:30.841Z"
+  },
+  "deployment": "3478a516-50bc-430e-afa7-0c3ee58dc913",
+  "versions": [
+    {
+      "version_id": "62523939-98ba-4f89-bb96-c9c646d97950",
+      "percentage": 100
+    }
+  ],
+  "module": {
+    "bytes": 2603402,
+    "sha256": "5b3035cebc5d9705ccc5f5a1e60f2b8c1fcfc1a08269b06b80aa82434c9a428d",
+    "embedsExpectedMain": true
+  },
+  "bindingMetadataPreserved": true,
+  "effectiveBindingMetadataMatches": true,
+  "quotaBindings": [],
+  "runtime": [
+    {
+      "name": "VALIDATION_EXPIRES_AT",
+      "value": "2026-09-10T15:18:31.966Z"
+    },
+    {
+      "name": "VALIDATION_STARTS_AT",
+      "value": "2026-09-10T13:18:31.966Z"
+    }
+  ],
+  "observability": {
+    "enabled": false,
+    "head_sampling_rate": 1,
+    "redact_query_string": false,
+    "logs": {
+      "enabled": false,
+      "head_sampling_rate": 1,
+      "invocation_logs": true,
+      "persist": true,
+      "destinations": []
+    },
+    "traces": {
+      "enabled": false,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "destinations": []
+    }
+  },
+  "logpush": false,
+  "container": {
+    "id": "a0362707-1337-4517-9f84-49b53ecfdfa9",
+    "max_instances": 1,
+    "vcpu": 0.25,
+    "memory_mib": 1024,
+    "disk": {
+      "size_mb": 4000,
+      "size": "4GB"
+    },
+    "network": "private",
+    "logs": false,
+    "imageDigest": "sha256:5f732c594b2c5dbb1b06de2ff2ec81bfb45ca075eb6dcb9f71ea6c839ac09306"
+  },
+  "production": {
+    "deployment": "614b5e3b-5581-4821-8daf-d19289c45ba9",
+    "versions": [
+      {
+        "version_id": "1a7996dd-1cc0-4046-9e39-56d0aaea4bc8",
+        "percentage": 100
+      }
+    ]
+  },
+  "providerMutations": 0,
+  "grantStateRead": false,
+  "quotaDisabledByAbsentFlag": true,
+  "quotaSourceBlob": "172dca684395dab4bdcb359a59cb5f9a27b85ee1",
+  "grantPreservationScope": "No grant contents read or modified by observer; binding/namespace preservation verified, not contents audit.",
+  "acceptanceScope": "Actual staging deployment and disabled configuration only; not hosted consumer journey or production acceptance.",
+  "publicVersionExactMain": "a2a3a9fa84b5c24f000a1040f3dea3ba0261d3ec"
+}

@@ -1,0 +1,24 @@
+{
+  "accepted": true,
+  "observed": "2026-09-10T13:19:56.400Z",
+  "version": "67c93967-bed4-40b7-b7e3-8ebc6949c334",
+  "deployment": "1c9e15b1-2b80-472a-b285-5b385b0c1261",
+  "module_sha256": "cd22b026173d289777783bac51493fcf1da0fb64f0769c4fd97a51af70636560",
+  "starts_at": "2026-09-10T13:18:31.966Z",
+  "expires_at": "2026-09-10T15:18:31.966Z",
+  "expiry_new_york": "Thursday, September 10, 2026 at 11:18:31 AM EDT",
+  "checks": {
+    "active": true,
+    "source": true,
+    "bindings_only_window_changed": true,
+    "metadata_preserved": true,
+    "window_active": true,
+    "window_two_hours": true,
+    "logs_disabled": true,
+    "ingress": true,
+    "container": true,
+    "namespace": true
+  },
+  "secret_values_not_output": true,
+  "quota_state_not_mutated": true
+}

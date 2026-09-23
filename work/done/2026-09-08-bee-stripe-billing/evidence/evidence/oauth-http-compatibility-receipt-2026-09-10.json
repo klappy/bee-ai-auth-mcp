@@ -1,0 +1,13 @@
+{
+  "observed": "2026-09-10T13:44:30Z",
+  "host": "bee-validation-20260909.klappy.workers.dev",
+  "active_version": "92624aca-33c0-490b-b5b8-d4ac8e4bf0b5",
+  "default_curl": {"authorization_metadata":200,"mcp_resource_metadata":200,"mcp":401,"mcp_challenge_resource_metadata":true,"admin":302,"admin_redirect_host":"klappy.cloudflareaccess.com"},
+  "authorization_metadata_user_agent_matrix": {"Python-urllib/3.11":403,"OpenAI":200,"ChatGPT-User/1.0":200,"Mozilla/5.0":200},
+  "blocked_response": {"body":"error code: 1010","server":"cloudflare","cf_ray":"a38ede279cb65e98-DFW"},
+  "account_rulesets_read": {"http":200,"count":1,"kind":"managed","phase":"http_request_firewall_managed"},
+  "workers_dev_owned_zone_found":false,
+  "provider_runtime_non_api_fetch": {"http":403,"cf_ray_present":false,"error1010":false,"usable_as_independent_origin_test":false},
+  "interpretation":"User-agent-dependent Cloudflare edge rejection observed. No matching customer-controlled workers.dev rule identified. This does not establish cause of the user's earlier screenshot or actual ChatGPT current install failure.",
+  "scope":"Diagnostic HTTP only. No user-agent workaround, browser-policy evasion, security-policy mutation, or client-install acceptance claimed."
+}

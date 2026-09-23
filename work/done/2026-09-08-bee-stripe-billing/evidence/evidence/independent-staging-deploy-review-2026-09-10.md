@@ -1,0 +1,19 @@
+# Independent staging deploy script review
+
+Reviewer /root/auggie_oauth_finish/reviewer. Scoped source/envelope PASS for scripts/deploy-staging.cjs SHA256b50b0f008f2c7596908395f3b522fff74d809c5779ab4ed7800a3840d8b120c8, with build command `npm ci && node scripts/gen-version.mjs && npm run typecheck && npm test`, followed by deploy command `node scripts/deploy-staging.cjs`.
+
+The script limits execution to main, pins the isolated Worker/account/storage/Container, bundles locally without Wrangler provider writes or image build, clones the current active version metadata, inherits secrets, preserves all bindings including runtime deadline, uploads without deployment, verifies uploaded metadata/module/bindings, then explicitly deploys and verifies effective settings, logs/ingress, Container and unchanged production deployment. Concurrent deployment drift fails before explicit deploy. No new budget or runtime extension is introduced.
+
+Reviewer independently executed only the extracted build portion against the reviewed source. It produced SHA2563e5e7e72a7a2f7af4ced0d5387347e0cfef8a756dd80e0be34b9b5d7e353c8e8,2558550bytes, exactly matching the accepted deployed admin repair. No provider calls occurred in that test. Fresh provider GET also confirmed actual exports and named Container metadata match the script's readback comparison shape.
+
+Current Cloudflare documentation confirms WORKERS_CI_BRANCH and WORKERS_CI_COMMIT_SHA default variables: https://developers.cloudflare.com/workers/ci-cd/builds/configuration/#default-variables . The actual repository generator is scripts/gen-version.mjs; a tentative write-version.mjs filename was corrected before activation.
+
+This review is not proof of CI credential/API access, creation of the staging trigger or successful main deployment. Those actual readbacks remain required. PR53 subsequently exposed scratch-dependent tests missing from its committed tree; the earlier190passing local suite is explicitly not portable-checkout CI acceptance. Source cook is correcting those fixtures without skipping coverage, and independent committed-tree validation must pass before main merge. No production promotion is accepted here.
+
+## Subsequent staging trigger review and actual readback
+
+Independent pre-mutation PASS for bee-staging-build-trigger-envelope.js SHA256f1e05407fe7889ad7b9495f9495bfcdab2d86006f93b0405276c812b2f547934. Fresh Cloudflare POST schema confirmed every required field. The envelope creates only a main-filtered trigger on the existing isolated Worker, reuses sealed repository/token references internally, and compares unchanged production trigger plus both Worker settings/deployments. It does not dispatch a build explicitly.
+
+After Otto's successful execution, reviewer independently GET both trigger inventories at2026-09-10T13:52:21.269Z (09:52 EDT). Staging contains exactly ef89722b-f048-4889-894f-be7a841d682c, branch main only, the exact build/deploy commands above. Production contains exactly ce34c1d3-6a81-4fe3-8ff4-38054fbe36e4, production only, unchanged npx wrangler deploy command. No feature branch matches either provider trigger. Actual CI execution still remains unproven at this readback.
+
+The four config/doc follow-up files were reviewed: CI adds deploy-script syntax check, package deploy aliases target the guarded staging script, direct esbuild0.28.1 pin matches the already locked artifact; lockfile changes only root package declaration. Production config exactly matches original product main85f3b58. Future main-to-production promotion must separately configure the retained production trigger to use wrangler.production.jsonc before merging; its currently unchanged plain Wrangler command would otherwise use the new default staging config. This is a future promotion gate, not permission to mutate it now. Documentation corrections were routed to the source owner.

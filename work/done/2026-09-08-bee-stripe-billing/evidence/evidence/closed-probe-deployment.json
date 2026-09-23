@@ -1,0 +1,26 @@
+{
+  "outcome": "closed probe code and class capability metadata deployed; namespace Container-enabled NOT proven",
+  "version_id": "bef54c5a-9836-409a-9d05-e172723777b7",
+  "deployment_id": "ab9bdeb5-1bd1-4949-88df-4e22dd8eedaa",
+  "module_sha256": "541413ce0e278571ed8fb47b62f0077090d1cfd5852030e3fc8bff38ac2974fe",
+  "module_bytes": 2629419,
+  "checks": {
+    "module_match": true,
+    "nine_bindings_preserved": true,
+    "compatibility_preserved": true,
+    "containers_class_BeeBridge": true,
+    "ingress_closed": true,
+    "normal_window_empty": true,
+    "no_secret": true,
+    "observability_preserved": true,
+    "active_100_percent": true,
+    "production_unchanged": true
+  },
+  "association_attempt_after_metadata": {
+    "status": 400,
+    "code": 1607,
+    "reason": "DURABLE_OBJECT_NOT_CONTAINER_ENABLED",
+    "association_id": null
+  },
+  "next": "Reviewed writable exports namespace-container link correction; no runtime probe yet"
+}

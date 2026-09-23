@@ -1,0 +1,9 @@
+{
+  "observed": "2026-09-10T13:17:57.081Z",
+  "exact_test_client_verified": true,
+  "deleted_count": 1,
+  "delete_http": 200,
+  "readback_http": 404,
+  "accepted": true,
+  "private_identity_or_secret_output": false
+}

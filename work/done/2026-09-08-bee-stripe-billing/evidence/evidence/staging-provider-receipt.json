@@ -1,0 +1,23 @@
+{
+  "observed": "2026-09-09T22:57:48.100Z",
+  "version": "1c29a7a3-b0f3-441d-8089-8afddaf9bece",
+  "deployment": "4abd6b3f-19ed-4ff4-abc2-2ee5d80f3e48",
+  "module_sha256": "4a0be14b596068c32a6aab5f188abaa8ebcf4430721bd90af4d89cda7a651eee",
+  "bytes": 2627501,
+  "owner_app_id": "8fc54e03-24c8-4c02-9376-7c639a3ca94e",
+  "owner_policy_id": "fb785d29-4812-436d-9d19-1476593d6203",
+  "owner_only_verified": true,
+  "protocol_app_id": "f5c6bb74-2b83-441a-a316-08de4c68743a",
+  "protocol_policy_id": "30636ea9-1207-41be-939a-26a6e1dc1da8",
+  "email_deny_unchanged": true,
+  "ingress_enabled": true,
+  "previews_enabled": false,
+  "effective_logs_disabled": true,
+  "original_bindings_preserved": true,
+  "new_binding": "STAGING_PREVIEW_AUD",
+  "production_deployment_unchanged": true,
+  "data_window_closed": true,
+  "source_scope": "Exact prior module plus owner JWT protected static GET/HEAD before closed data gate. HTML environment origin substitution only.",
+  "initial_upload_guard": "Binding array reordered by provider; stopped before deploy. Per-name full-value comparison confirmed originals exact plus new AUD; same uploaded candidate then explicitly deployed.",
+  "acceptance_limit": "Provider author readback only; independent outcome and human owner OTP pending."
+}

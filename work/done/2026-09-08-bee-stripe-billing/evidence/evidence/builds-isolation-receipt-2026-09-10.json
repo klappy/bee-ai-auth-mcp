@@ -1,0 +1,29 @@
+{
+  "accepted": true,
+  "observed": "2026-09-10T13:46:39.127Z",
+  "written": true,
+  "removed_preview_trigger": "8d6c1aca-f859-49a3-b2c1-4104cce9e1aa",
+  "restore_config": {
+    "branch_includes": [
+      "*"
+    ],
+    "branch_excludes": [
+      "production"
+    ],
+    "build_command": "",
+    "deploy_command": "npx wrangler versions upload",
+    "root_directory": "/",
+    "build_caching_enabled": true,
+    "path_includes": [
+      "*"
+    ],
+    "path_excludes": [],
+    "external_script_id": "27b750389ea04ed1af1a6c50dc0e5e37",
+    "trigger_name": "Deploy non-production branches"
+  },
+  "restore_private_references_from_trigger": "ce34c1d3-6a81-4fe3-8ff4-38054fbe36e4",
+  "production_trigger_preserved": true,
+  "production_deployment_preserved": true,
+  "production_settings_preserved": true,
+  "staging_trigger_created": false
+}

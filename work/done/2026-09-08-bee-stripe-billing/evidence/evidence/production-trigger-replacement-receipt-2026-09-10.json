@@ -1,0 +1,13 @@
+{
+  "accepted": true,
+  "observed": "2026-09-10T13:56:09.275Z",
+  "replacement": "40a4940d-5c14-4721-908f-a7c304ae2adf",
+  "old_deleted": "ce34c1d3-6a81-4fe3-8ff4-38054fbe36e4",
+  "deploy_command": "npx wrangler deploy --config wrangler.production.jsonc",
+  "branch_includes": [
+    "production"
+  ],
+  "production_code_and_settings_unchanged": true,
+  "staging_unchanged": true,
+  "production_release_executed": false
+}

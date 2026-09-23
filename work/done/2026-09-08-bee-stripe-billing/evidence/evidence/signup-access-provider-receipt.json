@@ -1,0 +1,28 @@
+{
+  "accepted": true,
+  "observed": "2026-09-10T13:14:27.489Z",
+  "phase": "boundaries readback",
+  "written": [
+    "email_otp_allow"
+  ],
+  "version": "5a641618-2e48-44ad-8062-509c3cd80e7d",
+  "owner_app": "8fc54e03-24c8-4c02-9376-7c639a3ca94e",
+  "email_app": "5ae63959-05d5-45a7-a9bd-237c271245c0",
+  "owner_policy_unchanged": true,
+  "email_otp_all": true,
+  "owner_paths": [
+    "bee-validation-20260909.klappy.workers.dev/admin",
+    "bee-validation-20260909.klappy.workers.dev/admin/*"
+  ],
+  "email_paths": [
+    "bee-validation-20260909.klappy.workers.dev/signup",
+    "bee-validation-20260909.klappy.workers.dev/signup/*",
+    "bee-validation-20260909.klappy.workers.dev/preview",
+    "bee-validation-20260909.klappy.workers.dev/preview/*",
+    "bee-validation-20260909.klappy.workers.dev/index.html",
+    "bee-validation-20260909.klappy.workers.dev/authorize/email",
+    "bee-validation-20260909.klappy.workers.dev/authorize/email/*"
+  ],
+  "unrelated_access_unchanged": true,
+  "production_unchanged": true
+}

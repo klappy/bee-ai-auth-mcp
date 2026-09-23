@@ -1,0 +1,13 @@
+{
+  "observed": "2026-09-10T13:21:08.087Z",
+  "version": "67c93967-bed4-40b7-b7e3-8ebc6949c334",
+  "checks": [
+    {"path": "/.well-known/oauth-authorization-server", "http": 200},
+    {"path": "/mcp", "http": 401},
+    {"path": "/", "http": 200}
+  ],
+  "container_instances": {"active": 0, "inactive": 1, "other": 0},
+  "approved_user_runtime_observed": false,
+  "shutdown_alarm_observed": false,
+  "scope": "Anonymous post-activation HTTP and provider state only; not authenticated hosted acceptance."
+}

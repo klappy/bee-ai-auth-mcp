@@ -1,0 +1,67 @@
+{
+  "schema": "bee-builds-request-failure-evidence/v1",
+  "recorded_at": "2026-09-09T06:25:21.378Z",
+  "purpose": "Preserve the actual failed isolated image-only request for provider diagnosis; not an execution or acceptance receipt.",
+  "method": "POST",
+  "path_template": "/accounts/{existing_account_id}/builds/workers",
+  "body": {
+    "git_repository": {
+      "branch": "dish/2026-08-13-bee-relay-cf-access",
+      "provider_account_id": "118073",
+      "provider_account_name": "klappy",
+      "provider_type": "github",
+      "repo_id": "1269384194",
+      "repo_name": "bee-ai-auth-mcp"
+    },
+    "production_settings": {
+      "build_caching_enabled": false,
+      "build_command": "test \"$(git rev-parse HEAD)\" = ea68e53edb8e684c779b89fcbbf5c9496b7200b5 && npm ci && printf %s '{\"name\":\"bee-validation-20260909\",\"compatibility_date\":\"2026-06-01\",\"observability\":{\"enabled\":false}}' > v.json",
+      "build_token_uuid": "1979b205-1194-42e1-94e4-8c263da46168",
+      "deploy_command": "npx wrangler containers build ./bridge --tag bee-validation-20260909-455501a57e820ab6c3eb927b699d02cb:ea68e53edb8e --push --config v.json",
+      "environment_variables": {
+        "SKIP_DEPENDENCY_INSTALL": {
+          "is_secret": false,
+          "value": "1"
+        }
+      },
+      "path_excludes": [],
+      "path_includes": [
+        "*"
+      ],
+      "root_directory": "/"
+    },
+    "script_tag": "9b7d9c86f72e4af38303e3f9e63ee3c9"
+  },
+  "credential_custody": "Authentication remained in trusted Cloudflare tooling. build_token_uuid is an existing stored-token reference, not a token value. No private test identity or secret value is included.",
+  "observed_result": {
+    "http_status": 400,
+    "provider_error_code": 12002,
+    "reason": "Invalid request body",
+    "field_details_available": false,
+    "configuration_created": false,
+    "triggers": 0,
+    "builds": 0,
+    "pre_and_post_lists": {
+      "http_status": 200,
+      "complete": true
+    }
+  },
+  "tested_hypotheses": [
+    "Documented configuration bootstrap in addition to low-level trigger creation",
+    "Exact source branch without contradictory branch/path exclusions",
+    "Creation-time SKIP_DEPENDENCY_INSTALL=1 before exact-head assertion and npm ci",
+    "Actual legacy Worker registration after verified code upload",
+    "Equivalent shorter commands, 208 and 137 characters"
+  ],
+  "limits": [
+    "No hypothesis resolved the rejection.",
+    "No missing permission or need for new credentials was established.",
+    "No real CLI image build started.",
+    "This body contains image-only commands and does not authorize a production mutation."
+  ],
+  "evidence": [
+    "https://github.com/klappy/bee-ai-auth-mcp/issues/51#issuecomment-5596861579",
+    "../EXECUTION-CHECKPOINT.md",
+    "../../../../journal/2026-09-08-bee-meal-live-access.tsv"
+  ]
+}

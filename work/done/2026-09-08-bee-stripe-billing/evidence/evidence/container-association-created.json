@@ -1,0 +1,25 @@
+{
+  "scope": "Association created; normalized scheduling/readback findings unresolved at observation. Not runtime acceptance.",
+  "result": {
+    "phase": "readback",
+    "create_status": 201,
+    "application_id": "a0362707-1337-4517-9f84-49b53ecfdfa9",
+    "image": "registry.cloudflare.com/b03e6ea242724c05eb97eb732cceb21d/bee-validation-20260909-455501a57e820ab6c3eb927b699d02cb@sha256:5f732c594b2c5dbb1b06de2ff2ec81bfb45ca075eb6dcb9f71ea6c839ac09306",
+    "checks": {
+      "create_status": true,
+      "scheduling_policy": true,
+      "name": true,
+      "namespace": true,
+      "image": true,
+      "instance_type": true,
+      "max_instances": true,
+      "desired_zero": false,
+      "logs_disabled": true,
+      "actual_instances_empty": false,
+      "one_new": true,
+      "unrelated_unchanged": true,
+      "worker_and_production_unchanged": true
+    },
+    "accepted": false
+  }
+}
