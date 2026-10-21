@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "repository": "klappy/bee-ai-auth-mcp",
+  "original_pr": 84,
+  "original_pr_url": "https://github.com/klappy/bee-ai-auth-mcp/pull/84",
+  "original_head": "ec7a1c2b572e668f2ad10c69c41265473517a01f",
+  "original_base": "c0fdcc96b18b1e661a834a1f95a967bc4804470e",
+  "recovery_parent_main": "c0fdcc96b18b1e661a834a1f95a967bc4804470e",
+  "classification": "Historical operational discovery receipts only; archived snapshots, not current policy or live Stripe state.",
+  "canonical_source_paths_modified": false,
+  "files": [
+    {
+      "original_path": "CHANGELOG.md",
+      "original_blob_sha": "cafe520ce6658e4441c5670f2ea18ffdadad967f",
+      "sha256": "90ccac04885d0f0e7ab1d0be81201d0f81b1254c79e4318cb5ebdde754edcb6e",
+      "byte_length": 2562,
+      "archived_path": "journal/recovered-pr-84/files/CHANGELOG.md"
+    },
+    {
+      "original_path": "orders/2026-09-13-bee-stripe-discovery.md",
+      "original_blob_sha": "3800f4d70401e46df39a913cd76201e6ad0a6f39",
+      "sha256": "c7ef4c065ddbc4fdd71dc46b169dc04a84851723aa9ed09e87002ff72d6ef9fd",
+      "byte_length": 572,
+      "archived_path": "journal/recovered-pr-84/files/orders/2026-09-13-bee-stripe-discovery.md"
+    },
+    {
+      "original_path": "planning/stripe-billing/DISCOVERY-RECEIPT-2026-09-14.md",
+      "original_blob_sha": "64b49eedaf5515119e6a118bcd20e4fc74a7fff1",
+      "sha256": "bba763afe134ae70b0663f7d3436c1804949079a51f864ed61fe629c3c8dd808",
+      "byte_length": 4246,
+      "archived_path": "journal/recovered-pr-84/files/planning/stripe-billing/DISCOVERY-RECEIPT-2026-09-14.md"
+    }
+  ]
+}
