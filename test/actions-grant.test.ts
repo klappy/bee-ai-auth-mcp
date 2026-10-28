@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bindActionsGrant, resolveActionsGrant } from "../src/actions-grant";
+import { bindOperatorActionsGrant, bindActionsGrant, resolveActionsGrant } from "../src/actions-grant";
 
 const SECRET = "test-github-client-secret";
 
@@ -36,5 +36,19 @@ describe("actions-grant", () => {
     await bindActionsGrant(kv, "klappy", "bee-secret-token", SECRET);
     await kv.put("actions-grant:klappy", "not-a-valid-blob");
     expect(await resolveActionsGrant(kv, "klappy", SECRET)).toBeNull();
+  });
+});
+
+
+describe("operator sidecar custody", () => {
+  it("captures only the enabled production operator, never email/staging/other identities", async () => {
+    const kv = mockKv();
+    const env = { OAUTH_KV: kv, GITHUB_CLIENT_SECRET: SECRET, ALLOWED_ACTIONS_REPOS: "klappy/refinery", ALLOWED_GITHUB_LOGIN: "klappy,other" } as import("../src/types").Env;
+    for (const [login, changes] of [["other", {}], ["synthetic@example.invalid", {}], ["klappy", { BEE_ENVIRONMENT: "staging" }], ["klappy", { ALLOWED_ACTIONS_REPOS: "" }]] as const) {
+      await bindOperatorActionsGrant({ ...env, ...changes }, login, "synthetic");
+      expect(await resolveActionsGrant(kv, login, SECRET)).toBeNull();
+    }
+    await bindOperatorActionsGrant({ ...env, BEE_ENVIRONMENT: "production" }, "klappy", "synthetic");
+    expect(await resolveActionsGrant(kv, "klappy", SECRET)).toBe("synthetic");
   });
 });

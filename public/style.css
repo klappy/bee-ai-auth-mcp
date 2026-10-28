@@ -161,3 +161,33 @@ footer .sep { color:var(--line-strong); }
 footer .mono { font-family:var(--mono); font-size:0.8rem; }
 
 @media (prefers-reduced-motion:reduce){ html{ scroll-behavior:auto; } }
+
+
+/* Hosted invitation homepage: reuse the existing palette and Bee artwork. */
+.hosted-home section { scroll-margin-top:80px; }
+.hosted-home .hero { padding-top:48px; }
+.hosted-home .bee-mark { border-radius:18px; margin-bottom:24px; }
+.hosted-home .lede { max-width:48ch; }
+.hosted-home .endpoint-box { padding:20px; border:1px solid var(--line-strong); background:var(--surface); border-radius:14px; margin:24px 0 18px; }
+.hosted-home .endpoint-box label { display:block; font-family:var(--display); font-weight:600; margin-bottom:10px; }
+.hosted-home .endpoint-row { display:flex; gap:10px; flex-wrap:wrap; }
+.hosted-home .endpoint-row input { flex:1 1 250px; min-width:0; width:100%; background:var(--paper); color:var(--ink); border:1px solid var(--line-strong); border-radius:8px; padding:12px; font:0.92rem var(--mono); }
+.hosted-home .endpoint-row button { cursor:pointer; }
+.hosted-home .endpoint-row button[hidden] { display:none; }
+.hosted-home #copy-status { font-size:0.85rem; margin:10px 0 0; min-height:1.65em; }
+.hosted-home .ready-list { padding-left:22px; margin-bottom:0; }
+.hosted-home .ready-list li { margin-bottom:14px; color:var(--ink-soft); }
+.hosted-home .app-guides { display:grid; gap:12px; margin-top:22px; }
+.hosted-home details { border:1px solid var(--line-strong); border-radius:12px; background:var(--surface); overflow:hidden; }
+.hosted-home summary { cursor:pointer; padding:18px 20px; font-family:var(--display); font-weight:600; }
+.hosted-home summary span { display:block; font-family:var(--body); font-size:0.83rem; color:var(--muted); font-weight:400; margin:2px 0 0 19px; }
+.hosted-home details[open] summary { border-bottom:1px solid var(--line); }
+.hosted-home .guide-body { padding:18px 20px 4px; background:var(--paper); }
+.hosted-home .guide-body ol { padding-left:22px; margin:0 0 16px; }
+.hosted-home .guide-body li { margin-bottom:10px; }
+.hosted-home .small-note, .hosted-home .pair-help { font-size:0.9rem; margin:22px 0 0; }
+.hosted-home .first-prompt { margin:24px 0; padding:22px; border-left:4px solid var(--teal); background:var(--surface); border-radius:0 12px 12px 0; font-size:1.12rem; }
+.hosted-home input:focus-visible, .hosted-home summary:focus-visible { outline:2px solid var(--teal); outline-offset:-3px; }
+.skip-link { position:fixed; top:-100px; left:16px; z-index:30; padding:10px 16px; background:var(--paper); border:2px solid var(--teal); }
+.skip-link:focus { top:8px; }
+@media (max-width:420px) { .hosted-home .wrap { padding-left:18px; padding-right:18px; } .hosted-home nav { gap:12px; } .hosted-home .brand { font-size:0.95rem; } .hosted-home .eyebrow { letter-spacing:0.08em; } }

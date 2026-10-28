@@ -1,3 +1,5 @@
+import type { Env } from "./types";
+
 /**
  * Actions OIDC grant resolution — reads the Bee credential captured at consent.
  *
@@ -93,4 +95,15 @@ export async function resolveActionsGrant(
   } catch {
     return null;
   }
+}
+
+/** Only the configured refinery operator gets a machine-grant sidecar.
+ * Email signup and other GitHub identities retain their existing grant custody.
+ */
+export async function bindOperatorActionsGrant(env: Env, login: string, beeToken: string): Promise<void> {
+  if (env.BEE_ENVIRONMENT === "staging" || login !== "klappy") return;
+  const repos = (env.ALLOWED_ACTIONS_REPOS ?? "").split(",").map(value => value.trim());
+  const logins = (env.ALLOWED_GITHUB_LOGIN ?? "").split(",").map(value => value.trim());
+  if (!repos.includes("klappy/refinery") || !logins.includes("klappy")) return;
+  await bindActionsGrant(env.OAUTH_KV, login, beeToken, env.GITHUB_CLIENT_SECRET);
 }

@@ -1,0 +1,17 @@
+# Debrief — protected homepage review draft
+
+September 11, 2026, America/New_York. [Order](../orders/2026-09-11-bee-homepage-preview.md). Existing [homepage ticket](https://github.com/klappy/kitchen/tree/main/rail/3-pass/2026-09-08-bee-hosted-homepage).
+
+The current homepage still described invitations, manual approval, a trial, lifetime payment and an unrelated knowledge-base exploration after the captain chose monthly free use. A separate prelaunch draft now expresses that intended experience and displays an explicit review-only banner. The existing protected staging preview selects it after email Access verification; the public asset map and production entry are unchanged. All other preview assets retain the existing path, cache and privacy behavior. Draft links keep readers on the page's own privacy section instead of sending them into contradictory old help copy.
+
+Preserved the original layout/classes and byte-identical clipboard script; prior desktop/mobile/keyboard/clipboard evidence remains applicable to unchanged behavior. Existing preview handler moved intact to a focused module, with only authenticated homepage selection added. Tests cover denial before asset access, the three homepage aliases, private/no-store/noindex headers, correct staging MCP URL, HEAD/method behavior and non-home asset routing. No third-party menu names, pricing eligibility or universal client acceptance is invented.
+
+Self-check: stale invitation/trial/lifetime/knowledge-base phrases absent; clipboard script equals current source. Local Playwright package is callable but Chromium binary was absent, so initial screenshot attempt produced no evidence. Exact current-head CI, independent source review, rendered review and deployed preview readback remain required and are not claimed here. No full local application suite or typecheck was run by this cook; CI is the actual execution surface for them.
+
+Preflight and challenge recorded in the order. Existing separate staging Worker satisfies the surfaced environment constraint. This is a bounded review artifact grounded in specific current blobs, not a generalized principle. Retract readiness for failed access isolation, missing draft banner, private headers, or changed public asset. Earlier line-check files were fetched in parallel before ordering was confirmed; record as a sequencing lapse, not perfect hygiene.
+
+No provider mutation, runtime-window extension, credentials, personal content, quota activation, billing/referral activation or production change. Cook does not merge. A visible preview is not exact public-copy approval or whole-meal acceptance. Learning: make the preview honest and separate from the live asset, so product-policy edits can be reviewed without accidentally publishing promises.
+
+## Follow-up evidence before review
+
+During this cook, official OpenAI developer-mode, Claude remote-MCP, xAI connectors and Bee developer-mode pages were freshly read. They support the generic connector/OAuth instructions and the Bee app Version five-tap help. Exact links are in the draft. Local Chromium installation from the official Playwright CDN timed out twice at 30 seconds; the installer was stopped rather than retried indefinitely. No browser executable was found in the runtime search paths. Changed-draft rendering is therefore still unobserved by this cook, not a passed check. The self-contained local review file is transient; the durable source remains the PR. Source template was reformatted for readable exact-text review without changing its HTML string.

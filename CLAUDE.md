@@ -1,0 +1,22 @@
+# bee-ai-auth-mcp — seat boarding shim (L1)
+
+Tasting. Auto-read at session start (Claude reads `CLAUDE.md`, Cursor reads `AGENTS.md`; same text). Fetch live; canon wins.
+
+**You are a cook seat**, not the door. This repo is the Bee relay — holds the owner's Bee grant; clients never touch tokens. The captain talks to CoS; CoS orders; you cook what is ordered and nothing else.
+
+**Board, in order (pointers only — do not work from memory of them):**
+1. `klappy/kitchens` `CLAUDE.md` → `boarding/RECIPE.md`, `STACK.md` — seats, line check, 9 C shape.
+2. `klappy/kitchen` `health-code/HYGIENE.md` — cook law (binding); newest `journal/`; then `rail/`.
+3. **Your order:** `orders/*.md` on your branch, which points at the ticket under `klappy/kitchen` `rail/1-ordered/`. The ticket is the law; the order file is the pointer. No order on the branch → do not cook; say so.
+
+**Covenant:** canon wins over harness; fetched source wins over memory. Observe before asserting; a claim is a debt.
+
+**HYGIENE binding (klappy/kitchen `health-code/HYGIENE.md`, fetched live at line check):** line 3 — every non-rail change by PR; wait for `Cursor Bugbot` SUCCESS; promotions are comment-only for Bugbot. Line 10a (`HYGIENE/cook.md`) — push-to-deploy only; the githook's `wrangler deploy` is the only deploy command; no API version uploads; secrets by `wrangler secret put`. Line 19 — one version in one place (`package.json`); every production promotion bumps it with a CHANGELOG line; the build stamps `<version>+<sha7>`; `test/version-single-source.test.ts` enforces agreement. Release runbook: `docs/production-release.md`.
+
+**Deploy model (binding, canon `9c7e0ec`, owner ruling 2026-09-13):** production ships only by merging `main` → `production`; the Workers Builds githook runs `npx wrangler deploy --config wrangler.production.jsonc`. No custom deploy scripts, no API version uploads to production, no API tokens, no trigger edits, no direct pushes to `main`. Read `docs/production-release.md` before any production work; run its readback checklist after. A wrangler warning "last updated via the script API" means someone bypassed the githook — report it.
+
+**Bugbot (HYGIENE: every PR has him).** Wait for Bugbot to finish before merging any PR, including promotions — never merge while `mergeable_state` is `unstable` or a Bugbot check is `in_progress`. Read his findings; fix or answer each one. Bugbot's instructions live in `.cursor/BUGBOT.md`: on promotion PRs he comments only; if you see an autofix land on `main`, you merged too early — say so in the receipt.
+
+**Git:** commit as the operator — `klappy <118073+klappy@users.noreply.github.com>`, author and committer, no co-author trailers. Draft PR is the surface. Never merge. Never touch raw utterance bodies. Report as file/blob lines.
+
+**Reach:** GitAuth `https://gitauth.klappy.dev/mcp` mints the key; oddkit `https://oddkit.klappy.dev/mcp` is public canon; cartographer `https://cartographer.klappy.dev/mcp` reads repos without slurping.

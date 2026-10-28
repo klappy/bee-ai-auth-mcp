@@ -27,7 +27,7 @@
     <a class="brand" href="/"><img src="/favicon.svg" width="24" height="24" alt="" /> bee-ai-auth-mcp</a>
     <nav>
       <a class="nav-hide" href="/under-the-hood">Under the hood</a>
-      <a href="/setup" aria-current="page">Set up</a>
+      <a href="/setup" aria-current="page">Self-host</a>
       <a class="nav-hide" href="/security">Security</a>
       <a class="nav-hide" href="/roadmap">Roadmap</a>
       <a class="ghost" href="https://github.com/klappy/bee-ai-auth-mcp">GitHub&nbsp;↗</a>
@@ -36,12 +36,13 @@
 </header>
 
 <main class="wrap">
+  <div class="callout info"><p class="h">Invited by Klappy?</p><p>Use the <a href="/#connect">hosted connection guide</a> to connect your own Bee. Klappy manages this service; you do not need to deploy software or change server settings.</p></div>
 
   <section class="page-hero flush">
     <p class="breadcrumb"><a href="/">Home</a> / Set up</p>
     <p class="eyebrow">Self-host guide</p>
     <h1>Run your own instance.</h1>
-    <p class="lede">About fifteen minutes. You'll need a Cloudflare account on the <strong>Workers Paid</strong> plan (the bridge runs as a Container), the <code>wrangler</code> CLI, a GitHub account, and a Bee token (we'll show you how to get one). Your Bee token never leaves your own deployment — it's pasted at the consent screen, not stored as a secret.</p>
+    <p class="lede">About fifteen minutes. You'll need a Cloudflare account on the <strong>Workers Paid</strong> plan (the bridge runs as a Container), the <code>wrangler</code> CLI, a GitHub account, and a Bee token (we'll show you how to get one). Your deployment stores your Bee credential in an encrypted grant and uses it to call Bee.</p>
   </section>
 
   <section class="prose flush" style="padding-top:36px">
@@ -67,7 +68,8 @@ cd bee-ai-auth-mcp &amp;&amp; npm install</pre>
         </dl>
         <p>Register, copy the <strong>Client ID</strong>, and generate a <strong>Client secret</strong>. Store both as Worker secrets:</p>
         <pre>wrangler secret put GITHUB_CLIENT_ID
-wrangler secret put GITHUB_CLIENT_SECRET</pre>
+wrangler secret put GITHUB_CLIENT_SECRET
+wrangler secret put CONSENT_SIGNING_SECRET   <span class="c"># any long random string — signs the consent round-trip</span></pre>
         <div class="callout info"><p class="h">OAuth App, not GitHub App</p><p>GitHub offers two things under Developer settings. Pick <em>OAuth Apps</em> — bee only reads your login, so it doesn't need a GitHub App's installations, permissions, or webhooks.</p></div>
       </li>
       <li>
@@ -76,21 +78,47 @@ wrangler secret put GITHUB_CLIENT_SECRET</pre>
         <pre>npm i -g @beeai/cli
 bee login --qr   <span class="c"># approve the scan in your Bee app</span>
 security find-generic-password -s bee-cli -a token:prod -w   <span class="c"># prints your token (macOS); or: cat ~/.bee/token-prod</span></pre>
-        <p>Hold onto that token if you take the paste route — but you usually won't need it: the consent screen offers <b>one-tap QR pairing</b>. Scan (or tap the link if you're already on your phone), approve in the Bee app, and the relay captures the token directly into your encrypted grant. Heads-up: the approval presents as the <b>Bee CLI</b> — the relay performs the CLI's pairing handshake server-side under the CLI's registered app id, which is fine for self-hosting; a relay-registered app id remains the gate for a public/multi-tenant relay. The paste path above stays as the fallback.</p>
+        <p>Hold onto that token if you take the paste route — but invited users usually won't need it. The consent screen starts the <b>hosted Bee CLI</b> as a one-shot broker: approve the CLI-generated link or QR in the Bee app if asked. You do not install the CLI, and you do not inherit another person's Bee account. The paste path above stays as the operator fallback.</p>
       </li>
       <li>
         <h3>Set your allow-list</h3>
-        <p>In <code>wrangler.jsonc</code> set <code>ALLOWED_GITHUB_LOGIN</code> to your GitHub username — the instance denies every login until you do. Bee's API host (<code>BEE_UPSTREAM</code>/<code>BEE_SNI</code>), the <code>BEE_BRIDGE</code> Container, and Bee's CA roots (<code>bridge/bee-ca.pem</code>) are already committed, so there's nothing else to fill in.</p>
+        <p>In <code>wrangler.jsonc</code> set <code>ALLOWED_GITHUB_LOGIN</code> to your GitHub username — the instance denies every login until you do. (Email sign-in for people without GitHub is the optional Access door below: <code>ALLOWED_EMAILS</code> lives beside this list, never replacing it.) Bee's API host (<code>BEE_UPSTREAM</code>/<code>BEE_SNI</code>), the <code>BEE_BRIDGE</code> Container, and Bee's CA roots (<code>bridge/bee-ca.pem</code>) are already committed, so there's nothing else to fill in.</p>
         <div class="callout"><p class="h">Keep config in the file, not the dashboard</p><p>These are config <em>vars</em>, not secrets — a dashboard value gets reset to the file's value on every deploy. Set them in <code>wrangler.jsonc</code> so they stick. (Secrets, by contrast, persist across deploys.)</p></div>
       </li>
       <li>
         <h3>Deploy by pushing</h3>
-        <p>Connect the repo to Cloudflare Workers Builds, then just push: a push to <code>main</code> deploys to prod (and builds the bridge container image); a branch push is a preview. No manual <code>wrangler deploy</code>.</p>
-        <pre>git push origin main</pre>
+        <p>Connect the repo to Cloudflare Workers Builds, then push the connected <strong>production</strong> branch to deploy prod (and build the bridge container image). Live <code>/version</code> on this host has tracked branch <code>production</code>, not merge-to-<code>main</code>. A feature-branch push uploads a Worker version; this Durable Object + Container Worker does not get a Preview URL. No manual <code>wrangler deploy</code>.</p>
+        <p>Push the branch actually configured as the production branch in Workers Builds, after its separate release approval. Do not assume that branch is <code>main</code>; verify the live trigger and deployed version.</p>
       </li>
       <li>
         <h3>Connect, paste, and check</h3>
         <p>Add your worker URL as a custom connector in Claude, approve the GitHub login, then <strong>paste your Bee token at the consent screen</strong>. Run <code>whoami</code> — it returns your Bee identity through the bridge. The Phase-2 read surface (<code>bee_docs</code> + <code>bee_read</code>, read-only) is also available.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="prose">
+    <h2>Optional: the email door (Cloudflare Access)</h2>
+    <p>Family without GitHub can sign in with an <b>email one-time PIN</b> — Cloudflare Access protects the separate email route, proves the email, and the relay validates the Access JWT server-side (never a bare header). GitHub login keeps working beside it; leave the Access vars empty and this door simply stays off. The separate private <code>ALLOWED_EMAILS</code> secret denies every email when unset or empty.</p>
+    <ol class="steps">
+      <li>
+        <h3>Create the Access application</h3>
+        <p>Zero Trust dashboard → <strong>Access → Applications → Add an application → Self-hosted</strong>, on your worker's hostname. Scope it to this <em>email route only</em>:</p>
+        <pre>/authorize/email</pre>
+        <p>Keep <code>/authorize</code> (the chooser), <code>/authorize/github</code>, <code>/callback</code>, <code>/consent</code>, <code>/pairing/*</code> and public pages outside Access. Shared consent and pairing validate signed, expiring state and re-check the identity allow-list, without requiring an Access session. Narrow older broad Access applications before release and inspect every enabled custom or workers.dev hostname.</p>
+        <div class="callout warn"><p class="h">Never put the MCP endpoints behind Access</p><p><code>/register</code>, <code>/token</code>, and <code>/mcp</code> are non-browser endpoints your MCP client calls directly. An Access interstitial on any of them breaks every client connection — for everyone, both doors.</p></div>
+      </li>
+      <li>
+        <h3>Add the login methods</h3>
+        <p>Zero Trust → <strong>Settings → Authentication → Login methods</strong>: add <strong>One-time PIN</strong>. The relay chooser offers email and direct GitHub OAuth separately. GitHub federation through Access is not required and does not replace the direct GitHub door.</p>
+      </li>
+      <li>
+        <h3>Write the Access policy</h3>
+        <p>On the application, add an <strong>Allow</strong> policy with an <em>Emails</em> include rule listing exactly the addresses you'll allow. (The relay re-checks its own list too — the policy and <code>ALLOWED_EMAILS</code> should match.)</p>
+      </li>
+      <li>
+        <h3>Point the relay at your team</h3>
+        <p>In <code>wrangler.jsonc</code>, set <code>ACCESS_TEAM_DOMAIN</code> (e.g. <code>myteam.cloudflareaccess.com</code>) and <code>ACCESS_AUD</code> (the application's <strong>AUD tag</strong>, on the app's overview page). Set <code>ALLOWED_EMAILS</code> separately as a <strong>private Worker secret</strong> containing the comma-separated approved addresses, using the operator's secure secret-setting workflow. Never put invited addresses in <code>wrangler.jsonc</code>, source control, logs, or chat. Keep this secret aligned with the Access policy; unset or empty denies every email. Push reviewed code to deploy. The relay verifies each <code>Cf-Access-Jwt-Assertion</code> against <code>https://&lt;team&gt;/cdn-cgi/access/certs</code> with issuer and AUD pinned; a request to <code>/authorize/email</code> without a valid assertion fails closed with HTTP 403. Direct GitHub OAuth remains available separately; an invalid email assertion never silently changes sign-in methods. Test email and direct GitHub sign-in through shared consent/pairing, plus the MCP flow, before release.</p>
       </li>
     </ol>
   </section>
@@ -123,7 +151,7 @@ security find-generic-password -s bee-cli -a token:prod -w   <span class="c"># p
 <footer>
   <div class="wrap frow">
     <span class="mono">bee-ai-auth-mcp</span><span class="sep">·</span>
-    <span>MIT — self-host-first</span><span class="sep">·</span>
+    <span>MIT · self-hosting available</span><span class="sep">·</span>
     <a href="/">Home</a><span class="sep">·</span>
     <a href="/under-the-hood">Under the hood</a><span class="sep">·</span>
     <a href="/security">Security</a><span class="sep">·</span>

@@ -6,7 +6,7 @@
 //   1. WORKERS_CI_COMMIT_SHA  — set by Cloudflare Workers Builds
 //   2. `git rev-parse HEAD`   — local builds
 //   3. "dev"                  — neither available
-import { writeFileSync } from "node:fs";
+import { writeFileSync, readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 
 function resolveSha() {
@@ -20,9 +20,15 @@ function resolveSha() {
 }
 
 const sha = resolveSha();
+const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+const version = String(pkg.version);
 const out = `// GENERATED at build time by scripts/gen-version.mjs — do not edit by hand.
 // Committed default is "dev"; the build overwrites it with the real commit SHA.
 export const COMMIT_SHA = ${JSON.stringify(sha)};
+// Single source of truth for the release version is package.json; baked here so the running
+// Worker, the MCP handshake and /version all agree by construction.
+export const VERSION = ${JSON.stringify(version)};
+export const BUILD_VERSION = ${JSON.stringify(version + "+" + sha.slice(0, 7))};
 `;
 writeFileSync(new URL("../src/version.ts", import.meta.url), out);
-console.log(`gen-version: src/version.ts COMMIT_SHA=${sha}`);
+console.log(`gen-version: src/version.ts COMMIT_SHA=${sha} VERSION=${version}`);

@@ -10,6 +10,7 @@
 import { getContainer } from "@cloudflare/containers";
 import { resolveActionsGrant } from "./actions-grant";
 import { bearerOf, verifyActionsOidc } from "./actions-oidc";
+import { grantIdentityAllowed } from "./admission";
 import { beeRead } from "./bee";
 import type { Env } from "./types";
 
@@ -41,7 +42,7 @@ export async function handleActionsRead(request: Request, env: Env): Promise<Res
   if (!bearer) return jsonError(401, "missing_bearer");
 
   const identity = await verifyActionsOidc(bearer, env, request.url);
-  if (!identity) return jsonError(403, "oidc_not_accepted");
+  if (!identity || !(await grantIdentityAllowed(env, identity.login))) return jsonError(403, "oidc_not_accepted");
 
   const beeToken = await resolveActionsGrant(env.OAUTH_KV, identity.login, env.GITHUB_CLIENT_SECRET);
   if (!beeToken) {

@@ -30,7 +30,7 @@ describe("isActionsReadPath", () => {
 
 
 describe("handleActionsRead boundary", () => {
-  const env = { OAUTH_KV: {}, GITHUB_CLIENT_SECRET: "synthetic", BEE_BRIDGE: {} } as unknown as import("../src/types").Env;
+  const env = { OAUTH_KV: {}, ALLOWED_GITHUB_LOGIN: "klappy", GITHUB_CLIENT_SECRET: "synthetic", BEE_BRIDGE: {} } as unknown as import("../src/types").Env;
   const request = (method = "GET", auth = true) => new Request("https://bee.invalid/v1/changes", {
     method, headers: auth ? { Authorization: "Bearer synthetic" } : {},
   });
@@ -49,6 +49,11 @@ describe("handleActionsRead boundary", () => {
     const result = await handleActionsRead(request(), env);
     expect(result.status).toBe(403);
     expect(await result.json()).toEqual({ error: "no_captured_grant" });
+    expect(mocks.read).not.toHaveBeenCalled();
+  });
+  it("retains the staging denial for GitHub identities", async () => {
+    expect((await handleActionsRead(request(), { ...env, BEE_ENVIRONMENT: "staging" })).status).toBe(403);
+    expect(mocks.grant).not.toHaveBeenCalled();
     expect(mocks.read).not.toHaveBeenCalled();
   });
   it("rejects writes before authentication or grant access", async () => {

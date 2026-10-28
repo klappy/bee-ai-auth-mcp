@@ -1,0 +1,31 @@
+import { expect, it, vi } from 'vitest';
+vi.mock('cloudflare:workers', () => ({ WorkerEntrypoint: class {} }));
+vi.mock('../src/validation', () => ({ BeeBridge: class {} }));
+vi.mock('../src/access', () => ({ verifyAccessJwt: vi.fn() }));
+vi.mock('../src/mcp-api', () => ({ McpApiHandler: { fetch: vi.fn() } }));
+vi.mock('../src/bee-auth', () => ({ BeeAuthHandler: { fetch: vi.fn() } }));
+import entry from '../src/staging';
+
+it('records actual Bee DCR choices using only synthetic local KV', async () => {
+  const network = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Diagnostic prohibits network'));
+  const table = [];
+  for (const [label, metadata] of [
+    ['none only', { token_endpoint_auth_method: 'none' }],
+    ['private key preferred, none offered', { token_endpoint_auth_method: 'private_key_jwt', token_endpoint_auth_methods_supported: ['private_key_jwt', 'none'] }],
+    ['choices without preference', { token_endpoint_auth_methods_supported: ['private_key_jwt', 'none'] }],
+    ['private key only', { token_endpoint_auth_method: 'private_key_jwt' }],
+    ['none preferred, choices offered', { token_endpoint_auth_method: 'none', token_endpoint_auth_methods_supported: ['private_key_jwt', 'none'] }],
+  ] as const) {
+    const kv = new Map<string, string>();
+    const env: any = { SIGNUP_ENABLED: 'true', CONSENT_SIGNING_SECRET: 'synthetic', OAUTH_KV: { get: async (k: string, type?: any) => { const value = kv.get(k); return value === undefined ? null : (type === 'json' || type?.type === 'json') ? JSON.parse(value) : value; }, put: async (k: string, v: string) => { kv.set(k, v); } }, BEE_BRIDGE: { idFromName: (n: string) => n, get: () => ({ admission: async () => true }) } };
+    const response = await entry.fetch(new Request('https://staging.example.test/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ redirect_uris: ['https://client.example.test/callback'], client_name: 'Synthetic diagnostic', ...metadata }) }), env, { waitUntil: () => {} } as any);
+    const body = await response.json() as any;
+    const exchange = await entry.fetch(new Request('https://staging.example.test/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'authorization_code', client_id: body.client_id, code: 'synthetic-invalid-code', redirect_uri: 'https://client.example.test/callback', code_verifier: 'synthetic-code-verifier-for-local-test-only-123456789' }) }), env, { waitUntil: () => {} } as any);
+    const rejected = await exchange.json() as any;
+    table.push({ label, status: response.status, selected: body.token_endpoint_auth_method, issuedSecret: !!body.client_secret, error: body.error ?? null, exchangeStatus: exchange.status, exchangeError: rejected.error, exchangeDescription: rejected.error_description });
+  }
+  console.log(JSON.stringify({ provider: '0.7.2', synthetic: true, results: table }));
+  expect(table.find(r => r.label === 'none only')).toMatchObject({ status: 201, selected: 'none', issuedSecret: false });
+  expect(table.find(r => r.label === 'private key preferred, none offered')).toMatchObject({ status: 201, selected: 'private_key_jwt', issuedSecret: true });
+  expect(network).not.toHaveBeenCalled(); network.mockRestore();
+});

@@ -25,8 +25,9 @@ export function decodeState<T>(s: string): T {
 // to /consent — but by then we no longer have GitHub to re-derive the login.
 // So we carry the gate-verified { oauthReqInfo, login } across that round-trip
 // HMAC-signed, so the login the allow-list approved cannot be swapped by a
-// tampered form field. The signing key is GITHUB_CLIENT_SECRET (already a
-// server-only secret; no new secret to steward). The payload is NOT
+// tampered form field. The signing key is CONSENT_SIGNING_SECRET, a dedicated
+// server-only secret (the dual-door change ended GITHUB_CLIENT_SECRET's dual
+// use; see ticket bee-relay-cf-access). The payload is NOT
 // confidential (no token rides in it) — it is integrity-protected, not hidden.
 // ---------------------------------------------------------------------------
 
