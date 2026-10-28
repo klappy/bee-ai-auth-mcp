@@ -36,6 +36,10 @@ export interface Env {
    *  two doors, two namespaces (PRD v0.3 / ledger E0012; ticket
    *  bee-relay-cf-access 2026-08-28 BOTH-doors ruling). */
   ALLOWED_GITHUB_LOGIN?: string;
+  /** Enable the exact klappy/refinery main seat by including klappy/refinery; other repos never gain access. */
+  ALLOWED_ACTIONS_REPOS?: string;
+  /** Expected `aud` on GitHub Actions OIDC JWTs. Defaults to the request origin. */
+  GITHUB_ACTIONS_OIDC_AUDIENCE?: string;
 
   // ---- Cloudflare Access door (email identity beside GitHub OAuth) ----
   /** Zero Trust team domain, e.g. `myteam.cloudflareaccess.com`. Together with

@@ -20,6 +20,9 @@
     { "binding": "BEE_TELEMETRY", "dataset": "bee_telemetry" }
   ],
   "vars": {
+    // One machine seat: exact refinery main subject, not a new identity door.
+    "ALLOWED_ACTIONS_REPOS": "klappy/refinery",
+    "GITHUB_ACTIONS_OIDC_AUDIENCE": "https://bee.klappy.dev",
     // Comma-separated GitHub login(s) allowed to use this self-host instance.
     // REQUIRED — the instance denies all logins until this is set.
     "ALLOWED_GITHUB_LOGIN": "klappy,tatacurly",

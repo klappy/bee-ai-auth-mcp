@@ -26,6 +26,7 @@
  */
 
 import type { AuthRequest } from "@cloudflare/workers-oauth-provider";
+import { bindOperatorActionsGrant } from "./actions-grant";
 import { getContainer } from "@cloudflare/containers";
 import { renderSVG } from "uqr";
 import { verifyAccessJwt } from "./access";
@@ -452,6 +453,7 @@ export const BeeAuthHandler = {
         scope: ["bee_read"],
         props: { login: cs.login, beeToken, ...(env.SIGNUP_ENABLED === 'true' && cs.login.includes('@') ? { admissionEpoch: cs.admissionEpoch } : {}) },
       });
+      await bindOperatorActionsGrant(env, cs.login, beeToken);
       return Response.redirect(redirectTo, 302);
     }
 
@@ -559,6 +561,7 @@ export const BeeAuthHandler = {
       } catch {
         /* best-effort — grant is already bound; leftover dir dies with container sleep */
       }
+      await bindOperatorActionsGrant(env, cs.login, beeToken);
       return json({ status: "completed", redirectTo });
     }
 

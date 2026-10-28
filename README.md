@@ -134,3 +134,11 @@ Production admin authentication uses private `ADMIN_ACCESS_AUD` and
 included in source. This PR prepares the production entry configuration but does
 not deploy it, activate email signup, select a monthly allowance, or publish the
 approved homepage. See [production entry boundaries](docs/production-entry.md).
+
+
+### Refinery machine intake (draft)
+
+The existing OIDC machine-door work is documented in [docs/actions-oidc.md](docs/actions-oidc.md).
+It permits only the exact klappy/refinery main subject, is read-only, and uses an
+operator sidecar captured on reconnect after authorized release. Source tests and
+this documentation do not assert deployed intake or durable capture/retrieval.

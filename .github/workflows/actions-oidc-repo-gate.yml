@@ -1,0 +1,64 @@
+# Source checks on feature PRs; explicit live check only after an approved deploy.
+name: Actions OIDC repo gate
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Full reviewed source SHA already deployed to bee.klappy.dev
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  source-gate:
+    name: OIDC source boundary
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npx vitest run test/actions-oidc.test.ts test/actions-grant.test.ts test/actions-read.test.ts test/actions-hosted-entry.test.ts
+
+  oidc-repo-gate:
+    name: OIDC repo gate vs deployed source
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Validate reviewed source SHA
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: '[[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]'
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.expected_sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Require deployed exact source
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          DEPLOYED=$(curl -fs --max-time 10 https://bee.klappy.dev/version)
+          test -n "$DEPLOYED" && test "$DEPLOYED" = "$EXPECTED_SHA"
+      - run: npm ci
+      - name: Run read-only wrong-repository and missing-auth live checks
+        env:
+          SMOKE_BASE_URL: https://bee.klappy.dev
+          GITHUB_ACTIONS_OIDC_AUDIENCE: https://bee.klappy.dev
+        run: npx vitest run test/actions-oidc.live.test.ts

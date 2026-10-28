@@ -1,5 +1,6 @@
 /** Shared native OAuth, signup and PKCE policy for hosted environments. */
 import OAuthProvider, { OAuthError } from '@cloudflare/workers-oauth-provider';
+import { handleActionsRead, isActionsReadPath } from './actions-read';
 import { BeeAuthHandler } from './bee-auth';
 import { McpApiHandler } from './mcp-api';
 import { isOriginAllowed } from './origin';
@@ -22,6 +23,7 @@ function oauthError(error: string, status = 400): Response { return Response.jso
 export async function hostedFetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     try {
+      if (isActionsReadPath(url.pathname)) return await handleActionsRead(request, env);
       // Discovery, registration, signup, and the unauthenticated MCP challenge
       // remain usable while a bounded Bee runtime/signing window is closed.
       if (!env.CONSENT_SIGNING_SECRET && ['/authorize', '/authorize/email', '/authorize/github', '/callback', '/consent', '/pairing/start', '/pairing/status', '/signup/retry'].includes(url.pathname)) return oauthError('temporarily_unavailable', 503);

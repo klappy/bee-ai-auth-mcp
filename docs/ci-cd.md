@@ -62,3 +62,15 @@ these environments. The production assets, immutable Container image, privacy
 settings and deploy command require their separately reviewed release envelope.
 The historical command observation above is not approval to run it with a newly
 prepared configuration. See [the source contract](production-entry.md).
+
+
+### Actions machine-door check
+
+The existing Actions OIDC repo-gate workflow follows the same source-only feature
+PR contract. It runs the signed synthetic claim, sidecar-custody, HTTP-boundary
+and hosted-entry tests without deployment credentials or an OIDC permission.
+There are no feature preview URL assumptions. Its explicit manual live mode takes
+the reviewed full source SHA already deployed at the fixed production origin,
+requires exact non-empty /version equality, then exercises wrong-repository and
+missing-auth denials. It does not deploy or prove successful refinery capture.
+The full release, operator reconnect and refinery-main acceptance remain gates.

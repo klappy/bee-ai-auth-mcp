@@ -14,7 +14,7 @@ export default {
     const path = new URL(request.url).pathname;
     // Known frozen public files only; protocol and identity routes always reach
     // the hosted handler, even if a future asset manifest contains that name.
-    const protectedRoute = /^\/(?:mcp|authorize|callback|consent|pairing|signup|admin|register|token|healthz|version|preview|\.well-known)(?:\/|$)/.test(path);
+    const protectedRoute = /^\/(?:v1|mcp|authorize|callback|consent|pairing|signup|admin|register|token|healthz|version|preview|\.well-known)(?:\/|$)/.test(path);
     if (['GET', 'HEAD'].includes(request.method) && !protectedRoute) {
       if (['/', '/index', '/index.html'].includes(path)) { const html = releasedHomepage(env); if (html) return homepageResponse(request, html); }
       const asset = await embeddedAssets.fetch(request);
