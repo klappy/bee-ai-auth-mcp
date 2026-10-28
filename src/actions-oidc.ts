@@ -2,12 +2,16 @@
  * GitHub Actions OIDC verification — federation seat for machine callers.
  *
  * Actions jobs present a short-lived JWT from token.actions.githubusercontent.com.
- * We verify signature + audience + repo allow-list, then map repository_owner to
+ * We verify signature + audience + the exact refinery main subject, then map repository_owner to
  * the configured GitHub login allow-list (same tenancy gate as OAuth consent).
  */
 
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import type { Env } from "./types";
+
+const ACTIONS_REPOSITORY = "klappy/refinery";
+const ACTIONS_REF = "refs/heads/main";
+const ACTIONS_SUBJECT = "repo:klappy/refinery:ref:refs/heads/main";
 
 const GH_ISSUER = "https://token.actions.githubusercontent.com";
 const JWKS = createRemoteJWKSet(new URL(`${GH_ISSUER}/.well-known/jwks`));
@@ -46,20 +50,9 @@ function audienceOf(env: Env, requestUrl: string): string {
   return new URL(requestUrl).origin;
 }
 
-function repositoryFromClaims(payload: JWTPayload): string | null {
-  const repo = payload.repository;
-  if (typeof repo === "string" && repo.includes("/")) return repo;
-  const owner = payload.repository_owner;
-  const name = payload.repository_name;
-  if (typeof owner === "string" && typeof name === "string") return `${owner}/${name}`;
-  return null;
-}
-
-function ownerLoginFromClaims(payload: JWTPayload): string | null {
-  const owner = payload.repository_owner;
-  if (typeof owner === "string" && owner) return owner;
-  const repo = payload.repository;
-  if (typeof repo === "string" && repo.includes("/")) return repo.split("/")[0] ?? null;
+function deny(payload: JWTPayload): null {
+  // Only verified claims reach here. Never log the JWT or grant.
+  console.warn(JSON.stringify({ event: "actions_oidc_denied", sub: payload.sub ?? null }));
   return null;
 }
 
@@ -80,17 +73,25 @@ export async function verifyActionsOidc(
     const verified = await jwtVerify(token, JWKS, {
       issuer: GH_ISSUER,
       audience: audienceOf(env, requestUrl),
+      requiredClaims: ["exp", "sub", "repository", "repository_owner", "ref"],
     });
     payload = verified.payload;
   } catch {
     return null;
   }
 
-  const repository = repositoryFromClaims(payload);
-  if (!repository || !allowedRepos.includes(repository.toLowerCase())) return null;
+  // One machine seat, not a pattern or a configurable expansion to other refs.
+  // Subject alone is insufficient when custom subjects or conflicting claims occur.
+  if (
+    payload.sub !== ACTIONS_SUBJECT ||
+    payload.repository !== ACTIONS_REPOSITORY ||
+    payload.ref !== ACTIONS_REF ||
+    payload.repository_owner !== "klappy" ||
+    payload.event_name === "pull_request" ||
+    payload.event_name === "pull_request_target" ||
+    !allowedRepos.includes(ACTIONS_REPOSITORY) ||
+    !isAllowedLogin("klappy", env)
+  ) return deny(payload);
 
-  const login = ownerLoginFromClaims(payload);
-  if (!login || !isAllowedLogin(login, env)) return null;
-
-  return { login, repository };
+  return { login: "klappy", repository: ACTIONS_REPOSITORY };
 }
